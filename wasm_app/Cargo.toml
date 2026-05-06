@@ -5,17 +5,15 @@ edition.workspace = true
 authors.workspace = true
 
 [dependencies]
-engine = { path = "../engine" }
 game_logic = { path = "../game_logic" }
-wgpu = { workspace = true }
 wasm-bindgen = { workspace = true }
-web-sys = { workspace = true }
+web-sys = { workspace = true, features = ["Window", "Document", "HtmlCanvasElement", "WebGlRenderingContext", "console"] }
 js-sys = { workspace = true }
 cgmath = { workspace = true }
 glam = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
 log = { workspace = true }
+wasm-bindgen-futures = "0.4"
+console_error_panic_hook = "0.1"
 
 [lib]
 crate-type = ["cdylib"]
