@@ -231,27 +231,78 @@ function drawMinimap() {
     }
   }
 
-  // Draw player arrow
-  const arrowDirs = [
-    [0, -4],  // N (facing=1)
-    [4,  0],  // E (facing=2)
-    [0,  4],  // S (facing=4)
-    [-4, 0],  // W (facing=8)
-  ];
+  // ── Player: view cone + arrow ─────────────────────────────────────────────
+  // facingIdx: 0=N 1=E 2=S 3=W  →  angle in canvas (Y-down, N=up=−π/2)
   const facingIdx = facing === 1 ? 0 : facing === 2 ? 1 : facing === 4 ? 2 : 3;
-  const [dx, dy] = arrowDirs[facingIdx];
+  const facingAngle = [-Math.PI/2, 0, Math.PI/2, Math.PI][facingIdx];
   const cx2 = px * CELL + CELL/2 + 1;
   const cy2 = pz * CELL + CELL/2 + 1;
+
+  // View cone (60° sector, 2.5 cells reach)
+  const coneAngle = Math.PI / 3;  // 60°
+  const coneR = CELL * 2.2;
   mmCtx.save();
-  mmCtx.strokeStyle = '#fff';
-  mmCtx.fillStyle = 'rgba(255,255,255,0.9)';
-  mmCtx.lineWidth = 1.5;
+  mmCtx.fillStyle = 'rgba(255,220,0,0.13)';
   mmCtx.beginPath();
-  mmCtx.moveTo(cx2 + dx*1.0, cy2 + dy*1.0);
-  mmCtx.lineTo(cx2 - dx*0.5 - dy*0.5, cy2 - dy*0.5 + dx*0.5);
-  mmCtx.lineTo(cx2 - dx*0.5 + dy*0.5, cy2 - dy*0.5 - dx*0.5);
+  mmCtx.moveTo(cx2, cy2);
+  mmCtx.arc(cx2, cy2, coneR, facingAngle - coneAngle/2, facingAngle + coneAngle/2);
   mmCtx.closePath();
   mmCtx.fill();
+  // Cone outline
+  mmCtx.strokeStyle = 'rgba(255,220,0,0.5)';
+  mmCtx.lineWidth = 1;
+  mmCtx.beginPath();
+  mmCtx.moveTo(cx2, cy2);
+  mmCtx.lineTo(cx2 + Math.cos(facingAngle - coneAngle/2)*coneR,
+               cy2 + Math.sin(facingAngle - coneAngle/2)*coneR);
+  mmCtx.moveTo(cx2, cy2);
+  mmCtx.lineTo(cx2 + Math.cos(facingAngle + coneAngle/2)*coneR,
+               cy2 + Math.sin(facingAngle + coneAngle/2)*coneR);
+  mmCtx.stroke();
+  mmCtx.restore();
+
+  // Player dot
+  mmCtx.save();
+  mmCtx.fillStyle = '#fff';
+  mmCtx.shadowColor = '#0ff';
+  mmCtx.shadowBlur = 6;
+  mmCtx.beginPath();
+  mmCtx.arc(cx2, cy2, 3.5, 0, Math.PI*2);
+  mmCtx.fill();
+  mmCtx.restore();
+
+  // Direction arrow (bright yellow, larger)
+  const tipX = cx2 + Math.cos(facingAngle) * 5.5;
+  const tipY = cy2 + Math.sin(facingAngle) * 5.5;
+  const baseL = facingAngle + Math.PI*0.75;
+  const baseR = facingAngle - Math.PI*0.75;
+  mmCtx.save();
+  mmCtx.fillStyle = '#ffe040';
+  mmCtx.shadowColor = '#ffc000';
+  mmCtx.shadowBlur = 5;
+  mmCtx.beginPath();
+  mmCtx.moveTo(tipX, tipY);
+  mmCtx.lineTo(cx2 + Math.cos(baseL)*4, cy2 + Math.sin(baseL)*4);
+  mmCtx.lineTo(cx2 + Math.cos(baseR)*4, cy2 + Math.sin(baseR)*4);
+  mmCtx.closePath();
+  mmCtx.fill();
+  mmCtx.restore();
+
+  // Compass labels (N/S/E/W)
+  mmCtx.save();
+  mmCtx.font = 'bold 8px monospace';
+  mmCtx.textAlign = 'center';
+  mmCtx.textBaseline = 'middle';
+  const compassLabels = [['N',72,5],['S',72,139],['W',5,72],['E',139,72]];
+  for (const [lbl, lx, ly] of compassLabels) {
+    // Highlight the label that matches current facing
+    const isActive = (lbl==='N'&&facingIdx===0)||(lbl==='E'&&facingIdx===1)||
+                     (lbl==='S'&&facingIdx===2)||(lbl==='W'&&facingIdx===3);
+    mmCtx.fillStyle = isActive ? '#ffe040' : 'rgba(0,200,255,0.55)';
+    mmCtx.shadowColor = isActive ? '#ffc000' : 'transparent';
+    mmCtx.shadowBlur  = isActive ? 4 : 0;
+    mmCtx.fillText(lbl, lx, ly);
+  }
   mmCtx.restore();
 
   // Goal dot (magenta)
