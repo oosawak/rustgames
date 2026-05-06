@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Neon Maze 3D – wgpu WebGL</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="hud">
+  <span id="steps-label">歩数: <b id="steps">0</b></span>
+  <button id="btn-reset" onclick="doReset()">リセット</button>
+</div>
+
+<div id="canvas-wrap">
+  <canvas id="maze3d-canvas"></canvas>
+</div>
+
+<!-- D-pad controls -->
+<div id="dpad">
+  <button class="db" id="db-up"    ontouchstart="act(0)" onmousedown="act(0)">▲</button>
+  <div id="dpad-mid">
+    <button class="db" id="db-left"  ontouchstart="act(1)" onmousedown="act(1)">◀</button>
+    <button class="db" id="db-center" disabled>●</button>
+    <button class="db" id="db-right" ontouchstart="act(2)" onmousedown="act(2)">▶</button>
+  </div>
+  <button class="db" id="db-down"  ontouchstart="act(3)" onmousedown="act(3)">▼</button>
+</div>
+
+<!-- Win overlay -->
+<div id="win-overlay" style="display:none">
+  <div id="win-box">
+    <div id="win-icon">🎉</div>
+    <h2>クリア！</h2>
+    <p id="win-steps"></p>
+    <button onclick="doReset()">もう一度</button>
+  </div>
+</div>
+
+<!-- Loading overlay -->
+<div id="loading">
+  <div id="loading-inner">
+    <div class="spin"></div>
+    <p>wgpu WebGL 初期化中…</p>
+  </div>
+</div>
+
+<script type="module">
+import init, {
+  init_maze3d, tick_maze3d, move_maze3d,
+  reset_maze3d, steps_maze3d, won_maze3d
+} from './wasm/wasm_app.js';
+
+let initialized = false;
+let stepsEl  = document.getElementById('steps');
+let winOv    = document.getElementById('win-overlay');
+let winSteps = document.getElementById('win-steps');
+let loading  = document.getElementById('loading');
+
+// Resize canvas to fill the game area
+function resizeCanvas() {
+  const cv  = document.getElementById('maze3d-canvas');
+  const wrap = document.getElementById('canvas-wrap');
+  cv.width  = wrap.clientWidth;
+  cv.height = wrap.clientHeight;
+}
+
+async function start() {
+  resizeCanvas();
+  await init();
+  await init_maze3d('maze3d-canvas');
+  initialized = true;
+  loading.style.display = 'none';
+  requestAnimationFrame(loop);
+}
+
+function loop(ts) {
+  if (!initialized) return;
+  tick_maze3d(ts);
+  stepsEl.textContent = steps_maze3d();
+  if (won_maze3d()) {
+    winSteps.textContent = `歩数: ${steps_maze3d()} 歩でゴール！`;
+    winOv.style.display = 'flex';
+    return; // pause loop
+  }
+  requestAnimationFrame(loop);
+}
+
+// Expose to onclick/ontouchstart (must be on window)
+window.act = function(action) {
+  if (!initialized) return;
+  move_maze3d(action);
+};
+window.doReset = function() {
+  if (!initialized) return;
+  reset_maze3d();
+  winOv.style.display = 'none';
+  requestAnimationFrame(loop);
+};
+
+// Keyboard controls
+window.addEventListener('keydown', e => {
+  if (!initialized) return;
+  if (e.key === 'ArrowUp'    || e.key === 'w') window.act(0);
+  if (e.key === 'ArrowLeft'  || e.key === 'a') window.act(1);
+  if (e.key === 'ArrowRight' || e.key === 'd') window.act(2);
+  if (e.key === 'ArrowDown'  || e.key === 's') window.act(3);
+  if (e.key === 'r') window.doReset();
+});
+
+window.addEventListener('resize', () => {
+  resizeCanvas();
+});
+
+start().catch(err => {
+  loading.innerHTML = `<p style="color:#f66">エラー: ${err}</p>`;
+  console.error(err);
+});
+</script>
+</body>
+</html>

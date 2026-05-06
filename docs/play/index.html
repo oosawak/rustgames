@@ -1,271 +1,89 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Puzzle Game - Rust wgpu</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-
-        .container {
-            background: white;
-            border-radius: 15px;
-            padding: 40px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 800px;
-            text-align: center;
-        }
-
-        h1 {
-            color: #667eea;
-            margin-bottom: 10px;
-            font-size: 2.5em;
-        }
-
-        .subtitle {
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 1.1em;
-        }
-
-        .game-info {
-            background: #f5f5f5;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 30px;
-            text-align: left;
-        }
-
-        .game-info h3 {
-            color: #667eea;
-            margin-bottom: 10px;
-        }
-
-        .game-info p {
-            color: #555;
-            line-height: 1.6;
-            margin-bottom: 8px;
-        }
-
-        .features {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-
-        .feature {
-            background: #f9f9f9;
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid #667eea;
-        }
-
-        .feature-icon {
-            font-size: 2em;
-            margin-bottom: 5px;
-        }
-
-        .feature-title {
-            color: #667eea;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .feature-desc {
-            color: #666;
-            font-size: 0.9em;
-        }
-
-        .button-group {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            padding: 12px 30px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1em;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .btn-primary {
-            background: #667eea;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #5568d3;
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-        }
-
-        .btn-secondary {
-            background: #764ba2;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #653a8a;
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(118, 75, 162, 0.3);
-        }
-
-        .status {
-            background: #fff3cd;
-            border: 2px solid #ffc107;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
-            color: #856404;
-        }
-
-        .status-icon {
-            font-size: 1.5em;
-            margin-right: 10px;
-        }
-
-        .footer {
-            color: #999;
-            font-size: 0.9em;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
-        }
-
-        .code-block {
-            background: #2d2d2d;
-            color: #f8f8f2;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 15px 0;
-            overflow-x: auto;
-            text-align: left;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9em;
-        }
-
-        @media (max-width: 600px) {
-            .container {
-                padding: 20px;
-            }
-
-            h1 {
-                font-size: 1.8em;
-            }
-
-            .features {
-                grid-template-columns: 1fr;
-            }
-
-            .button-group {
-                flex-direction: column;
-            }
-
-            .btn {
-                width: 100%;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rust wgpu Games</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'Courier New',monospace;
+  background:#000010;
+  color:#00d4ff;
+  min-height:100vh;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:24px;
+}
+h1{
+  font-size:2rem;
+  color:#fff;
+  text-shadow:0 0 20px #00d4ff;
+  margin-bottom:8px;
+  letter-spacing:0.1em;
+}
+.sub{color:rgba(0,212,255,0.5);font-size:0.85rem;margin-bottom:36px;}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:20px;
+  max-width:700px;
+  width:100%;
+}
+.card{
+  background:rgba(0,20,60,0.8);
+  border:1px solid rgba(0,200,255,0.3);
+  border-radius:12px;
+  padding:24px;
+  text-decoration:none;
+  color:inherit;
+  transition:border-color 0.2s,box-shadow 0.2s;
+}
+.card:hover{
+  border-color:#00d4ff;
+  box-shadow:0 0 24px rgba(0,212,255,0.25);
+}
+.card-icon{font-size:2.5rem;margin-bottom:12px;}
+.card h2{font-size:1.1rem;color:#fff;margin-bottom:6px;}
+.card p{font-size:0.8rem;color:rgba(0,212,255,0.6);line-height:1.5;}
+.tag{
+  display:inline-block;
+  margin-top:10px;
+  padding:2px 8px;
+  border:1px solid rgba(0,200,255,0.4);
+  border-radius:4px;
+  font-size:0.7rem;
+  color:rgba(0,200,255,0.6);
+}
+.tag.wgpu{border-color:rgba(255,0,255,0.5);color:rgba(255,0,255,0.7);}
+footer{margin-top:40px;font-size:0.75rem;color:rgba(0,200,255,0.25);}
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1>🎮 3D Puzzle Game</h1>
-        <p class="subtitle">Rust + wgpu で開発されたクロスプラットフォームゲーム</p>
+<h1>🎮 Rust wgpu Games</h1>
+<p class="sub">WASM + WebGL – GitHub Pages で動作確認</p>
+<div class="grid">
 
-        <div class="status">
-            <span class="status-icon">⏳</span>
-            <strong>開発中：</strong> WASM 版は現在準備中です。以下の方法でプレイできます。
-        </div>
+  <a class="card" href="maze3d/index.html">
+    <div class="card-icon">🌐</div>
+    <h2>Neon Maze 3D</h2>
+    <p>wgpu WebGL バックエンドを使った一人称視点の3D迷路。
+       ネオンサイアンの壁、霧、マゼンタのゴール。</p>
+    <span class="tag wgpu">wgpu WebGL</span>
+    <span class="tag">3D FPS</span>
+    <span class="tag">WASM</span>
+  </a>
 
-        <div class="game-info">
-            <h3>🎯 ゲーム内容</h3>
-            <p>3D 空間に配置された立方体を正しい位置に移動するパズルゲーム。光る線エフェクトとリアルタイム物理演算が特徴です。</p>
-        </div>
+  <a class="card" href="maze.html">
+    <div class="card-icon">🗺️</div>
+    <h2>Neon Maze 2D</h2>
+    <p>Canvas 2D で描画したネオン迷路。
+       シアンの壁と影エフェクト。</p>
+    <span class="tag">Canvas 2D</span>
+    <span class="tag">WASM</span>
+  </a>
 
-        <div class="features">
-            <div class="feature">
-                <div class="feature-icon">🎨</div>
-                <div class="feature-title">3D グラフィックス</div>
-                <div class="feature-desc">wgpu による高速レンダリング</div>
-            </div>
-            <div class="feature">
-                <div class="feature-icon">💡</div>
-                <div class="feature-title">パーティクルシステム</div>
-                <div class="feature-desc">光る線のエフェクト</div>
-            </div>
-            <div class="feature">
-                <div class="feature-icon">⚙️</div>
-                <div class="feature-title">物理演算</div>
-                <div class="feature-desc">リアルな重力シミュレーション</div>
-            </div>
-            <div class="feature">
-                <div class="feature-icon">🔗</div>
-                <div class="feature-title">マルチプラットフォーム</div>
-                <div class="feature-desc">PC・Web・Unity 対応</div>
-            </div>
-        </div>
-
-        <div class="button-group">
-            <a href="../setup/" class="btn btn-primary">📚 セットアップガイド</a>
-            <a href="../examples/" class="btn btn-primary">▶️ 実行方法</a>
-            <a href="../api/" class="btn btn-secondary">📖 API リファレンス</a>
-            <a href="../guides/" class="btn btn-secondary">🔗 統合ガイド</a>
-        </div>
-
-        <div class="game-info">
-            <h3>🚀 はじめ方</h3>
-            
-            <p><strong>1. ネイティブ版（最初に試す）</strong></p>
-            <div class="code-block">
-git clone https://github.com/oosawak/rustgames.git
-cd rustgames
-cargo run --release -p native_app
-            </div>
-
-            <p style="margin-top: 15px;"><strong>2. WASM 版（ブラウザ）</strong></p>
-            <div class="code-block">
-wasm-pack build wasm_app --target web --release
-cd wasm_app/pkg
-python -m http.server 8000
-# ブラウザで http://localhost:8000 を開く
-            </div>
-
-            <p style="margin-top: 15px;"><strong>3. Unity プラグイン</strong></p>
-            <div class="code-block">
-cargo build --release -p ffi_bridge
-# DLL/so/dylib を Unity/Assets/Plugins にコピー
-            </div>
-        </div>
-
-        <div class="footer">
-            <p>📖 <a href="https://github.com/oosawak/rustgames" style="color: #667eea;">GitHub リポジトリ</a> | 
-               🐛 <a href="https://github.com/oosawak/rustgames/issues" style="color: #667eea;">Issues</a> | 
-               💬 <a href="https://github.com/oosawak/rustgames/discussions" style="color: #667eea;">Discussions</a></p>
-            <p style="margin-top: 10px;">Rust wgpu Game Engine v0.1.0</p>
-        </div>
-    </div>
+</div>
+<footer>Rust + wgpu game framework</footer>
 </body>
 </html>

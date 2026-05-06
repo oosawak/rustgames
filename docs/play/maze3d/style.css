@@ -1,0 +1,171 @@
+/* maze3d/style.css – dedicated to this game only */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --neon-cyan:    #00d4ff;
+  --neon-magenta: #ff00ff;
+  --bg:           #000008;
+  --hud-bg:       rgba(0,0,0,0.75);
+  --btn-bg:       rgba(0, 200, 255, 0.15);
+  --btn-border:   rgba(0, 200, 255, 0.5);
+  --btn-active:   rgba(0, 200, 255, 0.35);
+}
+
+html, body {
+  width: 100%; height: 100%;
+  background: var(--bg);
+  color: var(--neon-cyan);
+  font-family: 'Courier New', monospace;
+  overflow: hidden;
+  touch-action: none;
+}
+
+/* ── HUD ── */
+#hud {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 44px;
+  background: var(--hud-bg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  z-index: 10;
+  border-bottom: 1px solid var(--btn-border);
+}
+#steps-label { font-size: 1rem; letter-spacing: 0.05em; }
+#steps-label b { color: #fff; }
+
+#btn-reset {
+  background: transparent;
+  border: 1px solid var(--btn-border);
+  color: var(--neon-cyan);
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+  transition: background 0.15s;
+}
+#btn-reset:hover  { background: var(--btn-active); }
+#btn-reset:active { background: var(--btn-active); }
+
+/* ── Canvas ── */
+#canvas-wrap {
+  position: fixed;
+  top: 44px; left: 0; right: 0;
+  bottom: 160px; /* room for D-pad */
+  background: #000010;
+}
+#maze3d-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── D-pad ── */
+#dpad {
+  position: fixed;
+  bottom: 12px; left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  z-index: 10;
+}
+#dpad-mid {
+  display: flex;
+  gap: 4px;
+}
+
+.db {
+  width: 60px; height: 60px;
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
+  border-radius: 10px;
+  color: var(--neon-cyan);
+  font-size: 1.5rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  transition: background 0.1s;
+}
+.db:active        { background: var(--btn-active); }
+.db:disabled      { opacity: 0.2; cursor: default; }
+
+#db-up, #db-down  { font-size: 1.3rem; }
+#db-center        { width: 60px; height: 60px; opacity: 0.1; }
+
+/* ── Win overlay ── */
+#win-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+#win-box {
+  background: #000820;
+  border: 2px solid var(--neon-magenta);
+  border-radius: 16px;
+  padding: 36px 48px;
+  text-align: center;
+  box-shadow: 0 0 40px var(--neon-magenta);
+}
+#win-icon { font-size: 3rem; margin-bottom: 8px; }
+#win-box h2 {
+  font-size: 2rem;
+  color: var(--neon-magenta);
+  text-shadow: 0 0 12px var(--neon-magenta);
+  margin-bottom: 12px;
+}
+#win-box p  { color: #ccc; margin-bottom: 20px; }
+#win-box button {
+  background: var(--neon-magenta);
+  color: #000;
+  border: none;
+  padding: 12px 32px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* ── Loading overlay ── */
+#loading {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+#loading-inner { text-align: center; }
+#loading-inner p { margin-top: 16px; color: var(--neon-cyan); }
+
+.spin {
+  width: 48px; height: 48px;
+  border: 3px solid rgba(0,200,255,0.2);
+  border-top-color: var(--neon-cyan);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Keyboard hint (desktop) ── */
+@media (pointer: fine) {
+  #dpad::after {
+    content: "W/↑ A/← D/→ S/↓  R=リセット";
+    display: block;
+    margin-top: 6px;
+    font-size: 0.7rem;
+    color: rgba(0,200,255,0.4);
+    text-align: center;
+  }
+}
