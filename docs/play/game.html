@@ -206,13 +206,20 @@
 
         async function startGame() {
             try {
+                console.log('🎮 ゲーム開始します...');
+                
                 if (!game) {
+                    console.log('📦 WASM モジュール読み込み中...');
                     await init();
+                    console.log('✅ WASM 初期化完了');
+                    
                     game = new GameInstance();
+                    console.log('✅ ゲームインスタンス作成完了');
                 }
 
                 let lastTime = performance.now();
                 let isRunning = true;
+                let frameCount = 0;
 
                 function gameLoop(currentTime) {
                     if (!isRunning) return;
@@ -220,31 +227,44 @@
                     const dt = Math.min((currentTime - lastTime) / 1000, 0.1);
                     lastTime = currentTime;
 
-                    game.update(dt);
+                    try {
+                        game.update(dt);
+                        frameCount++;
 
-                    // UI 更新
-                    document.getElementById('score').textContent = game.get_score();
-                    document.getElementById('moves').textContent = game.get_moves();
-                    document.getElementById('time').textContent = game.get_time().toFixed(1) + 's';
+                        // UI 更新
+                        document.getElementById('score').textContent = game.get_score();
+                        document.getElementById('moves').textContent = game.get_moves();
+                        document.getElementById('time').textContent = game.get_time().toFixed(1) + 's';
 
-                    if (game.is_won()) {
-                        alert('🎉 クリアおめでとうございます！');
+                        if (frameCount % 60 === 0) {
+                            console.log(`フレーム: ${frameCount}, スコア: ${game.get_score()}, 移動: ${game.get_moves()}`);
+                        }
+
+                        if (game.is_won()) {
+                            console.log('🎉 ゲームクリア！');
+                            alert('🎉 クリアおめでとうございます！');
+                            isRunning = false;
+                            return;
+                        }
+
+                        requestAnimationFrame(gameLoop);
+                    } catch (err) {
+                        console.error('ゲームループエラー:', err);
                         isRunning = false;
-                        return;
                     }
-
-                    requestAnimationFrame(gameLoop);
                 }
 
+                console.log('▶️ ゲームループ開始');
                 requestAnimationFrame(gameLoop);
             } catch (err) {
-                console.error('Game initialization error:', err);
-                alert('ゲームの初期化に失敗しました: ' + err);
+                console.error('❌ ゲーム初期化エラー:', err);
+                alert('ゲームの初期化に失敗しました:\n' + err.message);
             }
         }
 
         function resetGame() {
             if (game) {
+                console.log('🔄 ゲームをリセット');
                 game.reset();
                 document.getElementById('score').textContent = '0';
                 document.getElementById('moves').textContent = '0';
@@ -255,12 +275,15 @@
         function moveCube(x, y, z) {
             if (game) {
                 const success = game.move_cube(x, y, z);
+                console.log(`立方体移動: (${x}, ${y}, ${z}) - 成功: ${success}`);
                 if (success) {
                     document.getElementById('score').textContent = game.get_score();
                     document.getElementById('moves').textContent = game.get_moves();
                 } else {
                     console.log('移動に失敗しました');
                 }
+            } else {
+                console.warn('ゲームがまだ初期化されていません');
             }
         }
 
@@ -268,6 +291,8 @@
         window.startGame = startGame;
         window.resetGame = resetGame;
         window.moveCube = moveCube;
+
+        console.log('✅ ゲームスクリプト読み込み完了');
     </script>
 </body>
 </html>
