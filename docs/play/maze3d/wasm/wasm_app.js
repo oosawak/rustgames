@@ -121,6 +121,18 @@ export function reset_maze3d() {
 /**
  * @returns {number}
  */
+export function scene_maze3d() {
+    const ret = wasm.scene_maze3d();
+    return ret;
+}
+
+export function start_game_maze3d() {
+    wasm.start_game_maze3d();
+}
+
+/**
+ * @returns {number}
+ */
 export function steps_maze3d() {
     const ret = wasm.steps_maze3d();
     return ret >>> 0;

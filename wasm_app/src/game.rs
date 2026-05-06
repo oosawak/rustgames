@@ -11,8 +11,10 @@ use crate::theme::get_theme;
 use crate::gpu::GpuState;
 use crate::audio::{AudioState, AudioEvent};
 use crate::enemy::Enemy;
+use crate::scene::{Scene, SceneManager};
 
 pub struct GameState {
+    pub scene: SceneManager,
     pub gpu:         GpuState,
     pub maze:        Maze,
     pub light_pos:   [[f32;4];4],
@@ -44,6 +46,7 @@ impl GameState {
         let maze = Maze::new(seed);
         let light_pos = find_lights(&maze, &mut seed);
         Ok(GameState{
+            scene: SceneManager::new(),
             gpu: GpuState::new(canvas).await?,
             maze, light_pos,
             px:0, pz:0, facing:S,
@@ -82,10 +85,11 @@ impl GameState {
         if self.level_clear { self.warp_timer += dt; }
 
         // 敵の更新
-        if !self.game_over {
+        if !self.game_over && !self.scene.is_title() {
             self.enemy.update(dt, &self.maze, self.px, self.pz);
             if self.enemy.caught {
                 self.game_over = true;
+                self.scene.transition_to(Scene::GameOver);
                 self.audio.trigger(crate::audio::AudioEvent::GameOver);
             } else if self.enemy.distance_to(self.px, self.pz) == 1 {
                 self.audio.trigger(crate::audio::AudioEvent::EnemyNear);
@@ -161,7 +165,7 @@ impl GameState {
 
     // action: 0=前進 1=左旋回 2=右旋回 3=後退
     pub fn act(&mut self, action: i32) {
-        if self.level_clear || self.game_over { return; }
+        if self.level_clear || self.game_over || self.scene.is_title() { return; }
         match action {
             1 => self.facing=match self.facing{d if d==N=>W_DIR,d if d==W_DIR=>S,d if d==S=>E,_=>N},
             2 => self.facing=match self.facing{d if d==N=>E,d if d==E=>S,d if d==S=>W_DIR,_=>N},
@@ -189,6 +193,7 @@ impl GameState {
                     self.total_steps+=self.steps;
                     self.level_clear=true;
                     self.warp_timer=0.0;
+                    self.scene.transition_to(Scene::LevelClear);
                     self.spawn_goal_particles();
                 }
             }
@@ -243,9 +248,30 @@ impl GameState {
         self.particles.clear();
         self.enemy = Enemy::new(self.level);
         self.game_over = false;
+        self.scene.transition_to(Scene::Playing);
     }
 
     pub fn reset(&mut self) {
+        let mut seed = (js_sys::Math::random() * u64::MAX as f64) as u64 | 1;
+        self.maze = Maze::new(seed);
+        self.light_pos = find_lights(&self.maze, &mut seed);
+        self.px=0; self.pz=0; self.facing=S;
+        self.vis_x=0.5; self.vis_z=0.5; self.vis_angle=FRAC_PI_2; self.is_moving=false;
+        self.steps=0; self.total_steps=0; self.level=1;
+        self.level_clear=false; self.warp_timer=0.0;
+        self.particles.clear();
+        self.enemy = Enemy::new(1);
+        self.game_over = false;
+        self.scene.transition_to(Scene::Playing);
+    }
+
+    pub fn start_game(&mut self) {
+        self.game_over = false;
+        self.scene.transition_to(Scene::Playing);
+        self.reset_to_level1();
+    }
+
+    fn reset_to_level1(&mut self) {
         let mut seed = (js_sys::Math::random() * u64::MAX as f64) as u64 | 1;
         self.maze = Maze::new(seed);
         self.light_pos = find_lights(&self.maze, &mut seed);

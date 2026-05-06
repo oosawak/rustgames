@@ -55,7 +55,25 @@
 #level-clear button:active { background: rgba(0,255,255,0.2); }
 @keyframes pulse-text { from{opacity:0.8} to{opacity:1; text-shadow:0 0 30px #0ff, 0 0 60px #0ff;} }
 
-/* ── HUD extras ── */
+/* ── Title screen ── */
+#title-screen {
+  position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:50;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+}
+#title-screen h1 {
+  color:#0ff; font-family:monospace; font-size:clamp(2em,8vw,3.5em);
+  text-shadow: 0 0 20px #0ff, 0 0 50px #0ff, 0 0 80px #0ff;
+  margin:0 0 16px; animation: pulse-text 0.8s infinite alternate;
+}
+#title-screen p { font-family:monospace; margin:6px 0; }
+#btn-start {
+  background:transparent; border:2px solid #0ff;
+  color:#0ff; font-size:clamp(1em,4vw,1.4em); padding:14px 40px;
+  cursor:pointer; font-family:monospace; margin-top:24px;
+  text-shadow:0 0 8px #0ff; box-shadow: 0 0 20px #0ff;
+  transition: background 0.2s; border-radius:8px;
+}
+#btn-start:active { background: rgba(0,255,255,0.2); }
 #level-label { color:#f0f; font-family:monospace; font-size:1.1em;
   text-shadow:0 0 8px #f0f; }
 #steps-label  { color:#0ff; font-family:monospace; font-size:1.1em;
@@ -77,6 +95,14 @@
 
 <!-- Warp effect overlay -->
 <div id="warp-overlay"></div>
+
+<!-- Title screen -->
+<div id="title-screen">
+  <h1>🌀 MAZE 3D</h1>
+  <p style="color:#0ff">Find the exit before the enemy catches you!</p>
+  <button id="btn-start">▶ START</button>
+  <p style="color:#888;font-size:0.8em">← → turn &nbsp; ↑ forward &nbsp; ↓ back</p>
+</div>
 
 <!-- Swipe direction hints -->
 <div id="swipe-hint">
@@ -191,6 +217,12 @@ async function start() {
 function loop(ts) {
   if (!initialized) return;
   wasm.tick_maze3d(ts);
+
+  const scene = wasm.scene_maze3d(); // 0=Title, 1=Playing, 2=LevelClear, 3=GameOver
+
+  // タイトル画面の表示制御
+  document.getElementById('title-screen').style.display = scene === 0 ? 'flex' : 'none';
+
   document.getElementById('steps').textContent       = wasm.steps_maze3d();
   document.getElementById('total-steps').textContent = wasm.total_steps_maze3d();
   document.getElementById('level').textContent       = wasm.level_maze3d();
@@ -200,9 +232,25 @@ function loop(ts) {
   pollAudio();
 
   // ゲームオーバーチェック
-  if (initialized && wasm.game_over_maze3d() && !gameOverShown) {
+  if (scene === 3 && !gameOverShown) {
     gameOverShown = true;
     document.getElementById('game-over').style.display = 'flex';
+  }
+  if (scene !== 3 && gameOverShown) {
+    gameOverShown = false;
+    document.getElementById('game-over').style.display = 'none';
+  }
+
+  // レベルクリアチェック
+  if (scene === 2 && !clearShown && wasm.warp_done_maze3d()) {
+    clearShown = true;
+    document.getElementById('clear-steps').textContent =
+      `このレベル: ${wasm.steps_maze3d()} 歩 ／ 合計: ${wasm.total_steps_maze3d()} 歩`;
+    clearEl.style.display = 'flex';
+  }
+  if (scene !== 2 && clearShown) {
+    clearShown = false;
+    clearEl.style.display = 'none';
   }
 
   drawMinimap();
@@ -371,12 +419,6 @@ function updateEffects() {
   } else {
     warpEl.style.opacity = '0';
   }
-  if (wasm.warp_done_maze3d() && !clearShown) {
-    clearShown = true;
-    document.getElementById('clear-steps').textContent =
-      `このレベル: ${wasm.steps_maze3d()} 歩 ／ 合計: ${wasm.total_steps_maze3d()} 歩`;
-    clearEl.style.display = 'flex';
-  }
 }
 
 // ── Single move ───────────────────────────────────────────────────────────────
@@ -431,9 +473,16 @@ function bindControls() {
     btn.addEventListener('touchend',   e => { e.preventDefault(); stopRepeat(); },         {passive:false});
   }
 
+  // ── STARTボタン ──────────────────────────────────────────────────────────────
+  document.getElementById('btn-start').addEventListener('click', () => {
+    ensureAudio();
+    wasm.start_game_maze3d();
+    document.getElementById('title-screen').style.display = 'none';
+  });
+
   // ── Reset / Next-level buttons ───────────────────────────────────────────────
   document.getElementById('btn-reset').addEventListener('click', () => {
-    wasm.reset_maze3d();
+    wasm.start_game_maze3d();
     clearEl.style.display = 'none';
     document.getElementById('game-over').style.display = 'none';
     clearShown = false;
@@ -448,7 +497,7 @@ function bindControls() {
   });
 
   document.getElementById('btn-retry').addEventListener('click', () => {
-    wasm.reset_maze3d();
+    wasm.start_game_maze3d();
     document.getElementById('game-over').style.display = 'none';
     gameOverShown = false;
     clearShown = false;
