@@ -1,0 +1,16 @@
+{
+  "name": "wasm_app",
+  "type": "module",
+  "collaborators": [
+    "Game Developer"
+  ],
+  "version": "0.1.0",
+  "files": [
+    "wasm_app_bg.wasm",
+    "wasm_app.js"
+  ],
+  "main": "wasm_app.js",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
