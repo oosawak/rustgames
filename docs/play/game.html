@@ -132,7 +132,7 @@
             border-left: 4px solid #2196f3;
             padding: 15px;
             border-radius: 5px;
-            margin-top: 15px;
+            margin-bottom: 15px;
             font-size: 0.9em;
             color: #1565c0;
         }
@@ -237,7 +237,7 @@
     </div>
 
     <script>
-        // デバッグログ表示関数（同期的に動作）
+        // デバッグログ表示関数
         function debugLog(message, type = 'info') {
             const debugBox = document.getElementById('debugLog');
             if (!debugBox) {
@@ -249,185 +249,127 @@
             const timestamp = new Date().toLocaleTimeString();
             entry.textContent = `[${timestamp}] ${message}`;
             debugBox.appendChild(entry);
-            // スクロールを最下部に
             debugBox.scrollTop = debugBox.scrollHeight;
-            // 最大100行までの表示
             if (debugBox.children.length > 100) {
                 debugBox.removeChild(debugBox.firstChild);
             }
             console.log(message);
         }
 
-        // ページロード時に初期化ログを表示
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', function() {
-                debugLog('📄 ページロード完了', 'success');
-            });
-        } else {
-            debugLog('📄 ページロード完了', 'success');
-        }
-    </script>
-
-    <script type="module">
-        import init, { GameInstance } from './game/wasm_app.js';
-
-        let game = null;
-
+        // グローバルに関数を定義（HTMLのonclick属性から呼ばれるため）
         async function startGame() {
+            debugLog('🎮 startGame() が呼ばれました！', 'success');
+            
             try {
-                debugLog('🎮 ゲーム開始ボタンをクリック', 'info');
-                
-                if (!game) {
+                if (!window.gameInstance) {
                     debugLog('📦 WASM モジュール読み込み中...', 'info');
-                    try {
-                        await init();
-                        debugLog('✅ WASM 初期化完了', 'success');
-                    } catch (initErr) {
-                        debugLog(`❌ WASM 初期化エラー: ${initErr.message}`, 'error');
-                        return;
-                    }
+                    const { default: init, GameInstance } = await import('./game/wasm_app.js');
+                    debugLog('✅ WASM モジュール読み込み成功', 'success');
                     
-                    try {
-                        game = new GameInstance();
-                        debugLog('✅ ゲームインスタンス作成完了', 'success');
-                    } catch (gameErr) {
-                        debugLog(`❌ ゲームインスタンス作成エラー: ${gameErr.message}`, 'error');
-                        game = null;
-                        return;
-                    }
+                    await init();
+                    debugLog('✅ init() 完了', 'success');
+                    
+                    window.gameInstance = new GameInstance();
+                    debugLog('✅ GameInstance 生成完了', 'success');
                 } else {
                     debugLog('♻️ 既存のゲームインスタンスを使用', 'info');
                 }
 
                 let lastTime = performance.now();
-                let isRunning = true;
                 let frameCount = 0;
 
                 function gameLoop(currentTime) {
-                    if (!isRunning) return;
-
                     const dt = Math.min((currentTime - lastTime) / 1000, 0.1);
                     lastTime = currentTime;
 
                     try {
-                        game.update(dt);
+                        window.gameInstance.update(dt);
                         frameCount++;
 
-                        // UI 更新
-                        const score = game.get_score();
-                        const moves = game.get_moves();
-                        const time = game.get_time();
+                        const score = window.gameInstance.get_score();
+                        const moves = window.gameInstance.get_moves();
+                        const time = window.gameInstance.get_time();
                         
                         document.getElementById('score').textContent = score;
                         document.getElementById('moves').textContent = moves;
                         document.getElementById('time').textContent = time.toFixed(1) + 's';
 
                         if (frameCount === 1) {
-                            debugLog(`▶️ ゲームループ開始 (dt: ${dt.toFixed(4)}s)`, 'success');
+                            debugLog(`▶️ ゲームループ開始`, 'success');
                         }
 
                         if (frameCount % 60 === 0) {
-                            debugLog(`フレーム: ${frameCount}, スコア: ${score}, 移動: ${moves}, 時間: ${time.toFixed(1)}s`, 'info');
+                            debugLog(`📊 フレーム: ${frameCount}, スコア: ${score}, 移動: ${moves}, 時間: ${time.toFixed(1)}s`, 'info');
                         }
 
-                        if (game.is_won()) {
+                        if (window.gameInstance.is_won()) {
                             debugLog('🎉 ゲームクリア！', 'success');
                             alert('🎉 クリアおめでとうございます！');
-                            isRunning = false;
                             return;
                         }
 
                         requestAnimationFrame(gameLoop);
                     } catch (err) {
                         debugLog(`❌ ゲームループエラー: ${err.message}`, 'error');
-                        debugLog(`スタックトレース: ${err.stack}`, 'error');
-                        isRunning = false;
                     }
                 }
 
                 debugLog('▶️ ゲームループ開始...', 'info');
                 requestAnimationFrame(gameLoop);
             } catch (err) {
-                debugLog(`❌ ゲーム初期化エラー: ${err.message}`, 'error');
-                debugLog(`スタックトレース: ${err.stack}`, 'error');
+                debugLog(`❌ エラー: ${err.message}`, 'error');
             }
         }
 
         function resetGame() {
-            debugLog('🔄 リセットボタンをクリック', 'info');
-            if (game) {
+            debugLog('🔄 resetGame() が呼ばれました', 'info');
+            if (window.gameInstance) {
                 try {
-                    game.reset();
+                    window.gameInstance.reset();
                     document.getElementById('score').textContent = '0';
                     document.getElementById('moves').textContent = '0';
                     document.getElementById('time').textContent = '0.0s';
-                    debugLog('✅ ゲームをリセット完了', 'success');
+                    debugLog('✅ リセット完了', 'success');
                 } catch (err) {
                     debugLog(`❌ リセットエラー: ${err.message}`, 'error');
                 }
             } else {
-                debugLog('⚠️ ゲームがまだ初期化されていません', 'error');
+                debugLog('⚠️ ゲームインスタンスがありません', 'error');
             }
         }
 
         function moveCube(x, y, z) {
-            debugLog(`⬌ 立方体移動要求: (${x}, ${y}, ${z})`, 'info');
-            if (game) {
+            debugLog(`⬌ moveCube(${x}, ${y}, ${z}) が呼ばれました`, 'info');
+            if (window.gameInstance) {
                 try {
-                    const success = game.move_cube(x, y, z);
+                    const success = window.gameInstance.move_cube(x, y, z);
                     if (success) {
-                        const score = game.get_score();
-                        const moves = game.get_moves();
+                        const score = window.gameInstance.get_score();
+                        const moves = window.gameInstance.get_moves();
                         document.getElementById('score').textContent = score;
                         document.getElementById('moves').textContent = moves;
-                        debugLog(`✅ 移動成功! 移動数: ${moves}, スコア: ${score}`, 'success');
+                        debugLog(`✅ 移動成功! 移動数: ${moves}`, 'success');
                     } else {
-                        debugLog('❌ 移動に失敗しました（無効な移動）', 'error');
+                        debugLog('❌ 移動できません', 'error');
                     }
                 } catch (err) {
                     debugLog(`❌ 移動エラー: ${err.message}`, 'error');
                 }
             } else {
-                debugLog('⚠️ ゲームがまだ初期化されていません。先にゲーム開始してください。', 'error');
+                debugLog('⚠️ ゲームインスタンスがありません。先にゲーム開始してください。', 'error');
             }
         }
 
-        // グローバルに関数をエクスポート
-        window.startGame = startGame;
-        window.resetGame = resetGame;
-        window.moveCube = moveCube;
-
-        debugLog('✅ ゲームスクリプト (type=module) 読み込み完了', 'success');
-        debugLog('📂 WASM モジュール: ./game/wasm_app.js', 'info');
+        // ページロード時
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                debugLog('📄 ページロード完了', 'success');
+                debugLog('✅ ゲーム開始ボタンをクリックしてください', 'success');
+            });
+        } else {
+            debugLog('📄 ページロード完了', 'success');
+            debugLog('✅ ゲーム開始ボタンをクリックしてください', 'success');
+        }
     </script>
-
-    <script>
-        // ボタンクリックを検出するための直接的なイベントリスナー
-        document.addEventListener('DOMContentLoaded', function() {
-            debugLog('🔍 イベントリスナー登録開始', 'info');
-            
-            const startBtn = document.querySelector('button[onclick*="startGame"]');
-            const resetBtn = document.querySelector('button[onclick*="resetGame"]');
-            const leftBtn = document.querySelector('button[onclick*="-1"]');
-            const rightBtn = document.querySelector('button[onclick*="1, 0, 0"]');
-
-            if (startBtn) {
-                startBtn.addEventListener('click', function(e) {
-                    debugLog('👆 ゲーム開始ボタンクリック検出！', 'info');
-                });
-                debugLog('✅ ゲーム開始ボタンのリスナー登録', 'success');
-            } else {
-                debugLog('❌ ゲーム開始ボタンが見つかりません', 'error');
-            }
-
-            if (resetBtn) {
-                resetBtn.addEventListener('click', function(e) {
-                    debugLog('👆 リセットボタンクリック検出！', 'info');
-                });
-                debugLog('✅ リセットボタンのリスナー登録', 'success');
-            }
-
-            debugLog('✅ 全イベントリスナー登録完了。ボタンをクリックしてください。', 'success');
-        });
 </body>
 </html>
