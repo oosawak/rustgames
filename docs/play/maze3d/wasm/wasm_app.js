@@ -1,4 +1,22 @@
 /**
+ * 音声イベントフラグ (0=なし 1=足音 2=壁衝突 3=レベルクリア 4=ゴール付近)
+ * @returns {number}
+ */
+export function audio_event_maze3d() {
+    const ret = wasm.audio_event_maze3d();
+    return ret;
+}
+
+/**
+ * 足音の左右パリティ (true=左足)
+ * @returns {boolean}
+ */
+export function audio_step_parity_maze3d() {
+    const ret = wasm.audio_step_parity_maze3d();
+    return ret !== 0;
+}
+
+/**
  * @param {string} canvas_id
  * @returns {Promise<void>}
  */

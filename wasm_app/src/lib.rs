@@ -8,6 +8,7 @@ pub mod maze;
 pub mod geometry;
 pub mod gpu;
 pub mod game;
+pub mod audio;
 pub mod camera;
 pub mod engine;
 pub mod input;
@@ -38,6 +39,18 @@ pub async fn init_maze3d(canvas_id: &str) -> Result<(), JsValue> {
 #[wasm_bindgen] pub fn level_clear_maze3d()->bool{ STATE.with(|s|s.borrow().as_ref().map(|g|g.level_clear).unwrap_or(false)) }
 #[wasm_bindgen] pub fn warp_maze3d()->f32        { STATE.with(|s|s.borrow().as_ref().map(|g|g.warp_amount()).unwrap_or(0.0)) }
 #[wasm_bindgen] pub fn warp_done_maze3d()->bool  { STATE.with(|s|s.borrow().as_ref().map(|g|g.level_clear && g.warp_timer>=1.5).unwrap_or(false)) }
+
+/// 音声イベントフラグ (0=なし 1=足音 2=壁衝突 3=レベルクリア 4=ゴール付近)
+#[wasm_bindgen]
+pub fn audio_event_maze3d() -> u8 {
+    STATE.with(|s| s.borrow_mut().as_mut().map(|g| g.audio.consume() as u8).unwrap_or(0))
+}
+
+/// 足音の左右パリティ (true=左足)
+#[wasm_bindgen]
+pub fn audio_step_parity_maze3d() -> bool {
+    STATE.with(|s| s.borrow().as_ref().map(|g| g.audio.step_parity).unwrap_or(false))
+}
 
 // ── ミニマップ用エクスポート ───────────────────────────────────────────────────
 // 迷路セルフラグ (N=1,E=2,S=4,W=8) を MAZE_W×MAZE_H の平坦なVec<u8>で返す

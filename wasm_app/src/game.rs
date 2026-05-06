@@ -8,6 +8,7 @@ use crate::maze::Maze;
 use crate::particle::Particle;
 use crate::geometry::{Light, Uni, LIGHT_COLS, find_lights, build_scene};
 use crate::gpu::GpuState;
+use crate::audio::{AudioState, AudioEvent};
 
 pub struct GameState {
     pub gpu:         GpuState,
@@ -27,6 +28,7 @@ pub struct GameState {
     pub particles: Vec<Particle>,
     pub time: f32,
     pub prev_ts: f64,
+    pub audio: AudioState,
 }
 
 impl GameState {
@@ -46,6 +48,7 @@ impl GameState {
             level_clear:false, warp_timer:0.0,
             particles: Vec::new(),
             time:0.0, prev_ts:0.0,
+            audio: AudioState::new(),
         })
     }
 
@@ -156,6 +159,13 @@ impl GameState {
         match self.maze.can_move(self.px, self.pz, dir) {
             Some((nx,nz)) => {
                 self.px=nx; self.pz=nz; self.steps+=1;
+                self.audio.trigger(AudioEvent::Step);
+                // ゴールへの距離チェック（1セル以内ならGoalNear）
+                let dx = (self.px as i32 - (MAZE_W-1) as i32).abs();
+                let dz = (self.pz as i32 - (MAZE_H-1) as i32).abs();
+                if dx + dz == 1 && !self.level_clear {
+                    self.audio.trigger(AudioEvent::GoalNear);
+                }
                 if self.px==MAZE_W-1 && self.pz==MAZE_H-1 {
                     self.total_steps+=self.steps;
                     self.level_clear=true;
@@ -165,6 +175,7 @@ impl GameState {
             }
             None => {
                 self.spawn_hit_particles(dir);
+                self.audio.trigger(AudioEvent::WallHit);
             }
         }
     }
@@ -189,6 +200,7 @@ impl GameState {
     }
 
     fn spawn_goal_particles(&mut self) {
+        self.audio.trigger(AudioEvent::LevelClear);
         let mut rng = (self.time * 99999.0) as u64 | 3;
         let (gx,gz) = ((MAZE_W-1) as f32+0.5, (MAZE_H-1) as f32+0.5);
         for _ in 0..30 {

@@ -178,6 +178,7 @@ function loop(ts) {
   document.getElementById('total-steps').textContent = wasm.total_steps_maze3d();
   document.getElementById('level').textContent       = wasm.level_maze3d();
   updateEffects();
+  pollAudio();
   drawMinimap();
   requestAnimationFrame(loop);
 }
@@ -383,7 +384,7 @@ function bindControls() {
   ];
   for (const [id, action] of dbMap) {
     const btn = document.getElementById(id);
-    btn.addEventListener('mousedown',  () => startRepeat(action));
+    btn.addEventListener('mousedown',  () => { ensureAudio(); startRepeat(action); });
     btn.addEventListener('mouseup',    stopRepeat);
     btn.addEventListener('mouseleave', stopRepeat);
     btn.addEventListener('touchstart', e => { e.preventDefault(); startRepeat(action); }, {passive:false});
@@ -411,6 +412,7 @@ function bindControls() {
   document.addEventListener('touchstart', e => {
     // level-clear overlay のボタンには干渉しない
     if (e.target.closest('#level-clear, #hud, #dpad')) return;
+    ensureAudio();
     swipeX0 = e.touches[0].clientX;
     swipeY0 = e.touches[0].clientY;
     swipeMoved = false;
@@ -434,6 +436,144 @@ function bindControls() {
   }, {passive: true});
 
   document.addEventListener('touchend', () => { swipeMoved = false; }, {passive: true});
+}
+
+// ── Web Audio API サウンドシステム ────────────────────────────────────────────
+let audioCtx = null;
+let ambientNode = null;
+let ambientGain = null;
+
+function ensureAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    startAmbient();
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+// 足音 (ノイズバースト + フィルター)
+function playStep(isLeft) {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+  const bufSize = audioCtx.sampleRate * 0.05; // 50ms
+  const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1);
+
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+
+  // ハイパスフィルター（足音らしさ）
+  const hpf = audioCtx.createBiquadFilter();
+  hpf.type = 'highpass';
+  hpf.frequency.value = isLeft ? 320 : 280; // 左右で微妙に違う
+
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0.18, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+
+  src.connect(hpf); hpf.connect(gain); gain.connect(audioCtx.destination);
+  src.start(t); src.stop(t + 0.06);
+}
+
+// 壁衝突音（低いドン）
+function playWallHit() {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(90, t);
+  osc.frequency.exponentialRampToValueAtTime(40, t + 0.12);
+
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0.45, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+
+  // ローパスフィルターでこもらせる
+  const lpf = audioCtx.createBiquadFilter();
+  lpf.type = 'lowpass';
+  lpf.frequency.value = 200;
+
+  osc.connect(lpf); lpf.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(t); osc.stop(t + 0.2);
+}
+
+// レベルクリア（上昇アルペジオ: C5-E5-G5-C6）
+function playLevelClear() {
+  if (!audioCtx) return;
+  const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+  notes.forEach((freq, i) => {
+    const t = audioCtx.currentTime + i * 0.13;
+    const osc = audioCtx.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.value = freq;
+
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0.0, t);
+    gain.gain.linearRampToValueAtTime(0.3, t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(t); osc.stop(t + 0.4);
+  });
+}
+
+// ゴール付近（上昇音）
+function playGoalNear() {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(440, t);
+  osc.frequency.linearRampToValueAtTime(660, t + 0.15);
+
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0.15, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(t); osc.stop(t + 0.3);
+}
+
+// アンビエントドローン（ダンジョン空間音）
+function startAmbient() {
+  if (!audioCtx || ambientNode) return;
+
+  // 低周波ドローン（2重重ね）
+  const freqs = [55, 55.5]; // 微妙なデチューンでうねりを作る
+  ambientGain = audioCtx.createGain();
+  ambientGain.gain.setValueAtTime(0.0, audioCtx.currentTime);
+  ambientGain.gain.linearRampToValueAtTime(0.06, audioCtx.currentTime + 3.0);
+  ambientGain.connect(audioCtx.destination);
+
+  freqs.forEach(freq => {
+    const osc = audioCtx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.value = freq;
+
+    const lpf = audioCtx.createBiquadFilter();
+    lpf.type = 'lowpass';
+    lpf.frequency.value = 180;
+    lpf.Q.value = 2;
+
+    osc.connect(lpf); lpf.connect(ambientGain);
+    osc.start();
+  });
+  ambientNode = ambientGain;
+}
+
+// 音声イベントポーリング（毎フレーム呼ぶ）
+function pollAudio() {
+  if (!initialized) return;
+  const ev = wasm.audio_event_maze3d();
+  if (ev === 0) return;
+  ensureAudio();
+  switch(ev) {
+    case 1: playStep(wasm.audio_step_parity_maze3d()); break;
+    case 2: playWallHit(); break;
+    case 3: playLevelClear(); break;
+    case 4: playGoalNear(); break;
+  }
 }
 
 start();
