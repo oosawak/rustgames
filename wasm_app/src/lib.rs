@@ -57,6 +57,24 @@ impl GameInstance {
     pub fn is_won(&self) -> bool {
         self.game_state.borrow().puzzle.is_won()
     }
+
+    pub fn get_cube_position(&self) -> String {
+        let game_state = self.game_state.borrow();
+        if let Some(cube) = game_state.puzzle.cubes.get(&0) {
+            format!("({}, {}, {})", cube.position.0, cube.position.1, cube.position.2)
+        } else {
+            "不明".to_string()
+        }
+    }
+
+    pub fn get_goal_position(&self) -> String {
+        let game_state = self.game_state.borrow();
+        if let Some(goal) = game_state.puzzle.goal_positions.get(&0) {
+            format!("({}, {}, {})", goal.0, goal.1, goal.2)
+        } else {
+            "未設定".to_string()
+        }
+    }
 }
 
 #[wasm_bindgen(start)]

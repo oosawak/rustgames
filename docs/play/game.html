@@ -222,8 +222,12 @@
             </div>
 
             <div class="info-box">
-                <strong>💡 ヒント：</strong> 左右のボタンで立方体を移動できます。ゴール位置に到達するとクリアです！
-                <div id="status" style="margin-top: 10px; font-size: 0.85em; font-family: monospace;"></div>
+                <strong>💡 ゲーム情報：</strong>
+                <div style="margin-top: 10px; font-family: monospace; font-size: 0.85em;">
+                    <div>現在地: <span id="position" style="color: #ff6b6b;">不明</span></div>
+                    <div>ゴール: <span id="goal" style="color: #51cf66;">未設定</span></div>
+                    <div id="status"></div>
+                </div>
             </div>
 
             <div class="debug-box">
@@ -311,9 +315,14 @@
 
                         if (frameCount === 1) {
                             debugLog(`▶️ ゲームループ開始`, 'success');
+                            // ゴール位置を表示
+                            const goal = gameInstance.get_goal_position();
+                            document.getElementById('goal').textContent = goal;
                         }
 
                         if (frameCount % 60 === 0) {
+                            const pos = gameInstance.get_cube_position();
+                            document.getElementById('position').textContent = pos;
                             debugLog(`📊 フレーム: ${frameCount}, スコア: ${score}, 移動: ${moves}, 時間: ${time.toFixed(1)}s`, 'info');
                         }
 
@@ -363,9 +372,17 @@
                     if (success) {
                         const score = gameInstance.get_score();
                         const moves = gameInstance.get_moves();
+                        const pos = gameInstance.get_cube_position();
                         document.getElementById('score').textContent = score;
                         document.getElementById('moves').textContent = moves;
-                        debugLog(`✅ 移動成功! 移動数: ${moves}`, 'success');
+                        document.getElementById('position').textContent = pos;
+                        debugLog(`✅ 移動成功! 移動数: ${moves}, 現在地: ${pos}`, 'success');
+                        
+                        // 勝利判定
+                        if (gameInstance.is_won()) {
+                            debugLog('🎉 ゲームクリア！ゴールに到達しました！', 'success');
+                            alert('🎉 クリアおめでとうございます！');
+                        }
                     } else {
                         debugLog('❌ 移動できません（無効な移動：衝突または範囲外）', 'error');
                     }

@@ -4,6 +4,8 @@
 export class GameInstance {
     free(): void;
     [Symbol.dispose](): void;
+    get_cube_position(): string;
+    get_goal_position(): string;
     get_moves(): number;
     get_score(): number;
     get_time(): number;
@@ -21,6 +23,8 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly __wbg_gameinstance_free: (a: number, b: number) => void;
+    readonly gameinstance_get_cube_position: (a: number) => [number, number];
+    readonly gameinstance_get_goal_position: (a: number) => [number, number];
     readonly gameinstance_get_moves: (a: number) => number;
     readonly gameinstance_get_score: (a: number) => number;
     readonly gameinstance_get_time: (a: number) => number;
@@ -31,6 +35,7 @@ export interface InitOutput {
     readonly gameinstance_update: (a: number, b: number) => void;
     readonly start: () => void;
     readonly __wbindgen_externrefs: WebAssembly.Table;
+    readonly __wbindgen_free: (a: number, b: number, c: number) => void;
     readonly __wbindgen_start: () => void;
 }
 

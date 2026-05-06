@@ -12,6 +12,36 @@ export class GameInstance {
         wasm.__wbg_gameinstance_free(ptr, 0);
     }
     /**
+     * @returns {string}
+     */
+    get_cube_position() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.gameinstance_get_cube_position(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
+     * @returns {string}
+     */
+    get_goal_position() {
+        let deferred1_0;
+        let deferred1_1;
+        try {
+            const ret = wasm.gameinstance_get_goal_position(this.__wbg_ptr);
+            deferred1_0 = ret[0];
+            deferred1_1 = ret[1];
+            return getStringFromWasm0(ret[0], ret[1]);
+        } finally {
+            wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+        }
+    }
+    /**
      * @returns {number}
      */
     get_moves() {
