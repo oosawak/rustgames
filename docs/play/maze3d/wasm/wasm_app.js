@@ -1,6 +1,23 @@
 /* @ts-self-types="./wasm_app.d.ts" */
 
 /**
+ * 全サウンド定義をJSON配列で返す（デバッグ・ツール用）
+ * @returns {string}
+ */
+export function all_sound_defs_maze3d() {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.all_sound_defs_maze3d();
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+
+/**
  * 音声イベントフラグ (0=なし 1=足音 2=壁衝突 3=レベルクリア 4=ゴール付近)
  * @returns {number}
  */
@@ -172,6 +189,25 @@ export function save_audio_vol_maze3d(se, amb) {
 export function scene_maze3d() {
     const ret = wasm.scene_maze3d();
     return ret;
+}
+
+/**
+ * AudioEventに対応するサウンド定義JSONを返す
+ * event: 1=step_left, 2=step_right, 3=wall_hit, 4=level_clear, 5=goal_near, 6=enemy_near, 7=game_over
+ * @param {number} event
+ * @returns {string}
+ */
+export function sound_def_maze3d(event) {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.sound_def_maze3d(event);
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
 }
 
 export function start_game_maze3d() {
@@ -1259,7 +1295,7 @@ function __wbg_get_imports() {
             return ret;
         },
         __wbindgen_cast_0000000000000001: function(arg0, arg1) {
-            // Cast intrinsic for `Closure(Closure { owned: true, function: Function { arguments: [Externref], shim_idx: 1915, ret: Result(Unit), inner_ret: Some(Result(Unit)) }, mutable: true }) -> Externref`.
+            // Cast intrinsic for `Closure(Closure { owned: true, function: Function { arguments: [Externref], shim_idx: 1919, ret: Result(Unit), inner_ret: Some(Result(Unit)) }, mutable: true }) -> Externref`.
             const ret = makeMutClosure(arg0, arg1, wasm_bindgen__convert__closures_____invoke__h337539ba828a8639);
             return ret;
         },

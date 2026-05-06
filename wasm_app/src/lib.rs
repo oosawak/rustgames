@@ -16,6 +16,7 @@ pub mod enemy;
 pub mod theme;
 pub mod scene;
 pub mod storage;
+pub mod audio_tool;
 
 use wasm_bindgen::prelude::*;
 use std::cell::RefCell;
@@ -95,3 +96,31 @@ pub fn enemy_z_maze3d() -> f32 {
 #[wasm_bindgen] pub fn player_x_maze3d()      -> u32 { STATE.with(|s|s.borrow().as_ref().map(|g|g.px as u32).unwrap_or(0)) }
 #[wasm_bindgen] pub fn player_z_maze3d()      -> u32 { STATE.with(|s|s.borrow().as_ref().map(|g|g.pz as u32).unwrap_or(0)) }
 #[wasm_bindgen] pub fn player_facing_maze3d() -> u8  { STATE.with(|s|s.borrow().as_ref().map(|g|g.facing).unwrap_or(4)) }
+
+/// AudioEventに対応するサウンド定義JSONを返す
+/// event: 1=step_left, 2=step_right, 3=wall_hit, 4=level_clear, 5=goal_near, 6=enemy_near, 7=game_over
+#[wasm_bindgen]
+pub fn sound_def_maze3d(event: u8) -> String {
+    use crate::audio_tool::*;
+    match event {
+        1 => sound_step_left().to_json(),
+        2 => sound_step_right().to_json(),
+        3 => sound_wall_hit().to_json(),
+        4 => sound_level_clear().to_json(),
+        5 => sound_goal_near().to_json(),
+        6 => sound_enemy_near().to_json(),
+        7 => sound_game_over().to_json(),
+        _ => "{}".to_string(),
+    }
+}
+
+/// 全サウンド定義をJSON配列で返す（デバッグ・ツール用）
+#[wasm_bindgen]
+pub fn all_sound_defs_maze3d() -> String {
+    use crate::audio_tool::*;
+    let defs = vec![
+        sound_step_left(), sound_step_right(), sound_wall_hit(),
+        sound_level_clear(), sound_goal_near(), sound_enemy_near(), sound_game_over(),
+    ];
+    format!("[{}]", defs.iter().map(|d| d.to_json()).collect::<Vec<_>>().join(","))
+}
