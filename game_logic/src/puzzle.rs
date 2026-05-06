@@ -38,7 +38,7 @@ impl PuzzleLogic {
             state: PuzzleState::Playing,
             cubes: HashMap::new(),
             goal_positions: HashMap::new(),
-            next_id: 1,
+            next_id: 0,  // Start from 0 instead of 1
             move_count: 0,
         };
         
