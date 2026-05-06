@@ -91,6 +91,7 @@
   <span id="level-label">LV <b id="level">1</b></span>
   <span id="steps-label">歩数 <b id="steps">0</b></span>
   <span style="color:#888;font-family:monospace;font-size:0.85em;">合計 <b id="total-steps" style="color:#aaa">0</b></span>
+  <span id="theme-label" style="color:#ff0; font-family:monospace; font-size:0.9em; text-shadow:0 0 6px #ff0; opacity:0.8;"></span>
   <button id="btn-reset">リセット</button>
 </div>
 
@@ -193,6 +194,8 @@ function loop(ts) {
   document.getElementById('steps').textContent       = wasm.steps_maze3d();
   document.getElementById('total-steps').textContent = wasm.total_steps_maze3d();
   document.getElementById('level').textContent       = wasm.level_maze3d();
+  const tEl = document.getElementById('theme-label');
+  if (tEl) tEl.textContent = wasm.theme_name_maze3d();
   updateEffects();
   pollAudio();
 

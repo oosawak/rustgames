@@ -5,6 +5,7 @@ use crate::constants::*;
 use crate::math::lcg;
 use crate::maze::Maze;
 use crate::particle::Particle;
+use crate::theme::Theme;
 
 #[repr(C)]
 #[derive(Copy, Clone, Pod, Zeroable)]
@@ -31,6 +32,7 @@ pub struct Uni {
     pub warp:   f32,            // オフセット68
     pub pad:    [f32; 2],       // オフセット72 → 合計80バイト
     pub lights: [Light; 4],     // オフセット80, 128バイト → 合計208バイト
+    pub fog_col: [f32; 4],      // オフセット208, 16バイト → 合計224バイト
 }
 
 pub const WALL_COL:  [f32;4] = [0.05, 0.80, 1.0, 2.0]; // a=2 → 壁マテリアル
@@ -109,38 +111,39 @@ pub fn particle_cross(vs:&mut Vec<Vertex>,ix:&mut Vec<u32>,
 
 /// 迷路シーン全体のジオメトリを構築して頂点・インデックスバッファを返す
 pub fn build_scene(maze:&Maze, time:f32, particles:&[Particle],
-               light_pos:&[[f32;4];4], enemy_pos:(f32,f32)) -> (Vec<Vertex>,Vec<u32>){
+               light_pos:&[[f32;4];4], enemy_pos:(f32,f32),
+               theme:&Theme) -> (Vec<Vertex>,Vec<u32>){
     let mut vs:Vec<Vertex>=Vec::with_capacity(2048);
     let mut ix:Vec<u32>   =Vec::with_capacity(4096);
     let mw=MAZE_W as f32; let mh=MAZE_H as f32;
 
     // 床・天井
-    quad(&mut vs,&mut ix,[0.0,0.0,0.0],[mw,0.0,0.0],[mw,0.0,mh],[0.0,0.0,mh],FLOOR_COL);
-    quad(&mut vs,&mut ix,[0.0,WALL_H,mh],[mw,WALL_H,mh],[mw,WALL_H,0.0],[0.0,WALL_H,0.0],CEIL_COL);
+    quad(&mut vs,&mut ix,[0.0,0.0,0.0],[mw,0.0,0.0],[mw,0.0,mh],[0.0,0.0,mh],theme.floor_col);
+    quad(&mut vs,&mut ix,[0.0,WALL_H,mh],[mw,WALL_H,mh],[mw,WALL_H,0.0],[0.0,WALL_H,0.0],theme.ceil_col);
 
     // 外壁
-    quad(&mut vs,&mut ix,[mw,0.0,0.0],[mw,WALL_H,0.0],[0.0,WALL_H,0.0],[0.0,0.0,0.0],WALL_COL);
-    quad(&mut vs,&mut ix,[0.0,0.0,mh],[0.0,WALL_H,mh],[mw,WALL_H,mh],[mw,0.0,mh],WALL_COL);
-    quad(&mut vs,&mut ix,[0.0,0.0,0.0],[0.0,WALL_H,0.0],[0.0,WALL_H,mh],[0.0,0.0,mh],WALL_COL);
-    quad(&mut vs,&mut ix,[mw,0.0,mh],[mw,WALL_H,mh],[mw,WALL_H,0.0],[mw,0.0,0.0],WALL_COL);
+    quad(&mut vs,&mut ix,[mw,0.0,0.0],[mw,WALL_H,0.0],[0.0,WALL_H,0.0],[0.0,0.0,0.0],theme.wall_col);
+    quad(&mut vs,&mut ix,[0.0,0.0,mh],[0.0,WALL_H,mh],[mw,WALL_H,mh],[mw,0.0,mh],theme.wall_col);
+    quad(&mut vs,&mut ix,[0.0,0.0,0.0],[0.0,WALL_H,0.0],[0.0,WALL_H,mh],[0.0,0.0,mh],theme.wall_col);
+    quad(&mut vs,&mut ix,[mw,0.0,mh],[mw,WALL_H,mh],[mw,WALL_H,0.0],[mw,0.0,0.0],theme.wall_col);
 
     // 内壁（両面）
     for cz in 0..MAZE_H { for cx in 0..MAZE_W {
         let(x,z)=(cx as f32,cz as f32);
         if cz+1<MAZE_H && maze.wall(cx,cz,S){
-            quad(&mut vs,&mut ix,[x,0.0,z+1.0],[x+1.0,0.0,z+1.0],[x+1.0,WALL_H,z+1.0],[x,WALL_H,z+1.0],WALL_COL);
-            quad(&mut vs,&mut ix,[x,0.0,z+1.0],[x,WALL_H,z+1.0],[x+1.0,WALL_H,z+1.0],[x+1.0,0.0,z+1.0],WALL_COL);
+            quad(&mut vs,&mut ix,[x,0.0,z+1.0],[x+1.0,0.0,z+1.0],[x+1.0,WALL_H,z+1.0],[x,WALL_H,z+1.0],theme.wall_col);
+            quad(&mut vs,&mut ix,[x,0.0,z+1.0],[x,WALL_H,z+1.0],[x+1.0,WALL_H,z+1.0],[x+1.0,0.0,z+1.0],theme.wall_col);
         }
         if cx+1<MAZE_W && maze.wall(cx,cz,E){
-            quad(&mut vs,&mut ix,[x+1.0,0.0,z],[x+1.0,0.0,z+1.0],[x+1.0,WALL_H,z+1.0],[x+1.0,WALL_H,z],WALL_COL);
-            quad(&mut vs,&mut ix,[x+1.0,0.0,z],[x+1.0,WALL_H,z],[x+1.0,WALL_H,z+1.0],[x+1.0,0.0,z+1.0],WALL_COL);
+            quad(&mut vs,&mut ix,[x+1.0,0.0,z],[x+1.0,0.0,z+1.0],[x+1.0,WALL_H,z+1.0],[x+1.0,WALL_H,z],theme.wall_col);
+            quad(&mut vs,&mut ix,[x+1.0,0.0,z],[x+1.0,WALL_H,z],[x+1.0,WALL_H,z+1.0],[x+1.0,0.0,z+1.0],theme.wall_col);
         }
     }}
 
     // ── 各ライト位置に吊り下げランタンを配置 ──
     for (i, lp) in light_pos.iter().enumerate() {
         let (lx, lz) = (lp[0], lp[2]);
-        let lc = LIGHT_COLS[i];
+        let lc = theme.light_cols[i];
         let ec = [lc[0]*3.0, lc[1]*3.0, lc[2]*3.0, 1.0];
         let pulse = (time * 2.2 + lp[3]).sin() * 0.1 + 0.9;
         let pc = [lc[0]*2.5*pulse, lc[1]*2.5*pulse, lc[2]*2.5*pulse, 1.0];

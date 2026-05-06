@@ -6,7 +6,8 @@ use std::f32::consts::{FRAC_PI_2, PI, TAU};
 use crate::math::{mat_mul, perspective, look_at, lcg_f};
 use crate::maze::Maze;
 use crate::particle::Particle;
-use crate::geometry::{Light, Uni, LIGHT_COLS, find_lights, build_scene};
+use crate::geometry::{Light, Uni, find_lights, build_scene};
+use crate::theme::get_theme;
 use crate::gpu::GpuState;
 use crate::audio::{AudioState, AudioEvent};
 use crate::enemy::Enemy;
@@ -93,7 +94,8 @@ impl GameState {
 
         let warp = self.warp_amount();
         let enemy_pos = (self.enemy.vis_x, self.enemy.vis_z);
-        let (verts,idxs) = build_scene(&self.maze, self.time, &self.particles, &self.light_pos, enemy_pos);
+        let theme = get_theme(self.level);
+        let (verts,idxs) = build_scene(&self.maze, self.time, &self.particles, &self.light_pos, enemy_pos, theme);
 
         // Smooth lerp toward target position and angle
         const MOVE_SPEED: f32 = 9.0;
@@ -144,9 +146,9 @@ impl GameState {
         // ユニフォーム用ライト構築
         let mut lights = [Light{pos:[0.0;4],col:[0.0;4]};4];
         for i in 0..4 {
-            lights[i] = Light { pos: self.light_pos[i], col: LIGHT_COLS[i] };
+            lights[i] = Light { pos: self.light_pos[i], col: theme.light_cols[i] };
         }
-        let uni = Uni{ vp:mat_mul(proj,view), time:self.time, warp, pad:[0.0;2], lights };
+        let uni = Uni{ vp:mat_mul(proj,view), time:self.time, warp, pad:[0.0;2], lights, fog_col: theme.fog_col };
         self.gpu.render(&verts,&idxs,&uni);
     }
 

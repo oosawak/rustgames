@@ -5,7 +5,7 @@
 //   2.0  = wall  → receives point-light shading + subtle grain
 //   3.0  = particle → always bright, bypass lighting
 //
-// Uniforms: vp(64) + time(4) + warp(4) + pad(8) + 4×Light(32each) = 208 bytes
+// Uniforms: vp(64) + time(4) + warp(4) + pad(8) + 4×Light(32each) + fog_col(16) = 224 bytes
 // Light layout: pos.xyz=worldpos  pos.w=flicker_phase  col.rgb=color  col.a=intensity
 
 pub const SHADER: &str = r#"
@@ -20,6 +20,7 @@ struct Uni {
     pad0   : f32,
     pad1   : f32,
     lights : array<Light, 4>,
+    fog_col: vec4<f32>,
 }
 @group(0) @binding(0) var<uniform> u: Uni;
 
@@ -90,7 +91,7 @@ fn fs_main(v: VOut) -> @location(0) vec4<f32> {
     let fog_floor = clamp(v.world_y * 2.5, 0.0, 1.0);
     let fog_final = fog * (0.75 + fog_floor * 0.25);
     let lit    = rgb * (ambient + light_acc);
-    rgb = mix(vec3<f32>(0.0, 0.01, 0.03), lit, fog_final);
+    rgb = mix(u.fog_col.rgb, lit, fog_final);
 
     // ── Warp: chromatic distortion + flash ────────────────────────────────────
     if u.warp > 0.01 {

@@ -13,6 +13,7 @@ pub mod camera;
 pub mod engine;
 pub mod input;
 pub mod enemy;
+pub mod theme;
 
 use wasm_bindgen::prelude::*;
 use std::cell::RefCell;
@@ -56,6 +57,13 @@ pub fn audio_step_parity_maze3d() -> bool {
 #[wasm_bindgen]
 pub fn game_over_maze3d() -> bool {
     STATE.with(|s| s.borrow().as_ref().map(|g| g.game_over).unwrap_or(false))
+}
+
+#[wasm_bindgen]
+pub fn theme_name_maze3d() -> String {
+    STATE.with(|s| s.borrow().as_ref()
+        .map(|g| crate::theme::get_theme(g.level).name.to_string())
+        .unwrap_or_default())
 }
 
 #[wasm_bindgen]
