@@ -631,14 +631,23 @@ impl GameState {
         let warp = self.warp_amount();
         let (verts,idxs) = build_scene(&self.maze, self.time, &self.particles, &self.light_pos);
 
-        let eye = [self.px as f32+0.5, EYE_H, self.pz as f32+0.5];
+        let center = [self.px as f32+0.5, EYE_H, self.pz as f32+0.5];
         let fwd:[f32;3] = match self.facing {
             d if d==N=>[0.0,0.0,-1.0], d if d==S=>[0.0,0.0,1.0],
             d if d==E=>[1.0,0.0,0.0],  _=>[-1.0,0.0,0.0],
         };
-        let ctr = [eye[0]+fwd[0],eye[1]+fwd[1],eye[2]+fwd[2]];
+        // Slightly behind & above the player → over-the-shoulder feel
+        const CAM_BACK: f32 = 0.45;  // cells behind player
+        const CAM_UP:   f32 = 0.18;  // extra height above EYE_H
+        let eye = [
+            center[0] - fwd[0]*CAM_BACK,
+            center[1] + CAM_UP,
+            center[2] - fwd[2]*CAM_BACK,
+        ];
+        // Look toward 0.6 cells in front of player center (not camera)
+        let ctr = [center[0]+fwd[0]*0.6, center[1]-0.04, center[2]+fwd[2]*0.6];
         let view = look_at(eye,ctr,[0.0,1.0,0.0]);
-        let proj = perspective(90.0f32.to_radians(),   // wider FOV = more open
+        let proj = perspective(90.0f32.to_radians(),
             self.gpu.width as f32/self.gpu.height as f32, 0.04, 50.0);
 
         // Build lights for uniform
