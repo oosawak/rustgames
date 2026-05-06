@@ -53,7 +53,7 @@ fn fs_main(v: VOut) -> @location(0) vec4<f32> {
 
     // ── Particles: emissive, just fog-dim ──────────────────────────────────────
     if v.col.a > 2.5 {
-        let fog = max(clamp(1.0 - v.depth / 15.0, 0.0, 1.0), 0.45);
+        let fog = max(exp(-0.18 * 0.18 * v.depth * v.depth), 0.35);
         return vec4<f32>(min(rgb * fog, vec3<f32>(1.0)), 1.0);
     }
 
@@ -85,9 +85,12 @@ fn fs_main(v: VOut) -> @location(0) vec4<f32> {
     }
 
     // lighting × fog
-    let fog    = clamp(1.0 - v.depth / 16.0, 0.0, 1.0);
+    let fog_density = 0.18;
+    let fog = exp(-fog_density * fog_density * v.depth * v.depth);
+    let fog_floor = clamp(v.world_y * 2.5, 0.0, 1.0);
+    let fog_final = fog * (0.75 + fog_floor * 0.25);
     let lit    = rgb * (ambient + light_acc);
-    rgb = min(lit * fog, vec3<f32>(1.0));
+    rgb = mix(vec3<f32>(0.0, 0.01, 0.03), lit, fog_final);
 
     // ── Warp: chromatic distortion + flash ────────────────────────────────────
     if u.warp > 0.01 {

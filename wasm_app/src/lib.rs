@@ -8,6 +8,9 @@ pub mod maze;
 pub mod geometry;
 pub mod gpu;
 pub mod game;
+pub mod camera;
+pub mod engine;
+pub mod input;
 
 use wasm_bindgen::prelude::*;
 use std::cell::RefCell;

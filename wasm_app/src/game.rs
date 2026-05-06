@@ -2,6 +2,7 @@
 
 use wasm_bindgen::JsCast;
 use crate::constants::*;
+use std::f32::consts::{FRAC_PI_2, PI, TAU};
 use crate::math::{mat_mul, perspective, look_at, lcg_f};
 use crate::maze::Maze;
 use crate::particle::Particle;
@@ -14,6 +15,10 @@ pub struct GameState {
     pub light_pos:   [[f32;4];4],  // 4つのポイントライトのワールド座標
     pub px: usize, pub pz: usize,
     pub facing: u8,
+    pub vis_x:     f32,
+    pub vis_z:     f32,
+    pub vis_angle: f32,
+    pub is_moving: bool,
     pub steps: u32,
     pub total_steps: u32,
     pub level: u32,
@@ -36,6 +41,7 @@ impl GameState {
             gpu: GpuState::new(canvas).await?,
             maze, light_pos,
             px:0, pz:0, facing:S,
+            vis_x: 0.5, vis_z: 0.5, vis_angle: FRAC_PI_2, is_moving: false,
             steps:0, total_steps:0, level:1,
             level_clear:false, warp_timer:0.0,
             particles: Vec::new(),
@@ -69,20 +75,48 @@ impl GameState {
         let warp = self.warp_amount();
         let (verts,idxs) = build_scene(&self.maze, self.time, &self.particles, &self.light_pos);
 
-        let center = [self.px as f32+0.5, EYE_H, self.pz as f32+0.5];
-        let fwd:[f32;3] = match self.facing {
-            d if d==N=>[0.0,0.0,-1.0], d if d==S=>[0.0,0.0,1.0],
-            d if d==E=>[1.0,0.0,0.0],  _=>[-1.0,0.0,0.0],
+        // Smooth lerp toward target position and angle
+        const MOVE_SPEED: f32 = 9.0;
+        const TURN_SPEED: f32 = 12.0;
+
+        let target_x = self.px as f32 + 0.5;
+        let target_z = self.pz as f32 + 0.5;
+        let target_angle = match self.facing {
+            d if d == N => -FRAC_PI_2,
+            d if d == S =>  FRAC_PI_2,
+            d if d == E =>  0.0,
+            _           =>  PI,
         };
-        // プレイヤーの後ろ上方からの三人称視点
+
+        self.vis_x += (target_x - self.vis_x) * (MOVE_SPEED * dt).min(1.0);
+        self.vis_z += (target_z - self.vis_z) * (MOVE_SPEED * dt).min(1.0);
+        self.is_moving = (self.vis_x - target_x).abs() > 0.01 || (self.vis_z - target_z).abs() > 0.01;
+
+        // Lerp angle along shortest path
+        let mut da = target_angle - self.vis_angle;
+        while da >  PI  { da -= TAU; }
+        while da < -PI  { da += TAU; }
+        self.vis_angle += da * (TURN_SPEED * dt).min(1.0);
+
+        let fwd = [self.vis_angle.cos(), 0.0_f32, self.vis_angle.sin()];
+        let center = [self.vis_x, EYE_H, self.vis_z];
+
+        let bob = if self.is_moving {
+            (self.time * 8.0).sin() * 0.025
+        } else { 0.0 };
+
         const CAM_BACK: f32 = 0.45;
         const CAM_UP:   f32 = 0.18;
         let eye = [
-            center[0] - fwd[0]*CAM_BACK,
-            center[1] + CAM_UP,
-            center[2] - fwd[2]*CAM_BACK,
+            center[0] - fwd[0] * CAM_BACK,
+            center[1] + CAM_UP + bob,
+            center[2] - fwd[2] * CAM_BACK,
         ];
-        let ctr = [center[0]+fwd[0]*0.6, center[1]-0.04, center[2]+fwd[2]*0.6];
+        let ctr = [
+            center[0] + fwd[0] * 0.6,
+            center[1] - 0.04 + bob * 0.5,
+            center[2] + fwd[2] * 0.6,
+        ];
         let view = look_at(eye,ctr,[0.0,1.0,0.0]);
         let proj = perspective(90.0f32.to_radians(),
             self.gpu.width as f32/self.gpu.height as f32, 0.04, 50.0);
@@ -173,6 +207,7 @@ impl GameState {
         self.maze = Maze::new(seed);
         self.light_pos = find_lights(&self.maze, &mut seed);
         self.px=0; self.pz=0; self.facing=S; self.steps=0;
+        self.vis_x=0.5; self.vis_z=0.5; self.vis_angle=FRAC_PI_2; self.is_moving=false;
         self.level+=1; self.level_clear=false; self.warp_timer=0.0;
         self.particles.clear();
     }
@@ -182,6 +217,7 @@ impl GameState {
         self.maze = Maze::new(seed);
         self.light_pos = find_lights(&self.maze, &mut seed);
         self.px=0; self.pz=0; self.facing=S;
+        self.vis_x=0.5; self.vis_z=0.5; self.vis_angle=FRAC_PI_2; self.is_moving=false;
         self.steps=0; self.total_steps=0; self.level=1;
         self.level_clear=false; self.warp_timer=0.0;
         self.particles.clear();
