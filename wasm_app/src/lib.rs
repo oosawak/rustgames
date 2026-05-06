@@ -12,6 +12,7 @@ pub mod audio;
 pub mod camera;
 pub mod engine;
 pub mod input;
+pub mod enemy;
 
 use wasm_bindgen::prelude::*;
 use std::cell::RefCell;
@@ -50,6 +51,21 @@ pub fn audio_event_maze3d() -> u8 {
 #[wasm_bindgen]
 pub fn audio_step_parity_maze3d() -> bool {
     STATE.with(|s| s.borrow().as_ref().map(|g| g.audio.step_parity).unwrap_or(false))
+}
+
+#[wasm_bindgen]
+pub fn game_over_maze3d() -> bool {
+    STATE.with(|s| s.borrow().as_ref().map(|g| g.game_over).unwrap_or(false))
+}
+
+#[wasm_bindgen]
+pub fn enemy_x_maze3d() -> f32 {
+    STATE.with(|s| s.borrow().as_ref().map(|g| g.enemy.vis_x).unwrap_or(-1.0))
+}
+
+#[wasm_bindgen]
+pub fn enemy_z_maze3d() -> f32 {
+    STATE.with(|s| s.borrow().as_ref().map(|g| g.enemy.vis_z).unwrap_or(-1.0))
 }
 
 // ── ミニマップ用エクスポート ───────────────────────────────────────────────────

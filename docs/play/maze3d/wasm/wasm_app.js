@@ -17,6 +17,30 @@ export function audio_step_parity_maze3d() {
 }
 
 /**
+ * @returns {number}
+ */
+export function enemy_x_maze3d() {
+    const ret = wasm.enemy_x_maze3d();
+    return ret;
+}
+
+/**
+ * @returns {number}
+ */
+export function enemy_z_maze3d() {
+    const ret = wasm.enemy_z_maze3d();
+    return ret;
+}
+
+/**
+ * @returns {boolean}
+ */
+export function game_over_maze3d() {
+    const ret = wasm.game_over_maze3d();
+    return ret !== 0;
+}
+
+/**
  * @param {string} canvas_id
  * @returns {Promise<void>}
  */

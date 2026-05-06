@@ -20,6 +20,8 @@ pub enum AudioEvent {
     WallHit    = 2, // 壁衝突
     LevelClear = 3, // レベルクリア
     GoalNear   = 4, // ゴール付近（1セル以内）
+    EnemyNear  = 5, // 敵が1マス以内
+    GameOver   = 6, // 捕まった
 }
 
 /// ゲームのオーディオ状態（毎フレームリセット）

@@ -120,6 +120,21 @@
   <button id="btn-next">NEXT LEVEL ▶</button>
 </div>
 
+<!-- Game Over overlay -->
+<div id="game-over" style="display:none; position:fixed; inset:0; z-index:60;
+     flex-direction:column; align-items:center; justify-content:center;
+     background:rgba(20,0,0,0.85);">
+  <h2 style="color:#f00; font-family:monospace; font-size:clamp(1.6em,6vw,2.5em);
+       text-shadow:0 0 20px #f00, 0 0 40px #f00; margin:0 0 12px;
+       animation:pulse-text 0.5s infinite alternate;">💀 CAUGHT! 💀</h2>
+  <p style="color:#f88; font-family:monospace; font-size:clamp(0.9em,3vw,1.2em);
+      text-shadow:0 0 8px #f44; margin-bottom:24px;">敵に捕まりました</p>
+  <button id="btn-retry" style="background:transparent; border:2px solid #f00;
+      color:#f00; font-size:clamp(1em,4vw,1.3em); padding:12px 32px;
+      cursor:pointer; font-family:monospace; text-shadow:0 0 8px #f00;
+      box-shadow:0 0 16px #f00; border-radius:8px;">RETRY ↺</button>
+</div>
+
 <!-- Loading overlay -->
 <div id="loading" style="position:fixed;inset:0;background:#000008;display:flex;
      align-items:center;justify-content:center;z-index:999;
@@ -148,7 +163,8 @@ let repeatId    = null;
 
 const warpEl  = document.getElementById('warp-overlay');
 const clearEl = document.getElementById('level-clear');
-let clearShown = false;
+let clearShown   = false;
+let gameOverShown = false;
 
 // ── Resize canvas to fill available space ────────────────────────────────────
 function resizeCanvas() {
@@ -179,6 +195,13 @@ function loop(ts) {
   document.getElementById('level').textContent       = wasm.level_maze3d();
   updateEffects();
   pollAudio();
+
+  // ゲームオーバーチェック
+  if (initialized && wasm.game_over_maze3d() && !gameOverShown) {
+    gameOverShown = true;
+    document.getElementById('game-over').style.display = 'flex';
+  }
+
   drawMinimap();
   requestAnimationFrame(loop);
 }
@@ -315,6 +338,20 @@ function drawMinimap() {
   mmCtx.arc((MM_W-1)*CELL + CELL/2 + 1, (MM_H-1)*CELL + CELL/2 + 1, 3, 0, Math.PI*2);
   mmCtx.fill();
   mmCtx.restore();
+
+  // Enemy dot (red, with glow)
+  const ex = wasm.enemy_x_maze3d();
+  const ez = wasm.enemy_z_maze3d();
+  if (ex >= 0) {
+    mmCtx.save();
+    mmCtx.fillStyle = '#ff2020';
+    mmCtx.shadowColor = '#ff0000';
+    mmCtx.shadowBlur = 6;
+    mmCtx.beginPath();
+    mmCtx.arc(ex * CELL + 1, ez * CELL + 1, 3.5, 0, Math.PI*2);
+    mmCtx.fill();
+    mmCtx.restore();
+  }
 }
 
 // ── Visual effects ─────────────────────────────────────────────────────────────
@@ -395,12 +432,22 @@ function bindControls() {
   document.getElementById('btn-reset').addEventListener('click', () => {
     wasm.reset_maze3d();
     clearEl.style.display = 'none';
+    document.getElementById('game-over').style.display = 'none';
     clearShown = false;
+    gameOverShown = false;
     warpEl.style.opacity = '0';
   });
   document.getElementById('btn-next').addEventListener('click', () => {
     wasm.next_level_maze3d();
     clearEl.style.display = 'none';
+    clearShown = false;
+    warpEl.style.opacity = '0';
+  });
+
+  document.getElementById('btn-retry').addEventListener('click', () => {
+    wasm.reset_maze3d();
+    document.getElementById('game-over').style.display = 'none';
+    gameOverShown = false;
     clearShown = false;
     warpEl.style.opacity = '0';
   });
@@ -573,7 +620,43 @@ function pollAudio() {
     case 2: playWallHit(); break;
     case 3: playLevelClear(); break;
     case 4: playGoalNear(); break;
+    case 5: playEnemyNear(); break;
+    case 6: playGameOver();  break;
   }
+}
+
+// 敵接近音（不気味なパルス）
+function playEnemyNear() {
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(120, t);
+  osc.frequency.exponentialRampToValueAtTime(80, t + 0.2);
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0.25, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+  const lpf = audioCtx.createBiquadFilter();
+  lpf.type = 'lowpass'; lpf.frequency.value = 300;
+  osc.connect(lpf); lpf.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(t); osc.stop(t + 0.3);
+}
+
+// ゲームオーバー音（下降音）
+function playGameOver() {
+  if (!audioCtx) return;
+  const notes = [392, 311, 247, 185];
+  notes.forEach((freq, i) => {
+    const t = audioCtx.currentTime + i * 0.18;
+    const osc = audioCtx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.value = freq;
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0.3, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(t); osc.stop(t + 0.45);
+  });
 }
 
 start();

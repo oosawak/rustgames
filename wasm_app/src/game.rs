@@ -9,11 +9,12 @@ use crate::particle::Particle;
 use crate::geometry::{Light, Uni, LIGHT_COLS, find_lights, build_scene};
 use crate::gpu::GpuState;
 use crate::audio::{AudioState, AudioEvent};
+use crate::enemy::Enemy;
 
 pub struct GameState {
     pub gpu:         GpuState,
     pub maze:        Maze,
-    pub light_pos:   [[f32;4];4],  // 4つのポイントライトのワールド座標
+    pub light_pos:   [[f32;4];4],
     pub px: usize, pub pz: usize,
     pub facing: u8,
     pub vis_x:     f32,
@@ -29,6 +30,8 @@ pub struct GameState {
     pub time: f32,
     pub prev_ts: f64,
     pub audio: AudioState,
+    pub enemy: Enemy,
+    pub game_over: bool,
 }
 
 impl GameState {
@@ -49,6 +52,8 @@ impl GameState {
             particles: Vec::new(),
             time:0.0, prev_ts:0.0,
             audio: AudioState::new(),
+            enemy: Enemy::new(1),
+            game_over: false,
         })
     }
 
@@ -75,8 +80,20 @@ impl GameState {
         // ワープタイマー更新
         if self.level_clear { self.warp_timer += dt; }
 
+        // 敵の更新
+        if !self.game_over {
+            self.enemy.update(dt, &self.maze, self.px, self.pz);
+            if self.enemy.caught {
+                self.game_over = true;
+                self.audio.trigger(crate::audio::AudioEvent::GameOver);
+            } else if self.enemy.distance_to(self.px, self.pz) == 1 {
+                self.audio.trigger(crate::audio::AudioEvent::EnemyNear);
+            }
+        }
+
         let warp = self.warp_amount();
-        let (verts,idxs) = build_scene(&self.maze, self.time, &self.particles, &self.light_pos);
+        let enemy_pos = (self.enemy.vis_x, self.enemy.vis_z);
+        let (verts,idxs) = build_scene(&self.maze, self.time, &self.particles, &self.light_pos, enemy_pos);
 
         // Smooth lerp toward target position and angle
         const MOVE_SPEED: f32 = 9.0;
@@ -142,7 +159,7 @@ impl GameState {
 
     // action: 0=前進 1=左旋回 2=右旋回 3=後退
     pub fn act(&mut self, action: i32) {
-        if self.level_clear { return; }
+        if self.level_clear || self.game_over { return; }
         match action {
             1 => self.facing=match self.facing{d if d==N=>W_DIR,d if d==W_DIR=>S,d if d==S=>E,_=>N},
             2 => self.facing=match self.facing{d if d==N=>E,d if d==E=>S,d if d==S=>W_DIR,_=>N},
@@ -222,6 +239,8 @@ impl GameState {
         self.vis_x=0.5; self.vis_z=0.5; self.vis_angle=FRAC_PI_2; self.is_moving=false;
         self.level+=1; self.level_clear=false; self.warp_timer=0.0;
         self.particles.clear();
+        self.enemy = Enemy::new(self.level);
+        self.game_over = false;
     }
 
     pub fn reset(&mut self) {
@@ -233,5 +252,7 @@ impl GameState {
         self.steps=0; self.total_steps=0; self.level=1;
         self.level_clear=false; self.warp_timer=0.0;
         self.particles.clear();
+        self.enemy = Enemy::new(1);
+        self.game_over = false;
     }
 }

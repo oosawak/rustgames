@@ -109,7 +109,7 @@ pub fn particle_cross(vs:&mut Vec<Vertex>,ix:&mut Vec<u32>,
 
 /// 迷路シーン全体のジオメトリを構築して頂点・インデックスバッファを返す
 pub fn build_scene(maze:&Maze, time:f32, particles:&[Particle],
-               light_pos:&[[f32;4];4]) -> (Vec<Vertex>,Vec<u32>){
+               light_pos:&[[f32;4];4], enemy_pos:(f32,f32)) -> (Vec<Vertex>,Vec<u32>){
     let mut vs:Vec<Vertex>=Vec::with_capacity(2048);
     let mut ix:Vec<u32>   =Vec::with_capacity(4096);
     let mw=MAZE_W as f32; let mh=MAZE_H as f32;
@@ -182,6 +182,22 @@ pub fn build_scene(maze:&Maze, time:f32, particles:&[Particle],
     for p in particles.iter().filter(|p| p.life > 0.0) {
         particle_cross(&mut vs, &mut ix, p);
     }
+
+    // ── Enemy: pulsing red orb + floor glow ──────────────────────────────────
+    let (ex, ez) = enemy_pos;
+    let ep = (time * 3.5).sin() * 0.5 + 0.5;
+    let egr = 0.35f32;
+    quad(&mut vs, &mut ix,
+        [ex-egr, 0.011, ez-egr],[ex+egr, 0.011, ez-egr],
+        [ex+egr, 0.011, ez+egr],[ex-egr, 0.011, ez+egr],
+        [ep*1.5, 0.05, 0.05, 1.0]);
+    pillar(&mut vs, &mut ix, ex, ez, 0.12, WALL_H * 0.6, [ep*3.0+0.5, 0.1, 0.1, 1.0]);
+    let tgr = 0.15f32;
+    let ty = WALL_H * 0.6 + 0.02;
+    quad(&mut vs, &mut ix,
+        [ex-tgr, ty, ez-tgr],[ex+tgr, ty, ez-tgr],
+        [ex+tgr, ty, ez+tgr],[ex-tgr, ty, ez+tgr],
+        [ep*2.0+1.0, 0.2, 0.2, 1.0]);
 
     (vs,ix)
 }
