@@ -1,0 +1,22 @@
+[package]
+name = "native_app"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+[dependencies]
+engine = { path = "../engine" }
+game_logic = { path = "../game_logic" }
+wgpu = { workspace = true }
+winit = { workspace = true }
+cgmath = { workspace = true }
+glam = { workspace = true }
+pollster = { workspace = true }
+tokio = { workspace = true, features = ["rt", "sync"] }
+log = { workspace = true }
+env_logger = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[features]
+default = []

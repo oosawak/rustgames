@@ -1,0 +1,12 @@
+[package]
+name = "game_logic"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+[dependencies]
+cgmath = { workspace = true }
+glam = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+log = { workspace = true }
