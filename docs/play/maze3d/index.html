@@ -5,11 +5,58 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Neon Maze 3D – wgpu WebGL</title>
 <link rel="stylesheet" href="style.css">
+<style>
+/* ── Warp overlay ── */
+#warp-overlay {
+  position:fixed; inset:0; pointer-events:none; z-index:50;
+  background: radial-gradient(ellipse at center,
+    rgba(180,0,255,0.0) 0%, rgba(0,200,255,0.0) 60%, rgba(255,0,200,0.0) 100%);
+  opacity:0; transition: none;
+  mix-blend-mode: screen;
+}
+/* ── Level-clear banner ── */
+#level-clear {
+  display:none; position:fixed; inset:0; z-index:60;
+  flex-direction:column; align-items:center; justify-content:center;
+  background: rgba(0,0,10,0.7);
+}
+#level-clear h2 {
+  color:#0ff; font-family:monospace; font-size:2.0em;
+  text-shadow: 0 0 20px #0ff, 0 0 40px #0ff;
+  margin:0 0 8px; animation: pulse-text 0.7s infinite alternate;
+}
+#level-clear .sub {
+  color:#f0f; font-family:monospace; font-size:1.1em;
+  text-shadow: 0 0 10px #f0f;
+  margin-bottom:20px;
+}
+#level-clear button {
+  background:transparent; border:2px solid #0ff;
+  color:#0ff; font-size:1.2em; padding:10px 28px;
+  cursor:pointer; font-family:monospace;
+  text-shadow:0 0 8px #0ff; box-shadow: 0 0 16px #0ff;
+  transition: background 0.2s;
+}
+#level-clear button:hover { background: rgba(0,255,255,0.15); }
+@keyframes pulse-text { from{opacity:0.8} to{opacity:1; text-shadow:0 0 30px #0ff, 0 0 60px #0ff;} }
+
+/* ── HUD ── */
+#hud { display:flex; gap:12px; align-items:center; }
+#level-label { color:#f0f; font-family:monospace; font-size:1.1em;
+  text-shadow:0 0 8px #f0f; }
+#steps-label  { color:#0ff; font-family:monospace; font-size:1.1em;
+  text-shadow:0 0 8px #0ff; }
+</style>
 </head>
 <body>
 
+<!-- Warp chromatic-aberration overlay -->
+<div id="warp-overlay"></div>
+
 <div id="hud">
+  <span id="level-label">LV <b id="level">1</b></span>
   <span id="steps-label">歩数: <b id="steps">0</b></span>
+  <span id="total-label" style="color:#888;font-family:monospace;font-size:0.9em;">合計: <b id="total-steps">0</b></span>
   <button id="btn-reset" onclick="doReset()">リセット</button>
 </div>
 
@@ -17,106 +64,141 @@
   <canvas id="maze3d-canvas"></canvas>
 </div>
 
-<!-- D-pad controls -->
+<!-- D-pad controls (touch/click) -->
 <div id="dpad">
-  <button class="db" id="db-up"    ontouchstart="act(0)" onmousedown="act(0)">▲</button>
-  <div id="dpad-mid">
-    <button class="db" id="db-left"  ontouchstart="act(1)" onmousedown="act(1)">◀</button>
-    <button class="db" id="db-center" disabled>●</button>
-    <button class="db" id="db-right" ontouchstart="act(2)" onmousedown="act(2)">▶</button>
+  <button class="dpad-btn" id="btn-fwd"   ontouchstart="startAct(0)" ontouchend="stopAct()"
+                                           onmousedown="startAct(0)" onmouseup="stopAct()">▲</button>
+  <div class="dpad-row">
+    <button class="dpad-btn" id="btn-left"  ontouchstart="startAct(1)" ontouchend="stopAct()"
+                                             onmousedown="startAct(1)" onmouseup="stopAct()">◀</button>
+    <button class="dpad-btn" id="btn-back"  ontouchstart="startAct(3)" ontouchend="stopAct()"
+                                             onmousedown="startAct(3)" onmouseup="stopAct()">▼</button>
+    <button class="dpad-btn" id="btn-right" ontouchstart="startAct(2)" ontouchend="stopAct()"
+                                             onmousedown="startAct(2)" onmouseup="stopAct()">▶</button>
   </div>
-  <button class="db" id="db-down"  ontouchstart="act(3)" onmousedown="act(3)">▼</button>
 </div>
 
-<!-- Win overlay -->
-<div id="win-overlay" style="display:none">
-  <div id="win-box">
-    <div id="win-icon">🎉</div>
-    <h2>クリア！</h2>
-    <p id="win-steps"></p>
-    <button onclick="doReset()">もう一度</button>
-  </div>
+<!-- Level-clear overlay -->
+<div id="level-clear">
+  <h2>🎉 LEVEL CLEAR! 🎉</h2>
+  <p class="sub" id="clear-steps"></p>
+  <button onclick="goNextLevel()">NEXT LEVEL ▶</button>
 </div>
 
 <!-- Loading overlay -->
-<div id="loading">
-  <div id="loading-inner">
-    <div class="spin"></div>
-    <p>wgpu WebGL 初期化中…</p>
-  </div>
+<div id="loading" style="position:fixed;inset:0;background:#000;display:flex;align-items:center;
+     justify-content:center;z-index:999;color:#0ff;font-family:monospace;font-size:1.4em;">
+  LOADING wgpu WebGL…
 </div>
 
 <script type="module">
-import init, {
-  init_maze3d, tick_maze3d, move_maze3d,
-  reset_maze3d, steps_maze3d, won_maze3d
-} from './wasm/wasm_app.js';
+import init, * as wasm from './wasm/wasm_app.js';
 
+const W_KEY={ArrowUp:0,KeyW:0,ArrowLeft:1,KeyA:1,ArrowRight:2,KeyD:2,ArrowDown:3,KeyS:3};
 let initialized = false;
-let stepsEl  = document.getElementById('steps');
-let winOv    = document.getElementById('win-overlay');
-let winSteps = document.getElementById('win-steps');
-let loading  = document.getElementById('loading');
+let actionInterval = null;
+const warpEl = document.getElementById('warp-overlay');
+const clearEl = document.getElementById('level-clear');
 
-// Resize canvas to fill the game area
-function resizeCanvas() {
-  const cv  = document.getElementById('maze3d-canvas');
-  const wrap = document.getElementById('canvas-wrap');
-  cv.width  = wrap.clientWidth;
-  cv.height = wrap.clientHeight;
-}
-
+// ── Init ──────────────────────────────────────────────────────────────────
 async function start() {
-  resizeCanvas();
-  await init();
-  await init_maze3d('maze3d-canvas');
+  await init('./wasm/wasm_app_bg.wasm');
+  const c = document.getElementById('maze3d-canvas');
+  c.width  = window.innerWidth;
+  c.height = Math.min(window.innerHeight * 0.62, window.innerWidth * 0.75);
+  await wasm.init_maze3d('maze3d-canvas');
+  document.getElementById('loading').style.display = 'none';
   initialized = true;
-  loading.style.display = 'none';
   requestAnimationFrame(loop);
 }
 
+// ── Game loop ─────────────────────────────────────────────────────────────
 function loop(ts) {
   if (!initialized) return;
-  tick_maze3d(ts);
-  stepsEl.textContent = steps_maze3d();
-  if (won_maze3d()) {
-    winSteps.textContent = `歩数: ${steps_maze3d()} 歩でゴール！`;
-    winOv.style.display = 'flex';
-    return; // pause loop
-  }
+  wasm.tick_maze3d(ts);
+  updateHud();
+  updateEffects();
   requestAnimationFrame(loop);
 }
 
-// Expose to onclick/ontouchstart (must be on window)
-window.act = function(action) {
+function updateHud() {
+  document.getElementById('steps').textContent       = wasm.steps_maze3d();
+  document.getElementById('total-steps').textContent = wasm.total_steps_maze3d();
+  document.getElementById('level').textContent       = wasm.level_maze3d();
+}
+
+// ── Visual effects ────────────────────────────────────────────────────────
+let clearShown = false;
+
+function updateEffects() {
+  const w = wasm.warp_maze3d(); // 0→1→0 bell curve
+
+  // Warp overlay: chromatic radial pulse
+  if (w > 0.01) {
+    const opacity = w * 0.7;
+    const spread  = 20 + w * 60;
+    warpEl.style.opacity = opacity;
+    warpEl.style.background =
+      `radial-gradient(ellipse at center,
+        rgba(180,0,255,${w*0.4}) 0%,
+        rgba(0,200,255,${w*0.2}) 40%,
+        rgba(255,0,200,${w*0.5}) 100%)`;
+    warpEl.style.boxShadow = `inset 0 0 ${spread}px rgba(0,255,255,${w*0.6})`;
+  } else {
+    warpEl.style.opacity = '0';
+  }
+
+  // Show level-clear banner after warp finishes
+  if (wasm.warp_done_maze3d() && !clearShown) {
+    clearShown = true;
+    document.getElementById('clear-steps').textContent =
+      `このレベルの歩数: ${wasm.steps_maze3d()}  合計: ${wasm.total_steps_maze3d()}`;
+    clearEl.style.display = 'flex';
+  }
+}
+
+// ── Controls ──────────────────────────────────────────────────────────────
+window.startAct = function(a) {
   if (!initialized) return;
-  move_maze3d(action);
+  wasm.move_maze3d(a);
+  stopAct();
+  actionInterval = setInterval(() => wasm.move_maze3d(a), 200);
 };
+window.stopAct = function() {
+  if (actionInterval) { clearInterval(actionInterval); actionInterval = null; }
+};
+
+document.addEventListener('keydown', e => {
+  if (e.code in W_KEY && initialized) {
+    e.preventDefault();
+    wasm.move_maze3d(W_KEY[e.code]);
+  }
+});
+
+// ── Next level / Reset ────────────────────────────────────────────────────
+window.goNextLevel = function() {
+  wasm.next_level_maze3d();
+  clearEl.style.display = 'none';
+  clearShown = false;
+  warpEl.style.opacity = '0';
+};
+
 window.doReset = function() {
-  if (!initialized) return;
-  reset_maze3d();
-  winOv.style.display = 'none';
-  requestAnimationFrame(loop);
+  wasm.reset_maze3d();
+  clearEl.style.display = 'none';
+  clearShown = false;
+  warpEl.style.opacity = '0';
 };
 
-// Keyboard controls
-window.addEventListener('keydown', e => {
-  if (!initialized) return;
-  if (e.key === 'ArrowUp'    || e.key === 'w') window.act(0);
-  if (e.key === 'ArrowLeft'  || e.key === 'a') window.act(1);
-  if (e.key === 'ArrowRight' || e.key === 'd') window.act(2);
-  if (e.key === 'ArrowDown'  || e.key === 's') window.act(3);
-  if (e.key === 'r') window.doReset();
-});
+// ── Touch half-screen: left side = turn left, right side = turn right ─────
+document.getElementById('canvas-wrap').addEventListener('touchstart', e => {
+  e.preventDefault();
+  const t = e.changedTouches[0];
+  const half = window.innerWidth / 2;
+  wasm.move_maze3d(t.clientX < half ? 1 : 2); // 1=turn_left 2=turn_right
+}, {passive:false});
 
-window.addEventListener('resize', () => {
-  resizeCanvas();
-});
-
-start().catch(err => {
-  loading.innerHTML = `<p style="color:#f66">エラー: ${err}</p>`;
-  console.error(err);
-});
+start();
 </script>
 </body>
 </html>

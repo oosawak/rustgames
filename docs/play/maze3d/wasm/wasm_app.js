@@ -10,10 +10,30 @@ export function init_maze3d(canvas_id) {
 }
 
 /**
- * @param {number} action
+ * @returns {boolean}
  */
-export function move_maze3d(action) {
-    wasm.move_maze3d(action);
+export function level_clear_maze3d() {
+    const ret = wasm.level_clear_maze3d();
+    return ret !== 0;
+}
+
+/**
+ * @returns {number}
+ */
+export function level_maze3d() {
+    const ret = wasm.level_maze3d();
+    return ret >>> 0;
+}
+
+/**
+ * @param {number} a
+ */
+export function move_maze3d(a) {
+    wasm.move_maze3d(a);
+}
+
+export function next_level_maze3d() {
+    wasm.next_level_maze3d();
 }
 
 export function reset_maze3d() {
@@ -36,11 +56,27 @@ export function tick_maze3d(ts) {
 }
 
 /**
+ * @returns {number}
+ */
+export function total_steps_maze3d() {
+    const ret = wasm.total_steps_maze3d();
+    return ret >>> 0;
+}
+
+/**
  * @returns {boolean}
  */
-export function won_maze3d() {
-    const ret = wasm.won_maze3d();
+export function warp_done_maze3d() {
+    const ret = wasm.warp_done_maze3d();
     return ret !== 0;
+}
+
+/**
+ * @returns {number}
+ */
+export function warp_maze3d() {
+    const ret = wasm.warp_maze3d();
+    return ret;
 }
 function __wbg_get_imports() {
     const import0 = {
@@ -1055,7 +1091,7 @@ function __wbg_get_imports() {
             return ret;
         },
         __wbindgen_cast_0000000000000001: function(arg0, arg1) {
-            // Cast intrinsic for `Closure(Closure { owned: true, function: Function { arguments: [Externref], shim_idx: 1915, ret: Result(Unit), inner_ret: Some(Result(Unit)) }, mutable: true }) -> Externref`.
+            // Cast intrinsic for `Closure(Closure { owned: true, function: Function { arguments: [Externref], shim_idx: 1911, ret: Result(Unit), inner_ret: Some(Result(Unit)) }, mutable: true }) -> Externref`.
             const ret = makeMutClosure(arg0, arg1, wasm_bindgen__convert__closures_____invoke__h337539ba828a8639);
             return ret;
         },
