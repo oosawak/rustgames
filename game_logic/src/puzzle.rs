@@ -47,31 +47,17 @@ impl PuzzleLogic {
     }
     
     fn initialize_level(&mut self) {
-        // Add 4 cubes in a 2x2 grid
-        let colors = vec![CubeColor::Red, CubeColor::Green, CubeColor::Blue, CubeColor::Yellow];
-        let positions = vec![
-            (0, 0, 0),
-            (1, 0, 0),
-            (0, 1, 0),
-            (1, 1, 0),
-        ];
-        let goal_positions = vec![
-            (0, 0, 2),
-            (1, 0, 2),
-            (0, 1, 2),
-            (1, 1, 2),
-        ];
+        // Start with a single cube for testing
+        let cube = Cube {
+            position: (0, 0, 0),
+            color: CubeColor::Red,
+            id: self.next_id,
+        };
+        let goal = (5, 0, 2);
         
-        for (color, (pos, goal)) in colors.iter().zip(positions.iter().zip(goal_positions.iter())) {
-            let cube = Cube {
-                position: *pos,
-                color: *color,
-                id: self.next_id,
-            };
-            self.cubes.insert(self.next_id, cube);
-            self.goal_positions.insert(self.next_id, *goal);
-            self.next_id += 1;
-        }
+        self.cubes.insert(self.next_id, cube);
+        self.goal_positions.insert(self.next_id, goal);
+        self.next_id += 1;
     }
     
     pub fn move_cube(&mut self, cube_id: u32, delta_position: (i32, i32, i32)) -> bool {

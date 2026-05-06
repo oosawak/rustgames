@@ -223,6 +223,7 @@
 
             <div class="info-box">
                 <strong>💡 ヒント：</strong> 左右のボタンで立方体を移動できます。ゴール位置に到達するとクリアです！
+                <div id="status" style="margin-top: 10px; font-size: 0.85em; font-family: monospace;"></div>
             </div>
 
             <div class="debug-box">
@@ -366,7 +367,7 @@
                         document.getElementById('moves').textContent = moves;
                         debugLog(`✅ 移動成功! 移動数: ${moves}`, 'success');
                     } else {
-                        debugLog('❌ 移動できません', 'error');
+                        debugLog('❌ 移動できません（無効な移動：衝突または範囲外）', 'error');
                     }
                 } catch (err) {
                     debugLog(`❌ 移動エラー: ${err.message}`, 'error');
