@@ -372,8 +372,20 @@ fn build_scene(maze:&Maze, time:f32, particles:&[Particle],
             [lc[0]*pulse*0.6, lc[1]*pulse*0.6, lc[2]*pulse*0.6, 1.0]);
     }
 
-    // START pillar (bright green emissive)
-    pillar(&mut vs,&mut ix, 0.5,0.5, 0.13,WALL_H*1.05, [0.2,3.0,0.5,1.0]);
+    // START floor glow (green cross pattern on floor)
+    let st = (time * 1.8).sin() * 0.3 + 0.7; // gentle pulse
+    // large base glow
+    let gr = 0.42f32;
+    quad(&mut vs,&mut ix,
+        [0.5-gr, 0.012, 0.5-gr],[0.5+gr, 0.012, 0.5-gr],
+        [0.5+gr, 0.012, 0.5+gr],[0.5-gr, 0.012, 0.5+gr],
+        [0.0, st*0.9, st*0.35, 1.0]);
+    // bright center dot
+    let cr = 0.16f32;
+    quad(&mut vs,&mut ix,
+        [0.5-cr, 0.015, 0.5-cr],[0.5+cr, 0.015, 0.5-cr],
+        [0.5+cr, 0.015, 0.5+cr],[0.5-cr, 0.015, 0.5+cr],
+        [0.1, st*2.2, st*0.8, 1.0]);
 
     // GOAL pillar (pulsing magenta emissive)
     let p = (time*2.5).sin()*0.5+0.5;
