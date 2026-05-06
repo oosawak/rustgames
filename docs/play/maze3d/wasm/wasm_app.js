@@ -1,3 +1,5 @@
+/* @ts-self-types="./wasm_app.d.ts" */
+
 /**
  * 音声イベントフラグ (0=なし 1=足音 2=壁衝突 3=レベルクリア 4=ゴール付近)
  * @returns {number}
