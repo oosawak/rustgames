@@ -137,6 +137,38 @@
             color: #1565c0;
         }
 
+        .debug-box {
+            background: #1e1e1e;
+            border: 2px solid #ff6b6b;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            color: #00ff00;
+            max-height: 300px;
+            overflow-y: auto;
+            line-height: 1.4;
+        }
+
+        .debug-log-entry {
+            margin-bottom: 8px;
+            padding: 5px;
+            border-bottom: 1px solid #333;
+        }
+
+        .debug-log-entry.error {
+            color: #ff6b6b;
+        }
+
+        .debug-log-entry.success {
+            color: #51cf66;
+        }
+
+        .debug-log-entry.info {
+            color: #4dabf7;
+        }
+
         @media (max-width: 600px) {
             .container {
                 padding: 20px;
@@ -192,6 +224,11 @@
             <div class="info-box">
                 <strong>💡 ヒント：</strong> 左右のボタンで立方体を移動できます。ゴール位置に到達するとクリアです！
             </div>
+
+            <div class="debug-box">
+                <strong style="color: #ff6b6b;">🔧 デバッグログ</strong>
+                <div id="debugLog"></div>
+            </div>
         </div>
 
         <p style="text-align: center; color: #999; margin-top: 20px;">
@@ -204,17 +241,47 @@
 
         let game = null;
 
+        // デバッグログ表示関数
+        function debugLog(message, type = 'info') {
+            const debugBox = document.getElementById('debugLog');
+            const entry = document.createElement('div');
+            entry.className = `debug-log-entry ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            debugBox.appendChild(entry);
+            // スクロールを最下部に
+            debugBox.scrollTop = debugBox.scrollHeight;
+            // 最大100行までの表示
+            if (debugBox.children.length > 100) {
+                debugBox.removeChild(debugBox.firstChild);
+            }
+            console.log(message);
+        }
+
         async function startGame() {
             try {
-                console.log('🎮 ゲーム開始します...');
+                debugLog('🎮 ゲーム開始ボタンをクリック', 'info');
                 
                 if (!game) {
-                    console.log('📦 WASM モジュール読み込み中...');
-                    await init();
-                    console.log('✅ WASM 初期化完了');
+                    debugLog('📦 WASM モジュール読み込み中...', 'info');
+                    try {
+                        await init();
+                        debugLog('✅ WASM 初期化完了', 'success');
+                    } catch (initErr) {
+                        debugLog(`❌ WASM 初期化エラー: ${initErr.message}`, 'error');
+                        return;
+                    }
                     
-                    game = new GameInstance();
-                    console.log('✅ ゲームインスタンス作成完了');
+                    try {
+                        game = new GameInstance();
+                        debugLog('✅ ゲームインスタンス作成完了', 'success');
+                    } catch (gameErr) {
+                        debugLog(`❌ ゲームインスタンス作成エラー: ${gameErr.message}`, 'error');
+                        game = null;
+                        return;
+                    }
+                } else {
+                    debugLog('♻️ 既存のゲームインスタンスを使用', 'info');
                 }
 
                 let lastTime = performance.now();
@@ -232,16 +299,24 @@
                         frameCount++;
 
                         // UI 更新
-                        document.getElementById('score').textContent = game.get_score();
-                        document.getElementById('moves').textContent = game.get_moves();
-                        document.getElementById('time').textContent = game.get_time().toFixed(1) + 's';
+                        const score = game.get_score();
+                        const moves = game.get_moves();
+                        const time = game.get_time();
+                        
+                        document.getElementById('score').textContent = score;
+                        document.getElementById('moves').textContent = moves;
+                        document.getElementById('time').textContent = time.toFixed(1) + 's';
+
+                        if (frameCount === 1) {
+                            debugLog(`▶️ ゲームループ開始 (dt: ${dt.toFixed(4)}s)`, 'success');
+                        }
 
                         if (frameCount % 60 === 0) {
-                            console.log(`フレーム: ${frameCount}, スコア: ${game.get_score()}, 移動: ${game.get_moves()}`);
+                            debugLog(`フレーム: ${frameCount}, スコア: ${score}, 移動: ${moves}, 時間: ${time.toFixed(1)}s`, 'info');
                         }
 
                         if (game.is_won()) {
-                            console.log('🎉 ゲームクリア！');
+                            debugLog('🎉 ゲームクリア！', 'success');
                             alert('🎉 クリアおめでとうございます！');
                             isRunning = false;
                             return;
@@ -249,41 +324,56 @@
 
                         requestAnimationFrame(gameLoop);
                     } catch (err) {
-                        console.error('ゲームループエラー:', err);
+                        debugLog(`❌ ゲームループエラー: ${err.message}`, 'error');
+                        debugLog(`スタックトレース: ${err.stack}`, 'error');
                         isRunning = false;
                     }
                 }
 
-                console.log('▶️ ゲームループ開始');
+                debugLog('▶️ ゲームループ開始...', 'info');
                 requestAnimationFrame(gameLoop);
             } catch (err) {
-                console.error('❌ ゲーム初期化エラー:', err);
-                alert('ゲームの初期化に失敗しました:\n' + err.message);
+                debugLog(`❌ ゲーム初期化エラー: ${err.message}`, 'error');
+                debugLog(`スタックトレース: ${err.stack}`, 'error');
             }
         }
 
         function resetGame() {
+            debugLog('🔄 リセットボタンをクリック', 'info');
             if (game) {
-                console.log('🔄 ゲームをリセット');
-                game.reset();
-                document.getElementById('score').textContent = '0';
-                document.getElementById('moves').textContent = '0';
-                document.getElementById('time').textContent = '0.0s';
+                try {
+                    game.reset();
+                    document.getElementById('score').textContent = '0';
+                    document.getElementById('moves').textContent = '0';
+                    document.getElementById('time').textContent = '0.0s';
+                    debugLog('✅ ゲームをリセット完了', 'success');
+                } catch (err) {
+                    debugLog(`❌ リセットエラー: ${err.message}`, 'error');
+                }
+            } else {
+                debugLog('⚠️ ゲームがまだ初期化されていません', 'error');
             }
         }
 
         function moveCube(x, y, z) {
+            debugLog(`⬌ 立方体移動要求: (${x}, ${y}, ${z})`, 'info');
             if (game) {
-                const success = game.move_cube(x, y, z);
-                console.log(`立方体移動: (${x}, ${y}, ${z}) - 成功: ${success}`);
-                if (success) {
-                    document.getElementById('score').textContent = game.get_score();
-                    document.getElementById('moves').textContent = game.get_moves();
-                } else {
-                    console.log('移動に失敗しました');
+                try {
+                    const success = game.move_cube(x, y, z);
+                    if (success) {
+                        const score = game.get_score();
+                        const moves = game.get_moves();
+                        document.getElementById('score').textContent = score;
+                        document.getElementById('moves').textContent = moves;
+                        debugLog(`✅ 移動成功! 移動数: ${moves}, スコア: ${score}`, 'success');
+                    } else {
+                        debugLog('❌ 移動に失敗しました（無効な移動）', 'error');
+                    }
+                } catch (err) {
+                    debugLog(`❌ 移動エラー: ${err.message}`, 'error');
                 }
             } else {
-                console.warn('ゲームがまだ初期化されていません');
+                debugLog('⚠️ ゲームがまだ初期化されていません。先にゲーム開始してください。', 'error');
             }
         }
 
@@ -292,7 +382,8 @@
         window.resetGame = resetGame;
         window.moveCube = moveCube;
 
-        console.log('✅ ゲームスクリプト読み込み完了');
+        debugLog('✅ ゲームスクリプト読み込み完了', 'success');
+        debugLog('📂 WASM モジュール: ./game/wasm_app.js', 'info');
     </script>
 </body>
 </html>
