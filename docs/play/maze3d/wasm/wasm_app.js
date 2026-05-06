@@ -26,6 +26,16 @@ export function level_maze3d() {
 }
 
 /**
+ * @returns {Uint8Array}
+ */
+export function maze_data_maze3d() {
+    const ret = wasm.maze_data_maze3d();
+    var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v1;
+}
+
+/**
  * @param {number} a
  */
 export function move_maze3d(a) {
@@ -34,6 +44,30 @@ export function move_maze3d(a) {
 
 export function next_level_maze3d() {
     wasm.next_level_maze3d();
+}
+
+/**
+ * @returns {number}
+ */
+export function player_facing_maze3d() {
+    const ret = wasm.player_facing_maze3d();
+    return ret;
+}
+
+/**
+ * @returns {number}
+ */
+export function player_x_maze3d() {
+    const ret = wasm.player_x_maze3d();
+    return ret >>> 0;
+}
+
+/**
+ * @returns {number}
+ */
+export function player_z_maze3d() {
+    const ret = wasm.player_z_maze3d();
+    return ret >>> 0;
 }
 
 export function reset_maze3d() {

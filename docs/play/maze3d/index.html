@@ -60,6 +60,17 @@
   text-shadow:0 0 8px #f0f; }
 #steps-label  { color:#0ff; font-family:monospace; font-size:1.1em;
   text-shadow:0 0 8px #0ff; }
+
+/* ── Minimap ── */
+#minimap {
+  position:fixed; top:50px; right:8px; z-index:20;
+  border:1px solid rgba(0,200,255,0.4);
+  border-radius:4px;
+  background:rgba(0,0,20,0.82);
+  image-rendering:pixelated;
+  width:144px; height:144px;
+  box-shadow: 0 0 8px rgba(0,200,255,0.3);
+}
 </style>
 </head>
 <body>
@@ -87,6 +98,9 @@
 <div id="canvas-wrap">
   <canvas id="maze3d-canvas"></canvas>
 </div>
+
+<!-- Minimap (top-right overlay) -->
+<canvas id="minimap" width="144" height="144"></canvas>
 
 <!-- D-pad (desktop fallback, hidden on narrow screens) -->
 <div id="dpad">
@@ -164,7 +178,91 @@ function loop(ts) {
   document.getElementById('total-steps').textContent = wasm.total_steps_maze3d();
   document.getElementById('level').textContent       = wasm.level_maze3d();
   updateEffects();
+  drawMinimap();
   requestAnimationFrame(loop);
+}
+
+// ── Minimap ───────────────────────────────────────────────────────────────────
+const minimapCanvas = document.getElementById('minimap');
+const mmCtx = minimapCanvas.getContext('2d');
+const MM_W = 9; // MAZE_W
+const MM_H = 9; // MAZE_H
+const CELL = 14; // px per cell (144 / 9 = 16 with 0 padding)
+const N_FLAG = 1, E_FLAG = 2, S_FLAG = 4, W_FLAG = 8;
+
+function drawMinimap() {
+  if (!initialized) return;
+  const mazeBytes = wasm.maze_data_maze3d();
+  const px = wasm.player_x_maze3d();
+  const pz = wasm.player_z_maze3d();
+  const facing = wasm.player_facing_maze3d();
+
+  mmCtx.clearRect(0, 0, 144, 144);
+  mmCtx.fillStyle = 'rgba(0,0,20,0.0)';
+  mmCtx.fillRect(0, 0, 144, 144);
+
+  // Draw cells
+  for (let cz = 0; cz < MM_H; cz++) {
+    for (let cx = 0; cx < MM_W; cx++) {
+      const x0 = cx * CELL + 1, y0 = cz * CELL + 1;
+      const walls = mazeBytes[cz * MM_W + cx];
+      // Visited floor (dim) vs player cell (bright)
+      if (cx === px && cz === pz) {
+        mmCtx.fillStyle = 'rgba(0,255,255,0.18)';
+        mmCtx.fillRect(x0, y0, CELL-1, CELL-1);
+      }
+      // Goal cell highlight
+      if (cx === MM_W-1 && cz === MM_H-1) {
+        mmCtx.fillStyle = 'rgba(255,0,220,0.35)';
+        mmCtx.fillRect(x0, y0, CELL-1, CELL-1);
+      }
+      // Start cell highlight
+      if (cx === 0 && cz === 0) {
+        mmCtx.fillStyle = 'rgba(0,255,100,0.25)';
+        mmCtx.fillRect(x0, y0, CELL-1, CELL-1);
+      }
+      // Draw walls as bright lines
+      mmCtx.strokeStyle = 'rgba(0,200,255,0.85)';
+      mmCtx.lineWidth = 1.5;
+      if (walls & N_FLAG) { mmCtx.beginPath(); mmCtx.moveTo(x0, y0); mmCtx.lineTo(x0+CELL-1, y0); mmCtx.stroke(); }
+      if (walls & S_FLAG) { mmCtx.beginPath(); mmCtx.moveTo(x0, y0+CELL-1); mmCtx.lineTo(x0+CELL-1, y0+CELL-1); mmCtx.stroke(); }
+      if (walls & W_FLAG) { mmCtx.beginPath(); mmCtx.moveTo(x0, y0); mmCtx.lineTo(x0, y0+CELL-1); mmCtx.stroke(); }
+      if (walls & E_FLAG) { mmCtx.beginPath(); mmCtx.moveTo(x0+CELL-1, y0); mmCtx.lineTo(x0+CELL-1, y0+CELL-1); mmCtx.stroke(); }
+    }
+  }
+
+  // Draw player arrow
+  const arrowDirs = [
+    [0, -4],  // N (facing=1)
+    [4,  0],  // E (facing=2)
+    [0,  4],  // S (facing=4)
+    [-4, 0],  // W (facing=8)
+  ];
+  const facingIdx = facing === 1 ? 0 : facing === 2 ? 1 : facing === 4 ? 2 : 3;
+  const [dx, dy] = arrowDirs[facingIdx];
+  const cx2 = px * CELL + CELL/2 + 1;
+  const cy2 = pz * CELL + CELL/2 + 1;
+  mmCtx.save();
+  mmCtx.strokeStyle = '#fff';
+  mmCtx.fillStyle = 'rgba(255,255,255,0.9)';
+  mmCtx.lineWidth = 1.5;
+  mmCtx.beginPath();
+  mmCtx.moveTo(cx2 + dx*1.0, cy2 + dy*1.0);
+  mmCtx.lineTo(cx2 - dx*0.5 - dy*0.5, cy2 - dy*0.5 + dx*0.5);
+  mmCtx.lineTo(cx2 - dx*0.5 + dy*0.5, cy2 - dy*0.5 - dx*0.5);
+  mmCtx.closePath();
+  mmCtx.fill();
+  mmCtx.restore();
+
+  // Goal dot (magenta)
+  mmCtx.save();
+  mmCtx.fillStyle = '#ff00dd';
+  mmCtx.shadowColor = '#ff00dd';
+  mmCtx.shadowBlur = 4;
+  mmCtx.beginPath();
+  mmCtx.arc((MM_W-1)*CELL + CELL/2 + 1, (MM_H-1)*CELL + CELL/2 + 1, 3, 0, Math.PI*2);
+  mmCtx.fill();
+  mmCtx.restore();
 }
 
 // ── Visual effects ─────────────────────────────────────────────────────────────

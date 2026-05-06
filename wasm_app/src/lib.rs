@@ -7,8 +7,8 @@ use std::cell::RefCell;
 
 const MAZE_W: usize = 9;
 const MAZE_H: usize = 9;
-const WALL_H: f32 = 1.3;
-const EYE_H:  f32 = 0.55;
+const WALL_H: f32 = 1.5;   // taller walls → more open feel
+const EYE_H:  f32 = 0.45;  // lower eye → looking up more
 const MAX_VERTS: usize = 12288;
 const MAX_IDX:   usize = 20480;
 
@@ -17,19 +17,25 @@ const N: u8 = 1; const E: u8 = 2; const S: u8 = 4; const W_DIR: u8 = 8;
 // ─── WGSL Shader ─────────────────────────────────────────────────────────────
 //
 //  col.a encodes material:
-//    1.0  = normal (floor/ceiling/pillar)
-//    2.0  = animated wall  → horizontal scan lines
-//    3.0  = particle       → always bright, no fog floor
+//    1.0  = normal (floor/ceiling/pillar/start/goal)
+//    2.0  = wall  → receives point-light shading + subtle grain
+//    3.0  = particle → always bright, bypass lighting
 //
-//  Uniforms: vp(64) + time(4) + warp(4) + pad(8) = 80 bytes
+//  Uniforms: vp(64) + time(4) + warp(4) + pad(8) + 4×Light(32each) = 208 bytes
+//  Light layout: pos.xyz=worldpos  pos.w=flicker_phase  col.rgb=color  col.a=intensity
 
 const SHADER: &str = r#"
+struct Light {
+    pos : vec4<f32>,
+    col : vec4<f32>,
+}
 struct Uni {
-    vp   : mat4x4<f32>,
-    time : f32,
-    warp : f32,
-    pad0 : f32,
-    pad1 : f32,
+    vp     : mat4x4<f32>,
+    time   : f32,
+    warp   : f32,
+    pad0   : f32,
+    pad1   : f32,
+    lights : array<Light, 4>,
 }
 @group(0) @binding(0) var<uniform> u: Uni;
 
@@ -38,46 +44,74 @@ struct VIn {
     @location(1) col : vec4<f32>,
 }
 struct VOut {
-    @builtin(position) clip : vec4<f32>,
-    @location(0) col        : vec4<f32>,
-    @location(1) depth      : f32,
-    @location(2) world_y    : f32,
+    @builtin(position) clip     : vec4<f32>,
+    @location(0)       col      : vec4<f32>,
+    @location(1)       depth    : f32,
+    @location(2)       world_y  : f32,
+    @location(3)       world_xz : vec2<f32>,
 }
 
 @vertex
 fn vs_main(v: VIn) -> VOut {
     var o: VOut;
-    let c = u.vp * vec4<f32>(v.pos, 1.0);
-    o.clip    = c;
-    o.col     = v.col;
-    o.depth   = c.w;
-    o.world_y = v.pos.y;
+    let c     = u.vp * vec4<f32>(v.pos, 1.0);
+    o.clip     = c;
+    o.col      = v.col;
+    o.depth    = c.w;
+    o.world_y  = v.pos.y;
+    o.world_xz = vec2<f32>(v.pos.x, v.pos.z);
     return o;
 }
 
 @fragment
 fn fs_main(v: VOut) -> @location(0) vec4<f32> {
-    let fog_min = select(0.06, 0.55, v.col.a > 2.5); // particles brighter
-    let fog = max(clamp(1.0 - v.depth / 14.0, 0.0, 1.0), fog_min);
     var rgb = v.col.rgb;
 
-    // ── Animated wall: scan lines ──
-    if v.col.a > 1.5 && v.col.a < 2.5 {
-        // slow base pulse + fast bright scan line traveling upward
-        let slow = sin(v.world_y * 5.0 - u.time * 2.0) * 0.08 + 0.92;
-        let scan = max(0.0, sin(v.world_y * 18.0 - u.time * 9.0)) * 0.35;
-        rgb = rgb * slow + vec3<f32>(0.0, scan * 0.3, scan);
+    // ── Particles: emissive, just fog-dim ──────────────────────────────────────
+    if v.col.a > 2.5 {
+        let fog = max(clamp(1.0 - v.depth / 15.0, 0.0, 1.0), 0.45);
+        return vec4<f32>(min(rgb * fog, vec3<f32>(1.0)), 1.0);
     }
 
-    rgb = min(rgb * fog, vec3<f32>(1.0));
+    // ── Point-light accumulation ───────────────────────────────────────────────
+    let wpos = vec3<f32>(v.world_xz.x, v.world_y, v.world_xz.y);
+    var light_acc = vec3<f32>(0.0);
+    for (var i = 0; i < 4; i++) {
+        let lpos    = u.lights[i].pos.xyz;
+        let lcol    = u.lights[i].col.rgb;
+        let lint    = u.lights[i].col.a;
+        let phase   = u.lights[i].pos.w;
+        // gentle flicker
+        let flicker = sin(u.time * 2.2 + phase * 6.283) * 0.10 + 0.90;
+        let dist    = length(lpos - wpos);
+        let att     = lint * flicker / (1.0 + dist * dist * 0.55);
+        light_acc  += lcol * att;
+    }
 
-    // ── Warp effect: chromatic distortion + white flash ──
+    // ambient: dim so lights stand out
+    let ambient = 0.09;
+
+    // ── Walls: subtle hash grain + lighting ───────────────────────────────────
+    if v.col.a > 1.5 {
+        // noise grain: tiny variation that breaks up flat look
+        let gu = floor(v.world_xz.x * 5.0) + floor(v.world_y * 6.0) * 11.0;
+        let gv = floor(v.world_xz.y * 5.0) + floor(v.world_y * 6.0) * 11.0;
+        let grain = fract(sin(gu * 127.1 + gv * 311.7) * 43758.5) * 0.08 + 0.92;
+        rgb = rgb * grain;
+    }
+
+    // lighting × fog
+    let fog    = clamp(1.0 - v.depth / 16.0, 0.0, 1.0);
+    let lit    = rgb * (ambient + light_acc);
+    rgb = min(lit * fog, vec3<f32>(1.0));
+
+    // ── Warp: chromatic distortion + flash ────────────────────────────────────
     if u.warp > 0.01 {
-        let flicker  = sin(u.time * 35.0) * 0.5 + 0.5;
-        let flash    = u.warp * flicker * 0.45;
-        let shift    = u.warp * sin(v.depth * 0.5 + u.time * 12.0) * 0.12;
-        rgb = rgb + vec3<f32>(flash + shift, flash * 0.3, flash - shift);
-        rgb = clamp(rgb, vec3<f32>(0.0), vec3<f32>(1.0));
+        let flicker = sin(u.time * 35.0) * 0.5 + 0.5;
+        let flash   = u.warp * flicker * 0.45;
+        let shift   = u.warp * sin(v.depth * 0.5 + u.time * 12.0) * 0.12;
+        rgb = clamp(rgb + vec3<f32>(flash + shift, flash * 0.3, flash - shift),
+                    vec3<f32>(0.0), vec3<f32>(1.0));
     }
 
     return vec4<f32>(rgb, 1.0);
@@ -97,11 +131,19 @@ const STRIDE: u64 = 32;
 
 #[repr(C)]
 #[derive(Copy, Clone, Pod, Zeroable)]
+struct Light {
+    pos: [f32; 4],  // xyz=world pos, w=flicker phase
+    col: [f32; 4],  // rgb=color, a=intensity
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Pod, Zeroable)]
 struct Uni {
-    vp:   [[f32; 4]; 4], // 64 bytes
-    time: f32,
-    warp: f32,
-    pad:  [f32; 2],      // → 80 bytes total
+    vp:     [[f32; 4]; 4], // 64 bytes at 0
+    time:   f32,            // at 64
+    warp:   f32,            // at 68
+    pad:    [f32; 2],       // at 72 → 80 bytes
+    lights: [Light; 4],     // at 80, 128 bytes → 208 bytes total
 }
 
 // ─── Math ─────────────────────────────────────────────────────────────────────
@@ -200,9 +242,53 @@ struct Particle {
 
 // ─── Geometry ────────────────────────────────────────────────────────────────
 
-const WALL_COL:  [f32;4] = [0.0, 0.85, 1.0, 2.0]; // a=2 → animated
-const FLOOR_COL: [f32;4] = [0.0, 0.04, 0.12, 1.0];
-const CEIL_COL:  [f32;4] = [0.0, 0.01, 0.04, 1.0];
+const WALL_COL:  [f32;4] = [0.05, 0.80, 1.0, 2.0]; // a=2 → wall material
+const FLOOR_COL: [f32;4] = [0.0,  0.04, 0.12, 1.0];
+const CEIL_COL:  [f32;4] = [0.0,  0.02, 0.06, 1.0];
+
+// 4 light colors: rgb + intensity
+const LIGHT_COLS: [[f32;4];4] = [
+    [1.00, 0.45, 0.05, 3.2],  // warm orange
+    [0.55, 0.10, 1.00, 3.2],  // purple
+    [0.05, 0.80, 1.00, 3.2],  // cyan-blue
+    [1.00, 0.25, 0.60, 3.2],  // pink
+];
+
+/// Find 4 well-spaced light positions at junction cells
+fn find_lights(maze: &Maze, rng: &mut u64) -> [[f32;4];4] {
+    // Score each cell: more open passages = better junction for a light
+    let mut scored: Vec<(usize,usize,usize)> = (0..MAZE_H).flat_map(|cz|
+        (0..MAZE_W).map(move |cx| {
+            let open = 4 - maze.cells[cz*MAZE_W+cx].count_ones() as usize;
+            (open, cx, cz)
+        })
+    ).collect();
+    scored.sort_by(|a,b| b.0.cmp(&a.0));
+
+    // Pick 4 picks that are at least 3 cells apart
+    let mut picks: Vec<(usize,usize)> = Vec::new();
+    for &(_score, cx, cz) in &scored {
+        let too_close = picks.iter().any(|&(px,pz)| {
+            let dx = cx as i32 - px as i32;
+            let dz = cz as i32 - pz as i32;
+            dx*dx + dz*dz < 9
+        });
+        if !too_close { picks.push((cx,cz)); }
+        if picks.len() == 4 { break; }
+    }
+    // Fallback: fill from top scored list if spacing couldn't be satisfied
+    while picks.len() < 4 {
+        let &(_,cx,cz) = &scored[lcg(rng) % scored.len().min(16)];
+        picks.push((cx,cz));
+    }
+
+    let mut result = [[0f32;4];4];
+    for (i, &(cx,cz)) in picks.iter().enumerate() {
+        // pos.w = flicker phase offset (spread the flickers)
+        result[i] = [cx as f32+0.5, WALL_H*0.88, cz as f32+0.5, i as f32 * 1.57];
+    }
+    result
+}
 
 fn quad(vs:&mut Vec<Vertex>,ix:&mut Vec<u32>,
         v0:[f32;3],v1:[f32;3],v2:[f32;3],v3:[f32;3],col:[f32;4]){
@@ -234,7 +320,8 @@ fn particle_cross(vs:&mut Vec<Vertex>,ix:&mut Vec<u32>,
     quad(vs,ix,[x,y-h,z-h],[x,y-h,z+h],[x,y+h,z+h],[x,y+h,z-h],col);
 }
 
-fn build_scene(maze:&Maze, time:f32, particles:&[Particle]) -> (Vec<Vertex>,Vec<u32>){
+fn build_scene(maze:&Maze, time:f32, particles:&[Particle],
+               light_pos:&[[f32;4];4]) -> (Vec<Vertex>,Vec<u32>){
     let mut vs:Vec<Vertex>=Vec::with_capacity(2048);
     let mut ix:Vec<u32>   =Vec::with_capacity(4096);
     let mw=MAZE_W as f32; let mh=MAZE_H as f32;
@@ -261,6 +348,29 @@ fn build_scene(maze:&Maze, time:f32, particles:&[Particle]) -> (Vec<Vertex>,Vec<
             quad(&mut vs,&mut ix,[x+1.0,0.0,z],[x+1.0,WALL_H,z],[x+1.0,WALL_H,z+1.0],[x+1.0,0.0,z+1.0],WALL_COL);
         }
     }}
+
+    // ── Hanging light fixtures at each light position ──
+    for (i, lp) in light_pos.iter().enumerate() {
+        let (lx, lz) = (lp[0], lp[2]);
+        let lc = LIGHT_COLS[i];
+        // bright emissive color (×3 to bloom through fog)
+        let ec = [lc[0]*3.0, lc[1]*3.0, lc[2]*3.0, 1.0];
+        let pulse = (time * 2.2 + lp[3]).sin() * 0.1 + 0.9;
+        let pc = [lc[0]*2.5*pulse, lc[1]*2.5*pulse, lc[2]*2.5*pulse, 1.0];
+        // ceiling disc (small glowing square)
+        let r = 0.10f32;
+        quad(&mut vs,&mut ix,
+            [lx-r, WALL_H-0.02, lz-r],[lx+r, WALL_H-0.02, lz-r],
+            [lx+r, WALL_H-0.02, lz+r],[lx-r, WALL_H-0.02, lz+r], ec);
+        // hanging lantern pendant (tiny pillar)
+        pillar(&mut vs,&mut ix, lx, lz, 0.05, WALL_H*0.72, pc);
+        // floor glow pool
+        let gr = 0.28f32;
+        quad(&mut vs,&mut ix,
+            [lx-gr, 0.01, lz-gr],[lx+gr, 0.01, lz-gr],
+            [lx+gr, 0.01, lz+gr],[lx-gr, 0.01, lz+gr],
+            [lc[0]*pulse*0.6, lc[1]*pulse*0.6, lc[2]*pulse*0.6, 1.0]);
+    }
 
     // START pillar (bright green emissive)
     pillar(&mut vs,&mut ix, 0.5,0.5, 0.13,WALL_H*1.05, [0.2,3.0,0.5,1.0]);
@@ -451,13 +561,14 @@ fn make_depth(device:&wgpu::Device,w:u32,h:u32)->wgpu::TextureView{
 struct GameState {
     gpu:         GpuState,
     maze:        Maze,
+    light_pos:   [[f32;4];4],  // world positions of 4 point lights
     px: usize, pz: usize,
     facing: u8,
     steps: u32,
     total_steps: u32,
     level: u32,
     level_clear: bool,
-    warp_timer: f32,    // counts up when level_clear
+    warp_timer: f32,
     particles: Vec<Particle>,
     time: f32,
     prev_ts: f64,
@@ -468,10 +579,12 @@ impl GameState {
         let doc    = web_sys::window().ok_or("no window")?.document().ok_or("no doc")?;
         let canvas = doc.get_element_by_id(canvas_id).ok_or("no canvas")?
             .dyn_into::<web_sys::HtmlCanvasElement>().map_err(|_| "not canvas")?;
-        let seed = (js_sys::Math::random() * u64::MAX as f64) as u64;
+        let mut seed = (js_sys::Math::random() * u64::MAX as f64) as u64 | 1;
+        let maze = Maze::new(seed);
+        let light_pos = find_lights(&maze, &mut seed);
         Ok(GameState{
             gpu: GpuState::new(canvas).await?,
-            maze: Maze::new(seed),
+            maze, light_pos,
             px:0, pz:0, facing:S,
             steps:0, total_steps:0, level:1,
             level_clear:false, warp_timer:0.0,
@@ -504,7 +617,7 @@ impl GameState {
         if self.level_clear { self.warp_timer += dt; }
 
         let warp = self.warp_amount();
-        let (verts,idxs) = build_scene(&self.maze, self.time, &self.particles);
+        let (verts,idxs) = build_scene(&self.maze, self.time, &self.particles, &self.light_pos);
 
         let eye = [self.px as f32+0.5, EYE_H, self.pz as f32+0.5];
         let fwd:[f32;3] = match self.facing {
@@ -513,9 +626,15 @@ impl GameState {
         };
         let ctr = [eye[0]+fwd[0],eye[1]+fwd[1],eye[2]+fwd[2]];
         let view = look_at(eye,ctr,[0.0,1.0,0.0]);
-        let proj = perspective(70.0f32.to_radians(),
-            self.gpu.width as f32/self.gpu.height as f32, 0.05, 50.0);
-        let uni = Uni{ vp:mat_mul(proj,view), time:self.time, warp, pad:[0.0;2] };
+        let proj = perspective(90.0f32.to_radians(),   // wider FOV = more open
+            self.gpu.width as f32/self.gpu.height as f32, 0.04, 50.0);
+
+        // Build lights for uniform
+        let mut lights = [Light{pos:[0.0;4],col:[0.0;4]};4];
+        for i in 0..4 {
+            lights[i] = Light { pos: self.light_pos[i], col: LIGHT_COLS[i] };
+        }
+        let uni = Uni{ vp:mat_mul(proj,view), time:self.time, warp, pad:[0.0;2], lights };
         self.gpu.render(&verts,&idxs,&uni);
     }
 
@@ -595,16 +714,18 @@ impl GameState {
     }
 
     fn next_level(&mut self) {
-        let seed = (js_sys::Math::random() * u64::MAX as f64) as u64;
-        self.maze=Maze::new(seed);
+        let mut seed = (js_sys::Math::random() * u64::MAX as f64) as u64 | 1;
+        self.maze = Maze::new(seed);
+        self.light_pos = find_lights(&self.maze, &mut seed);
         self.px=0; self.pz=0; self.facing=S; self.steps=0;
         self.level+=1; self.level_clear=false; self.warp_timer=0.0;
         self.particles.clear();
     }
 
     fn reset(&mut self) {
-        let seed = (js_sys::Math::random() * u64::MAX as f64) as u64;
-        self.maze=Maze::new(seed);
+        let mut seed = (js_sys::Math::random() * u64::MAX as f64) as u64 | 1;
+        self.maze = Maze::new(seed);
+        self.light_pos = find_lights(&self.maze, &mut seed);
         self.px=0; self.pz=0; self.facing=S;
         self.steps=0; self.total_steps=0; self.level=1;
         self.level_clear=false; self.warp_timer=0.0;
@@ -635,3 +756,12 @@ pub async fn init_maze3d(canvas_id: &str) -> Result<(), JsValue> {
 #[wasm_bindgen] pub fn level_clear_maze3d()->bool{ STATE.with(|s|s.borrow().as_ref().map(|g|g.level_clear).unwrap_or(false)) }
 #[wasm_bindgen] pub fn warp_maze3d()->f32        { STATE.with(|s|s.borrow().as_ref().map(|g|g.warp_amount()).unwrap_or(0.0)) }
 #[wasm_bindgen] pub fn warp_done_maze3d()->bool  { STATE.with(|s|s.borrow().as_ref().map(|g|g.level_clear && g.warp_timer>=1.5).unwrap_or(false)) }
+
+// ── Minimap exports ───────────────────────────────────────────────────────────
+// Returns raw cell flags (N=1,E=2,S=4,W=8) as a flat Vec<u8> of MAZE_W×MAZE_H
+#[wasm_bindgen] pub fn maze_data_maze3d() -> Vec<u8> {
+    STATE.with(|s| s.borrow().as_ref().map(|g| g.maze.cells.to_vec()).unwrap_or_default())
+}
+#[wasm_bindgen] pub fn player_x_maze3d()      -> u32 { STATE.with(|s|s.borrow().as_ref().map(|g|g.px as u32).unwrap_or(0)) }
+#[wasm_bindgen] pub fn player_z_maze3d()      -> u32 { STATE.with(|s|s.borrow().as_ref().map(|g|g.pz as u32).unwrap_or(0)) }
+#[wasm_bindgen] pub fn player_facing_maze3d() -> u8  { STATE.with(|s|s.borrow().as_ref().map(|g|g.facing).unwrap_or(4)) }
