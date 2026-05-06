@@ -74,15 +74,30 @@ impl PuzzleLogic {
         }
     }
     
-    pub fn move_cube(&mut self, cube_id: u32, new_position: (i32, i32, i32)) -> bool {
-        if let Some(cube) = self.cubes.get_mut(&cube_id) {
-            // Check if position is valid
-            if new_position.2 >= 0 && new_position.2 <= 5 {
-                cube.position = new_position;
-                self.move_count += 1;
+    pub fn move_cube(&mut self, cube_id: u32, delta_position: (i32, i32, i32)) -> bool {
+        if let Some(cube) = self.cubes.get(&cube_id) {
+            // Calculate new position by adding delta
+            let new_x = cube.position.0 + delta_position.0;
+            let new_y = cube.position.1 + delta_position.1;
+            let new_z = cube.position.2 + delta_position.2;
+            let new_pos = (new_x, new_y, new_z);
+            
+            // Check if position is valid (within grid bounds)
+            if new_x >= -5 && new_x <= 5 && new_y >= -5 && new_y <= 5 && new_z >= 0 && new_z <= 5 {
+                // Check for collision with other cubes
+                let occupied = self.cubes.iter().any(|(other_id, other_cube)| {
+                    *other_id != cube_id && other_cube.position == new_pos
+                });
                 
-                self.check_win();
-                return true;
+                if !occupied {
+                    // Now we can safely do the mutable borrow
+                    if let Some(cube_mut) = self.cubes.get_mut(&cube_id) {
+                        cube_mut.position = new_pos;
+                        self.move_count += 1;
+                        self.check_win();
+                        return true;
+                    }
+                }
             }
         }
         false

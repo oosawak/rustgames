@@ -53,6 +53,14 @@ impl GameState {
         self.physics.update(delta_time);
     }
     
+    pub fn move_cube(&mut self, cube_id: u32, delta_position: (i32, i32, i32)) -> bool {
+        if self.puzzle.move_cube(cube_id, delta_position) {
+            self.moves = self.puzzle.move_count;
+            return true;
+        }
+        false
+    }
+    
     pub fn reset(&mut self) {
         self.score = 0;
         self.moves = 0;
