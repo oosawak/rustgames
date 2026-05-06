@@ -237,6 +237,9 @@
     </div>
 
     <script>
+        // グローバル変数
+        let gameInstance = null;
+
         // デバッグログ表示関数
         function debugLog(message, type = 'info') {
             const debugBox = document.getElementById('debugLog');
@@ -256,20 +259,31 @@
             console.log(message);
         }
 
-        // グローバルに関数を定義（HTMLのonclick属性から呼ばれるため）
+        // ゲーム開始関数
         async function startGame() {
             debugLog('🎮 startGame() が呼ばれました！', 'success');
             
             try {
-                if (!window.gameInstance) {
-                    debugLog('📦 WASM モジュール読み込み中...', 'info');
-                    const { default: init, GameInstance } = await import('./game/wasm_app.js');
-                    debugLog('✅ WASM モジュール読み込み成功', 'success');
+                if (!gameInstance) {
+                    debugLog('📦 WASM 初期化中...', 'info');
                     
-                    await init();
+                    if (!window.wasmReady) {
+                        debugLog('⏳ WASM 読み込み完了を待機中...', 'info');
+                        // 最大5秒待機
+                        for (let i = 0; i < 50; i++) {
+                            if (window.wasmReady) break;
+                            await new Promise(r => setTimeout(r, 100));
+                        }
+                        if (!window.wasmReady) {
+                            throw new Error('WASM モジュール読み込みタイムアウト');
+                        }
+                    }
+
+                    debugLog('✅ WASM 準備完了', 'success');
+                    await window.wasmInit();
                     debugLog('✅ init() 完了', 'success');
                     
-                    window.gameInstance = new GameInstance();
+                    gameInstance = new window.GameInstance();
                     debugLog('✅ GameInstance 生成完了', 'success');
                 } else {
                     debugLog('♻️ 既存のゲームインスタンスを使用', 'info');
@@ -283,12 +297,12 @@
                     lastTime = currentTime;
 
                     try {
-                        window.gameInstance.update(dt);
+                        gameInstance.update(dt);
                         frameCount++;
 
-                        const score = window.gameInstance.get_score();
-                        const moves = window.gameInstance.get_moves();
-                        const time = window.gameInstance.get_time();
+                        const score = gameInstance.get_score();
+                        const moves = gameInstance.get_moves();
+                        const time = gameInstance.get_time();
                         
                         document.getElementById('score').textContent = score;
                         document.getElementById('moves').textContent = moves;
@@ -302,7 +316,7 @@
                             debugLog(`📊 フレーム: ${frameCount}, スコア: ${score}, 移動: ${moves}, 時間: ${time.toFixed(1)}s`, 'info');
                         }
 
-                        if (window.gameInstance.is_won()) {
+                        if (gameInstance.is_won()) {
                             debugLog('🎉 ゲームクリア！', 'success');
                             alert('🎉 クリアおめでとうございます！');
                             return;
@@ -321,11 +335,12 @@
             }
         }
 
+        // リセット関数
         function resetGame() {
             debugLog('🔄 resetGame() が呼ばれました', 'info');
-            if (window.gameInstance) {
+            if (gameInstance) {
                 try {
-                    window.gameInstance.reset();
+                    gameInstance.reset();
                     document.getElementById('score').textContent = '0';
                     document.getElementById('moves').textContent = '0';
                     document.getElementById('time').textContent = '0.0s';
@@ -338,14 +353,15 @@
             }
         }
 
+        // 立方体移動関数
         function moveCube(x, y, z) {
             debugLog(`⬌ moveCube(${x}, ${y}, ${z}) が呼ばれました`, 'info');
-            if (window.gameInstance) {
+            if (gameInstance) {
                 try {
-                    const success = window.gameInstance.move_cube(x, y, z);
+                    const success = gameInstance.move_cube(x, y, z);
                     if (success) {
-                        const score = window.gameInstance.get_score();
-                        const moves = window.gameInstance.get_moves();
+                        const score = gameInstance.get_score();
+                        const moves = gameInstance.get_moves();
                         document.getElementById('score').textContent = score;
                         document.getElementById('moves').textContent = moves;
                         debugLog(`✅ 移動成功! 移動数: ${moves}`, 'success');
@@ -364,11 +380,34 @@
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', function() {
                 debugLog('📄 ページロード完了', 'success');
-                debugLog('✅ ゲーム開始ボタンをクリックしてください', 'success');
+                debugLog('⏳ WASM モジュール読み込み中...', 'info');
             });
         } else {
             debugLog('📄 ページロード完了', 'success');
-            debugLog('✅ ゲーム開始ボタンをクリックしてください', 'success');
+            debugLog('⏳ WASM モジュール読み込み中...', 'info');
+        }
+    </script>
+
+    <!-- WASM モジュールをロード -->
+    <script type="module">
+        try {
+            const mod = await import('./game/wasm_app.js');
+            window.wasmInit = mod.default;
+            window.GameInstance = mod.GameInstance;
+            window.wasmReady = true;
+            
+            // debugLog関数が利用可能か確認
+            const debugLog = window.debugLog;
+            if (debugLog) {
+                debugLog('✅ WASM モジュール読み込み完了！', 'success');
+                debugLog('📝 「ゲーム開始」ボタンをクリックしてください', 'success');
+            }
+        } catch (err) {
+            console.error('WASM loading error:', err);
+            const debugLog = window.debugLog;
+            if (debugLog) {
+                debugLog(`❌ WASM読み込みエラー: ${err.message}`, 'error');
+            }
         }
     </script>
 </body>
