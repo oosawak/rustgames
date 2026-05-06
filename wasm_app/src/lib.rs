@@ -15,6 +15,7 @@ pub mod input;
 pub mod enemy;
 pub mod theme;
 pub mod scene;
+pub mod storage;
 
 use wasm_bindgen::prelude::*;
 use std::cell::RefCell;
@@ -68,6 +69,13 @@ pub fn theme_name_maze3d() -> String {
         .map(|g| crate::theme::get_theme(g.level).name.to_string())
         .unwrap_or_default())
 }
+
+#[wasm_bindgen] pub fn best_steps_maze3d() -> u32  { storage::load_best_score().0 }
+#[wasm_bindgen] pub fn best_level_maze3d() -> u32  { storage::load_best_score().1 }
+#[wasm_bindgen] pub fn play_count_maze3d() -> u32  { storage::load_play_count() }
+#[wasm_bindgen] pub fn load_se_vol_maze3d()  -> f32 { storage::load_audio_volume().0 }
+#[wasm_bindgen] pub fn load_amb_vol_maze3d() -> f32 { storage::load_audio_volume().1 }
+#[wasm_bindgen] pub fn save_audio_vol_maze3d(se: f32, amb: f32) { storage::save_audio_volume(se, amb); }
 
 #[wasm_bindgen]
 pub fn enemy_x_maze3d() -> f32 {

@@ -239,6 +239,7 @@ impl GameState {
     }
 
     pub fn next_level(&mut self) {
+        crate::storage::save_best_score(self.total_steps, self.level);
         let mut seed = (js_sys::Math::random() * u64::MAX as f64) as u64 | 1;
         self.maze = Maze::new(seed);
         self.light_pos = find_lights(&self.maze, &mut seed);
@@ -252,6 +253,7 @@ impl GameState {
     }
 
     pub fn reset(&mut self) {
+        crate::storage::increment_play_count();
         let mut seed = (js_sys::Math::random() * u64::MAX as f64) as u64 | 1;
         self.maze = Maze::new(seed);
         self.light_pos = find_lights(&self.maze, &mut seed);
@@ -266,6 +268,7 @@ impl GameState {
     }
 
     pub fn start_game(&mut self) {
+        crate::storage::increment_play_count();
         self.game_over = false;
         self.scene.transition_to(Scene::Playing);
         self.reset_to_level1();

@@ -21,6 +21,22 @@ export function audio_step_parity_maze3d() {
 /**
  * @returns {number}
  */
+export function best_level_maze3d() {
+    const ret = wasm.best_level_maze3d();
+    return ret >>> 0;
+}
+
+/**
+ * @returns {number}
+ */
+export function best_steps_maze3d() {
+    const ret = wasm.best_steps_maze3d();
+    return ret >>> 0;
+}
+
+/**
+ * @returns {number}
+ */
 export function enemy_x_maze3d() {
     const ret = wasm.enemy_x_maze3d();
     return ret;
@@ -70,6 +86,22 @@ export function level_maze3d() {
 }
 
 /**
+ * @returns {number}
+ */
+export function load_amb_vol_maze3d() {
+    const ret = wasm.load_amb_vol_maze3d();
+    return ret;
+}
+
+/**
+ * @returns {number}
+ */
+export function load_se_vol_maze3d() {
+    const ret = wasm.load_se_vol_maze3d();
+    return ret;
+}
+
+/**
  * @returns {Uint8Array}
  */
 export function maze_data_maze3d() {
@@ -88,6 +120,14 @@ export function move_maze3d(a) {
 
 export function next_level_maze3d() {
     wasm.next_level_maze3d();
+}
+
+/**
+ * @returns {number}
+ */
+export function play_count_maze3d() {
+    const ret = wasm.play_count_maze3d();
+    return ret >>> 0;
 }
 
 /**
@@ -116,6 +156,14 @@ export function player_z_maze3d() {
 
 export function reset_maze3d() {
     wasm.reset_maze3d();
+}
+
+/**
+ * @param {number} se
+ * @param {number} amb
+ */
+export function save_audio_vol_maze3d(se, amb) {
+    wasm.save_audio_vol_maze3d(se, amb);
 }
 
 /**
@@ -668,6 +716,13 @@ function __wbg_get_imports() {
             const ret = arg0.getIndexedParameter(arg1 >>> 0, arg2 >>> 0);
             return ret;
         }, arguments); },
+        __wbg_getItem_f68808a9230dd173: function() { return handleError(function (arg0, arg1, arg2, arg3) {
+            const ret = arg1.getItem(getStringFromWasm0(arg2, arg3));
+            var ptr1 = isLikeNone(ret) ? 0 : passStringToWasm0(ret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+            var len1 = WASM_VECTOR_LEN;
+            getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
+            getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
+        }, arguments); },
         __wbg_getParameter_4249f979fb9b2034: function() { return handleError(function (arg0, arg1) {
             const ret = arg0.getParameter(arg1 >>> 0);
             return ret;
@@ -815,6 +870,10 @@ function __wbg_get_imports() {
         __wbg_linkProgram_ba72b321b45bac4c: function(arg0, arg1) {
             arg0.linkProgram(arg1);
         },
+        __wbg_localStorage_11b5275c3ad2bab7: function() { return handleError(function (arg0) {
+            const ret = arg0.localStorage;
+            return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
+        }, arguments); },
         __wbg_new_227d7c05414eb861: function() {
             const ret = new Error();
             return ret;
@@ -917,6 +976,9 @@ function __wbg_get_imports() {
         __wbg_scissor_927c37be50cfe886: function(arg0, arg1, arg2, arg3, arg4) {
             arg0.scissor(arg1, arg2, arg3, arg4);
         },
+        __wbg_setItem_bb1a692eb19d66d0: function() { return handleError(function (arg0, arg1, arg2, arg3, arg4) {
+            arg0.setItem(getStringFromWasm0(arg1, arg2), getStringFromWasm0(arg3, arg4));
+        }, arguments); },
         __wbg_set_5337f8ac82364a3f: function() { return handleError(function (arg0, arg1, arg2) {
             const ret = Reflect.set(arg0, arg1, arg2);
             return ret;
@@ -1197,7 +1259,7 @@ function __wbg_get_imports() {
             return ret;
         },
         __wbindgen_cast_0000000000000001: function(arg0, arg1) {
-            // Cast intrinsic for `Closure(Closure { owned: true, function: Function { arguments: [Externref], shim_idx: 1911, ret: Result(Unit), inner_ret: Some(Result(Unit)) }, mutable: true }) -> Externref`.
+            // Cast intrinsic for `Closure(Closure { owned: true, function: Function { arguments: [Externref], shim_idx: 1915, ret: Result(Unit), inner_ret: Some(Result(Unit)) }, mutable: true }) -> Externref`.
             const ret = makeMutClosure(arg0, arg1, wasm_bindgen__convert__closures_____invoke__h337539ba828a8639);
             return ret;
         },

@@ -100,8 +100,16 @@
 <div id="title-screen">
   <h1>🌀 MAZE 3D</h1>
   <p style="color:#0ff">Find the exit before the enemy catches you!</p>
+  <div id="best-score-display" style="color:#888; font-family:monospace; font-size:0.85em; margin:8px 0;">
+    BEST: <span id="best-steps-val">-</span> steps / LV<span id="best-level-val">-</span>
+    ・Plays: <span id="play-count-val">0</span>
+  </div>
   <button id="btn-start">▶ START</button>
   <p style="color:#888;font-size:0.8em">← → turn &nbsp; ↑ forward &nbsp; ↓ back</p>
+  <div style="margin-top:12px; color:#888; font-family:monospace; font-size:0.8em;">
+    SE <input type="range" id="vol-se" min="0" max="100" value="100" style="width:80px; vertical-align:middle;">
+    AMB <input type="range" id="vol-amb" min="0" max="100" value="40" style="width:80px; vertical-align:middle;">
+  </div>
 </div>
 
 <!-- Swipe direction hints -->
@@ -188,6 +196,9 @@ const SWIPE_MIN = 35; // px
 let initialized = false;
 let repeatId    = null;
 
+let seVolume  = 1.0;
+let ambVolume = 0.4;
+
 const warpEl  = document.getElementById('warp-overlay');
 const clearEl = document.getElementById('level-clear');
 let clearShown   = false;
@@ -209,6 +220,24 @@ async function start() {
   await wasm.init_maze3d('maze3d-canvas');
   document.getElementById('loading').style.display = 'none';
   initialized = true;
+
+  // 保存済み音量を読み込んでスライダーに反映
+  seVolume  = wasm.load_se_vol_maze3d();
+  ambVolume = wasm.load_amb_vol_maze3d();
+  document.getElementById('vol-se').value  = Math.round(seVolume  * 100);
+  document.getElementById('vol-amb').value = Math.round(ambVolume * 100);
+
+  // 音量スライダーのイベント
+  document.getElementById('vol-se').addEventListener('input', e => {
+    seVolume = e.target.value / 100;
+    wasm.save_audio_vol_maze3d(seVolume, ambVolume);
+  });
+  document.getElementById('vol-amb').addEventListener('input', e => {
+    ambVolume = e.target.value / 100;
+    if (ambientGain) ambientGain.gain.setValueAtTime(0.06 * ambVolume, audioCtx.currentTime);
+    wasm.save_audio_vol_maze3d(seVolume, ambVolume);
+  });
+
   bindControls();
   requestAnimationFrame(loop);
 }
@@ -222,6 +251,13 @@ function loop(ts) {
 
   // タイトル画面の表示制御
   document.getElementById('title-screen').style.display = scene === 0 ? 'flex' : 'none';
+
+  if (scene === 0) {
+    const bs = wasm.best_steps_maze3d();
+    document.getElementById('best-steps-val').textContent = bs === 0 ? '-' : bs;
+    document.getElementById('best-level-val').textContent = wasm.best_level_maze3d();
+    document.getElementById('play-count-val').textContent = wasm.play_count_maze3d();
+  }
 
   document.getElementById('steps').textContent       = wasm.steps_maze3d();
   document.getElementById('total-steps').textContent = wasm.total_steps_maze3d();
@@ -568,7 +604,7 @@ function playStep(isLeft) {
   hpf.frequency.value = isLeft ? 320 : 280; // 左右で微妙に違う
 
   const gain = audioCtx.createGain();
-  gain.gain.setValueAtTime(0.18, t);
+  gain.gain.setValueAtTime(0.18 * seVolume, t);
   gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
 
   src.connect(hpf); hpf.connect(gain); gain.connect(audioCtx.destination);
@@ -585,7 +621,7 @@ function playWallHit() {
   osc.frequency.exponentialRampToValueAtTime(40, t + 0.12);
 
   const gain = audioCtx.createGain();
-  gain.gain.setValueAtTime(0.45, t);
+  gain.gain.setValueAtTime(0.45 * seVolume, t);
   gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
 
   // ローパスフィルターでこもらせる
@@ -609,7 +645,7 @@ function playLevelClear() {
 
     const gain = audioCtx.createGain();
     gain.gain.setValueAtTime(0.0, t);
-    gain.gain.linearRampToValueAtTime(0.3, t + 0.02);
+    gain.gain.linearRampToValueAtTime(0.3 * seVolume, t + 0.02);
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
 
     osc.connect(gain); gain.connect(audioCtx.destination);
@@ -627,7 +663,7 @@ function playGoalNear() {
   osc.frequency.linearRampToValueAtTime(660, t + 0.15);
 
   const gain = audioCtx.createGain();
-  gain.gain.setValueAtTime(0.15, t);
+  gain.gain.setValueAtTime(0.15 * seVolume, t);
   gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
 
   osc.connect(gain); gain.connect(audioCtx.destination);
@@ -642,7 +678,7 @@ function startAmbient() {
   const freqs = [55, 55.5]; // 微妙なデチューンでうねりを作る
   ambientGain = audioCtx.createGain();
   ambientGain.gain.setValueAtTime(0.0, audioCtx.currentTime);
-  ambientGain.gain.linearRampToValueAtTime(0.06, audioCtx.currentTime + 3.0);
+  ambientGain.gain.linearRampToValueAtTime(0.06 * ambVolume, audioCtx.currentTime + 3.0);
   ambientGain.connect(audioCtx.destination);
 
   freqs.forEach(freq => {
@@ -686,7 +722,7 @@ function playEnemyNear() {
   osc.frequency.setValueAtTime(120, t);
   osc.frequency.exponentialRampToValueAtTime(80, t + 0.2);
   const gain = audioCtx.createGain();
-  gain.gain.setValueAtTime(0.25, t);
+  gain.gain.setValueAtTime(0.25 * seVolume, t);
   gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
   const lpf = audioCtx.createBiquadFilter();
   lpf.type = 'lowpass'; lpf.frequency.value = 300;
@@ -704,7 +740,7 @@ function playGameOver() {
     osc.type = 'sawtooth';
     osc.frequency.value = freq;
     const gain = audioCtx.createGain();
-    gain.gain.setValueAtTime(0.3, t);
+    gain.gain.setValueAtTime(0.3 * seVolume, t);
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
     osc.connect(gain); gain.connect(audioCtx.destination);
     osc.start(t); osc.stop(t + 0.45);
