@@ -236,14 +236,14 @@
         </p>
     </div>
 
-    <script type="module">
-        import init, { GameInstance } from './game/wasm_app.js';
-
-        let game = null;
-
-        // デバッグログ表示関数
+    <script>
+        // デバッグログ表示関数（同期的に動作）
         function debugLog(message, type = 'info') {
             const debugBox = document.getElementById('debugLog');
+            if (!debugBox) {
+                console.error('debugLog: debugBox element not found');
+                return;
+            }
             const entry = document.createElement('div');
             entry.className = `debug-log-entry ${type}`;
             const timestamp = new Date().toLocaleTimeString();
@@ -257,6 +257,21 @@
             }
             console.log(message);
         }
+
+        // ページロード時に初期化ログを表示
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                debugLog('📄 ページロード完了', 'success');
+            });
+        } else {
+            debugLog('📄 ページロード完了', 'success');
+        }
+    </script>
+
+    <script type="module">
+        import init, { GameInstance } from './game/wasm_app.js';
+
+        let game = null;
 
         async function startGame() {
             try {
@@ -382,8 +397,37 @@
         window.resetGame = resetGame;
         window.moveCube = moveCube;
 
-        debugLog('✅ ゲームスクリプト読み込み完了', 'success');
+        debugLog('✅ ゲームスクリプト (type=module) 読み込み完了', 'success');
         debugLog('📂 WASM モジュール: ./game/wasm_app.js', 'info');
     </script>
+
+    <script>
+        // ボタンクリックを検出するための直接的なイベントリスナー
+        document.addEventListener('DOMContentLoaded', function() {
+            debugLog('🔍 イベントリスナー登録開始', 'info');
+            
+            const startBtn = document.querySelector('button[onclick*="startGame"]');
+            const resetBtn = document.querySelector('button[onclick*="resetGame"]');
+            const leftBtn = document.querySelector('button[onclick*="-1"]');
+            const rightBtn = document.querySelector('button[onclick*="1, 0, 0"]');
+
+            if (startBtn) {
+                startBtn.addEventListener('click', function(e) {
+                    debugLog('👆 ゲーム開始ボタンクリック検出！', 'info');
+                });
+                debugLog('✅ ゲーム開始ボタンのリスナー登録', 'success');
+            } else {
+                debugLog('❌ ゲーム開始ボタンが見つかりません', 'error');
+            }
+
+            if (resetBtn) {
+                resetBtn.addEventListener('click', function(e) {
+                    debugLog('👆 リセットボタンクリック検出！', 'info');
+                });
+                debugLog('✅ リセットボタンのリスナー登録', 'success');
+            }
+
+            debugLog('✅ 全イベントリスナー登録完了。ボタンをクリックしてください。', 'success');
+        });
 </body>
 </html>
