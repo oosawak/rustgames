@@ -24,7 +24,7 @@
 #swipe-hint span {
   font-size:2.2em; opacity:0.18; color:#0ff;
   text-shadow: 0 0 8px #0ff;
-  font-family:monospace;
+  font-family:'GenInterfaceJP',monospace;
 }
 /* flash when swiped */
 #swipe-hint span.flash { opacity:0.9; transition: opacity 0s; }
@@ -36,19 +36,19 @@
   background: rgba(0,0,10,0.78);
 }
 #level-clear h2 {
-  color:#0ff; font-family:monospace; font-size:clamp(1.4em,5vw,2.2em);
+  color:#0ff; font-family:'GenInterfaceJP',monospace; font-size:clamp(1.4em,5vw,2.2em);
   text-shadow: 0 0 20px #0ff, 0 0 40px #0ff;
   margin:0 0 10px; animation: pulse-text 0.7s infinite alternate;
 }
 #level-clear .sub {
-  color:#f0f; font-family:monospace; font-size:clamp(0.85em,3vw,1.1em);
+  color:#f0f; font-family:'GenInterfaceJP',monospace; font-size:clamp(0.85em,3vw,1.1em);
   text-shadow: 0 0 10px #f0f;
   margin-bottom:24px; text-align:center; padding:0 20px;
 }
 #level-clear button {
   background:transparent; border:2px solid #0ff;
   color:#0ff; font-size:clamp(1em,4vw,1.3em); padding:12px 32px;
-  cursor:pointer; font-family:monospace;
+  cursor:pointer; font-family:'GenInterfaceJP',monospace;
   text-shadow:0 0 8px #0ff; box-shadow: 0 0 16px #0ff;
   transition: background 0.2s; border-radius:8px;
 }
@@ -61,22 +61,22 @@
   display:flex; flex-direction:column; align-items:center; justify-content:center;
 }
 #title-screen h1 {
-  color:#0ff; font-family:monospace; font-size:clamp(2em,8vw,3.5em);
+  color:#0ff; font-family:'GenInterfaceJP',monospace; font-size:clamp(2em,8vw,3.5em);
   text-shadow: 0 0 20px #0ff, 0 0 50px #0ff, 0 0 80px #0ff;
   margin:0 0 16px; animation: pulse-text 0.8s infinite alternate;
 }
-#title-screen p { font-family:monospace; margin:6px 0; }
+#title-screen p { font-family:'GenInterfaceJP',monospace; margin:6px 0; }
 #btn-start {
   background:transparent; border:2px solid #0ff;
   color:#0ff; font-size:clamp(1em,4vw,1.4em); padding:14px 40px;
-  cursor:pointer; font-family:monospace; margin-top:24px;
+  cursor:pointer; font-family:'GenInterfaceJP',monospace; margin-top:24px;
   text-shadow:0 0 8px #0ff; box-shadow: 0 0 20px #0ff;
   transition: background 0.2s; border-radius:8px;
 }
 #btn-start:active { background: rgba(0,255,255,0.2); }
-#level-label { color:#f0f; font-family:monospace; font-size:1.1em;
+#level-label { color:#f0f; font-family:'GenInterfaceJP',monospace; font-size:1.1em;
   text-shadow:0 0 8px #f0f; }
-#steps-label  { color:#0ff; font-family:monospace; font-size:1.1em;
+#steps-label  { color:#0ff; font-family:'GenInterfaceJP',monospace; font-size:1.1em;
   text-shadow:0 0 8px #0ff; }
 
 /* ── Minimap ── */
@@ -100,13 +100,13 @@
 <div id="title-screen">
   <h1>🌀 MAZE 3D</h1>
   <p style="color:#0ff">Find the exit before the enemy catches you!</p>
-  <div id="best-score-display" style="color:#888; font-family:monospace; font-size:0.85em; margin:8px 0;">
+  <div id="best-score-display" style="color:#888; font-family:'GenInterfaceJP',monospace; font-size:0.85em; margin:8px 0;">
     BEST: <span id="best-steps-val">-</span> steps / LV<span id="best-level-val">-</span>
     ・Plays: <span id="play-count-val">0</span>
   </div>
   <button id="btn-start">▶ START</button>
   <p style="color:#888;font-size:0.8em">← → turn &nbsp; ↑ forward &nbsp; ↓ back</p>
-  <div style="margin-top:12px; color:#888; font-family:monospace; font-size:0.8em;">
+  <div style="margin-top:12px; color:#888; font-family:'GenInterfaceJP',monospace; font-size:0.8em;">
     SE <input type="range" id="vol-se" min="0" max="100" value="100" style="width:80px; vertical-align:middle;">
     AMB <input type="range" id="vol-amb" min="0" max="100" value="40" style="width:80px; vertical-align:middle;">
   </div>
@@ -124,8 +124,8 @@
 <div id="hud">
   <span id="level-label">LV <b id="level">1</b></span>
   <span id="steps-label">歩数 <b id="steps">0</b></span>
-  <span style="color:#888;font-family:monospace;font-size:0.85em;">合計 <b id="total-steps" style="color:#aaa">0</b></span>
-  <span id="theme-label" style="color:#ff0; font-family:monospace; font-size:0.9em; text-shadow:0 0 6px #ff0; opacity:0.8;"></span>
+  <span style="color:#888;font-family:'GenInterfaceJP',monospace;font-size:0.85em;">合計 <b id="total-steps" style="color:#aaa">0</b></span>
+  <span id="theme-label" style="color:#ff0; font-family:'GenInterfaceJP',monospace; font-size:0.9em; text-shadow:0 0 6px #ff0; opacity:0.8;"></span>
   <button id="btn-reset">リセット</button>
 </div>
 
@@ -159,21 +159,21 @@
 <div id="game-over" style="display:none; position:fixed; inset:0; z-index:60;
      flex-direction:column; align-items:center; justify-content:center;
      background:rgba(20,0,0,0.85);">
-  <h2 style="color:#f00; font-family:monospace; font-size:clamp(1.6em,6vw,2.5em);
+  <h2 style="color:#f00; font-family:'GenInterfaceJP',monospace; font-size:clamp(1.6em,6vw,2.5em);
        text-shadow:0 0 20px #f00, 0 0 40px #f00; margin:0 0 12px;
        animation:pulse-text 0.5s infinite alternate;">💀 CAUGHT! 💀</h2>
-  <p style="color:#f88; font-family:monospace; font-size:clamp(0.9em,3vw,1.2em);
+  <p style="color:#f88; font-family:'GenInterfaceJP',monospace; font-size:clamp(0.9em,3vw,1.2em);
       text-shadow:0 0 8px #f44; margin-bottom:24px;">敵に捕まりました</p>
   <button id="btn-retry" style="background:transparent; border:2px solid #f00;
       color:#f00; font-size:clamp(1em,4vw,1.3em); padding:12px 32px;
-      cursor:pointer; font-family:monospace; text-shadow:0 0 8px #f00;
+      cursor:pointer; font-family:'GenInterfaceJP',monospace; text-shadow:0 0 8px #f00;
       box-shadow:0 0 16px #f00; border-radius:8px;">RETRY ↺</button>
 </div>
 
 <!-- Loading overlay -->
 <div id="loading" style="position:fixed;inset:0;background:#000008;display:flex;
      align-items:center;justify-content:center;z-index:999;
-     color:#0ff;font-family:monospace;font-size:1.2em;text-align:center;">
+     color:#0ff;font-family:'GenInterfaceJP',monospace;font-size:1.2em;text-align:center;">
   <div>
     <div class="spin"></div>
     <p style="margin-top:14px">LOADING wgpu WebGL…</p>
@@ -403,7 +403,7 @@ function drawMinimap() {
 
   // Compass labels (N/S/E/W)
   mmCtx.save();
-  mmCtx.font = 'bold 8px monospace';
+  mmCtx.font = 'bold 8px 'GenInterfaceJP', monospace';
   mmCtx.textAlign = 'center';
   mmCtx.textBaseline = 'middle';
   const compassLabels = [['N',72,5],['S',72,139],['W',5,72],['E',139,72]];
