@@ -142,17 +142,19 @@ impl BlasterGame {
         self.time = ts * 0.001;
         self.audio_event = 0;
 
-        // ── プレイヤー移動 ──
+        // ── プレイヤー移動（移動方向とエイムは独立）──
         if self.input_dx != 0.0 || self.input_dz != 0.0 {
             let spd = 6.0f32;
             let nx = self.player_x + self.input_dx * spd * dt;
             let nz = self.player_z + self.input_dz * spd * dt;
             if nx.abs() < 9.5 { self.player_x = nx; }
             if nz.abs() < 9.5 { self.player_z = nz; }
-            let target_angle = self.input_dx.atan2(self.input_dz);
-            let da = angle_diff(target_angle, self.player_angle);
-            self.player_angle += da * (dt * 10.0).min(1.0);
         }
+
+        // ── オートエイム: 最近の敵/ボスに向く ──
+        let target_angle = self.nearest_enemy_angle();
+        let da = angle_diff(target_angle, self.player_angle);
+        self.player_angle += da * (dt * 8.0).min(1.0);
 
         // ── 自動ショット ──
         self.shoot_timer -= dt;
@@ -411,6 +413,38 @@ impl BlasterGame {
     pub fn camera_u8(&self) -> u8                   { self.camera.as_u8() }
     pub fn camera_name(&self) -> &str               { self.camera.name() }
     pub fn bullet_count(&self) -> u32               { self.bullets.active_count() as u32 }
+
+    /// 最も近い敵/ボスへの角度を返す（いなければ現在の角度を維持）
+    fn nearest_enemy_angle(&self) -> f32 {
+        let px = self.player_x;
+        let pz = self.player_z;
+        let mut best_dist2 = f32::MAX;
+        let mut best_angle = self.player_angle;
+
+        // 敵を探す
+        for enemy in &self.enemies {
+            if !enemy.active { continue; }
+            let dx = enemy.x - px;
+            let dz = enemy.z - pz;
+            let d2 = dx * dx + dz * dz;
+            if d2 < best_dist2 {
+                best_dist2 = d2;
+                best_angle = dx.atan2(dz);
+            }
+        }
+
+        // ボス（敵がいないかボスの方が近い場合）
+        if self.boss.active {
+            let dx = self.boss.x - px;
+            let dz = self.boss.z - pz;
+            let d2 = dx * dx + dz * dz;
+            if d2 < best_dist2 {
+                best_angle = dx.atan2(dz);
+            }
+        }
+
+        best_angle
+    }
 }
 
 fn angle_diff(target: f32, current: f32) -> f32 {
