@@ -68,6 +68,41 @@ export function enemy_z_maze3d() {
 }
 
 /**
+ * Bold フォントバイト列を返す（embed-font 時のみ）。
+ * @returns {Uint8Array}
+ */
+export function engine_font_bold() {
+    const ret = wasm.engine_font_bold();
+    var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v1;
+}
+
+/**
+ * フォントが WASM バイナリに埋め込まれているかどうかを返す。
+ * JS 初期化時にこの値で分岐すること。
+ * @returns {boolean}
+ */
+export function engine_font_embedded() {
+    const ret = wasm.engine_font_embedded();
+    return ret !== 0;
+}
+
+/**
+ * Regular フォントバイト列を返す。
+ * `embed-font` feature でビルドした場合のみデータが入る。
+ * feature なしビルドでは長さ0の Uint8Array が返り、
+ * JS 側は外部ファイル（docs/fonts/）へフォールバックする。
+ * @returns {Uint8Array}
+ */
+export function engine_font_regular() {
+    const ret = wasm.engine_font_regular();
+    var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v1;
+}
+
+/**
  * @returns {boolean}
  */
 export function game_over_maze3d() {

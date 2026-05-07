@@ -17,6 +17,7 @@ pub mod theme;
 pub mod scene;
 pub mod storage;
 pub mod audio_tool;
+pub mod font;
 
 use wasm_bindgen::prelude::*;
 use std::cell::RefCell;
@@ -123,4 +124,28 @@ pub fn all_sound_defs_maze3d() -> String {
         sound_level_clear(), sound_goal_near(), sound_enemy_near(), sound_game_over(),
     ];
     format!("[{}]", defs.iter().map(|d| d.to_json()).collect::<Vec<_>>().join(","))
+}
+
+// ─── フォント埋め込みエクスポート ────────────────────────────────────────────
+
+/// Regular フォントバイト列を返す。
+/// `embed-font` feature でビルドした場合のみデータが入る。
+/// feature なしビルドでは長さ0の Uint8Array が返り、
+/// JS 側は外部ファイル（docs/fonts/）へフォールバックする。
+#[wasm_bindgen]
+pub fn engine_font_regular() -> Vec<u8> {
+    crate::font::regular_bytes().to_vec()
+}
+
+/// Bold フォントバイト列を返す（embed-font 時のみ）。
+#[wasm_bindgen]
+pub fn engine_font_bold() -> Vec<u8> {
+    crate::font::bold_bytes().to_vec()
+}
+
+/// フォントが WASM バイナリに埋め込まれているかどうかを返す。
+/// JS 初期化時にこの値で分岐すること。
+#[wasm_bindgen]
+pub fn engine_font_embedded() -> bool {
+    crate::font::is_embedded()
 }

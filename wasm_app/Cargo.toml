@@ -7,6 +7,12 @@ authors.workspace = true
 [lib]
 crate-type = ["cdylib"]
 
+[features]
+# フォントをWASMバイナリに埋め込む（日本語表示を自己完結で保証）
+# ビルド: wasm-pack build -- --features embed-font
+# バイナリサイズが約+6MB増加する点に注意
+embed-font = []
+
 [dependencies]
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"

@@ -182,65 +182,96 @@
 
 <script type="module">
 import init, * as wasm from './wasm/wasm_app.js';
+import { FontLoader, AudioEngine, InputManager, CanvasManager } from '../../engine.js';
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────────────────
 //  0 = forward  1 = turn-left  2 = turn-right  3 = backward
-// ─────────────────────────────────────────────────────────────────────────────
-
 const KEYMAP = {
   ArrowUp:0, KeyW:0, ArrowLeft:1, KeyA:1,
   ArrowRight:2, KeyD:2, ArrowDown:3, KeyS:3,
 };
-const SWIPE_MIN = 35; // px
 
-let initialized = false;
-let repeatId    = null;
+// ── Engine instances ───────────────────────────────────────────────────────────
+const audio  = new AudioEngine();
+const input  = new InputManager({ swipeMin: 35 });
+const canvas = new CanvasManager('maze3d-canvas', { hudHeight: 44, dpadHeight: 160 });
 
-let seVolume  = 1.0;
-let ambVolume = 0.4;
-
+// ── State ─────────────────────────────────────────────────────────────────────
 const warpEl  = document.getElementById('warp-overlay');
 const clearEl = document.getElementById('level-clear');
-let clearShown   = false;
+let initialized   = false;
+let clearShown    = false;
 let gameOverShown = false;
 
-// ── Resize canvas to fill available space ────────────────────────────────────
-function resizeCanvas() {
-  const c = document.getElementById('maze3d-canvas');
-  const dpadH = window.innerWidth < 600 ? 0 : 160; // dpad hidden on mobile
-  const hudH  = 44;
-  c.width  = window.innerWidth;
-  c.height = window.innerHeight - hudH - dpadH;
-}
-
-// ── Init ─────────────────────────────────────────────────────────────────────
+// ── Init ──────────────────────────────────────────────────────────────────────
 async function start() {
   await init('./wasm/wasm_app_bg.wasm');
-  resizeCanvas();
+  canvas.resize();
+  canvas.bindResize();
+
+  // フォント: WASM埋め込み → カスタムURL → engine.js隣の fonts/ の順で自動解決
+  await FontLoader.load('GenInterfaceJP', wasm);
+
   await wasm.init_maze3d('maze3d-canvas');
   document.getElementById('loading').style.display = 'none';
   initialized = true;
 
   // 保存済み音量を読み込んでスライダーに反映
-  seVolume  = wasm.load_se_vol_maze3d();
-  ambVolume = wasm.load_amb_vol_maze3d();
-  document.getElementById('vol-se').value  = Math.round(seVolume  * 100);
-  document.getElementById('vol-amb').value = Math.round(ambVolume * 100);
+  audio.seVolume  = wasm.load_se_vol_maze3d();
+  audio.ambVolume = wasm.load_amb_vol_maze3d();
+  document.getElementById('vol-se').value  = Math.round(audio.seVolume  * 100);
+  document.getElementById('vol-amb').value = Math.round(audio.ambVolume * 100);
 
   loadSoundDefs();
 
-  // 音量スライダーのイベント
+  // 音量スライダー
   document.getElementById('vol-se').addEventListener('input', e => {
-    seVolume = e.target.value / 100;
-    wasm.save_audio_vol_maze3d(seVolume, ambVolume);
+    audio.setSeVolume(e.target.value / 100);
+    wasm.save_audio_vol_maze3d(audio.seVolume, audio.ambVolume);
   });
   document.getElementById('vol-amb').addEventListener('input', e => {
-    ambVolume = e.target.value / 100;
-    if (ambientGain) ambientGain.gain.setValueAtTime(0.06 * ambVolume, audioCtx.currentTime);
-    wasm.save_audio_vol_maze3d(seVolume, ambVolume);
+    audio.setAmbVolume(e.target.value / 100);
+    wasm.save_audio_vol_maze3d(audio.seVolume, audio.ambVolume);
   });
 
-  bindControls();
+  // 入力バインド
+  input.onAction(action => { if (initialized) wasm.move_maze3d(action); });
+  input.bindKeyboard(KEYMAP);
+  input.bindDpad(
+    [['db-up',0],['db-left',1],['db-right',2],['db-down',3]],
+    () => audio.ensure()
+  );
+  input.bindSwipe(['#level-clear', '#hud', '#dpad'], {
+    onHint:  flashHint,
+    onStart: () => audio.ensure(),
+  });
+
+  // ボタンイベント
+  document.getElementById('btn-start').addEventListener('click', () => {
+    audio.ensure();
+    wasm.start_game_maze3d();
+    document.getElementById('title-screen').style.display = 'none';
+  });
+  document.getElementById('btn-reset').addEventListener('click', () => {
+    wasm.start_game_maze3d();
+    clearEl.style.display = 'none';
+    document.getElementById('game-over').style.display = 'none';
+    clearShown = gameOverShown = false;
+    warpEl.style.opacity = '0';
+  });
+  document.getElementById('btn-next').addEventListener('click', () => {
+    wasm.next_level_maze3d();
+    clearEl.style.display = 'none';
+    clearShown = false;
+    warpEl.style.opacity = '0';
+  });
+  document.getElementById('btn-retry').addEventListener('click', () => {
+    wasm.start_game_maze3d();
+    document.getElementById('game-over').style.display = 'none';
+    gameOverShown = clearShown = false;
+    warpEl.style.opacity = '0';
+  });
+
   requestAnimationFrame(loop);
 }
 
@@ -249,11 +280,9 @@ function loop(ts) {
   if (!initialized) return;
   wasm.tick_maze3d(ts);
 
-  const scene = wasm.scene_maze3d(); // 0=Title, 1=Playing, 2=LevelClear, 3=GameOver
+  const scene = wasm.scene_maze3d(); // 0=Title 1=Playing 2=LevelClear 3=GameOver
 
-  // タイトル画面の表示制御
   document.getElementById('title-screen').style.display = scene === 0 ? 'flex' : 'none';
-
   if (scene === 0) {
     const bs = wasm.best_steps_maze3d();
     document.getElementById('best-steps-val').textContent = bs === 0 ? '-' : bs;
@@ -266,10 +295,10 @@ function loop(ts) {
   document.getElementById('level').textContent       = wasm.level_maze3d();
   const tEl = document.getElementById('theme-label');
   if (tEl) tEl.textContent = wasm.theme_name_maze3d();
+
   updateEffects();
   pollAudio();
 
-  // ゲームオーバーチェック
   if (scene === 3 && !gameOverShown) {
     gameOverShown = true;
     document.getElementById('game-over').style.display = 'flex';
@@ -278,8 +307,6 @@ function loop(ts) {
     gameOverShown = false;
     document.getElementById('game-over').style.display = 'none';
   }
-
-  // レベルクリアチェック
   if (scene === 2 && !clearShown && wasm.warp_done_maze3d()) {
     clearShown = true;
     document.getElementById('clear-steps').textContent =
@@ -295,12 +322,26 @@ function loop(ts) {
   requestAnimationFrame(loop);
 }
 
+// ── Visual effects ────────────────────────────────────────────────────────────
+function updateEffects() {
+  const w = wasm.warp_maze3d();
+  if (w > 0.01) {
+    warpEl.style.opacity    = w * 0.75;
+    warpEl.style.background =
+      `radial-gradient(ellipse at center,
+        rgba(160,0,255,${w*0.5}) 0%,
+        rgba(0,180,255,${w*0.25}) 50%,
+        rgba(255,0,200,${w*0.55}) 100%)`;
+    warpEl.style.boxShadow = `inset 0 0 ${20+w*80}px rgba(0,255,255,${w*0.7})`;
+  } else {
+    warpEl.style.opacity = '0';
+  }
+}
+
 // ── Minimap ───────────────────────────────────────────────────────────────────
 const minimapCanvas = document.getElementById('minimap');
 const mmCtx = minimapCanvas.getContext('2d');
-const MM_W = 9; // MAZE_W
-const MM_H = 9; // MAZE_H
-const CELL = 14; // px per cell (144 / 9 = 16 with 0 padding)
+const MM_W = 9, MM_H = 9, CELL = 14;
 const N_FLAG = 1, E_FLAG = 2, S_FLAG = 4, W_FLAG = 8;
 
 function drawMinimap() {
@@ -314,27 +355,22 @@ function drawMinimap() {
   mmCtx.fillStyle = 'rgba(0,0,20,0.0)';
   mmCtx.fillRect(0, 0, 144, 144);
 
-  // Draw cells
   for (let cz = 0; cz < MM_H; cz++) {
     for (let cx = 0; cx < MM_W; cx++) {
       const x0 = cx * CELL + 1, y0 = cz * CELL + 1;
       const walls = mazeBytes[cz * MM_W + cx];
-      // Visited floor (dim) vs player cell (bright)
       if (cx === px && cz === pz) {
         mmCtx.fillStyle = 'rgba(0,255,255,0.18)';
         mmCtx.fillRect(x0, y0, CELL-1, CELL-1);
       }
-      // Goal cell highlight
       if (cx === MM_W-1 && cz === MM_H-1) {
         mmCtx.fillStyle = 'rgba(255,0,220,0.35)';
         mmCtx.fillRect(x0, y0, CELL-1, CELL-1);
       }
-      // Start cell highlight
       if (cx === 0 && cz === 0) {
         mmCtx.fillStyle = 'rgba(0,255,100,0.25)';
         mmCtx.fillRect(x0, y0, CELL-1, CELL-1);
       }
-      // Draw walls as bright lines
       mmCtx.strokeStyle = 'rgba(0,200,255,0.85)';
       mmCtx.lineWidth = 1.5;
       if (walls & N_FLAG) { mmCtx.beginPath(); mmCtx.moveTo(x0, y0); mmCtx.lineTo(x0+CELL-1, y0); mmCtx.stroke(); }
@@ -344,15 +380,12 @@ function drawMinimap() {
     }
   }
 
-  // ── Player: view cone + arrow ─────────────────────────────────────────────
-  // facingIdx: 0=N 1=E 2=S 3=W  →  angle in canvas (Y-down, N=up=−π/2)
   const facingIdx = facing === 1 ? 0 : facing === 2 ? 1 : facing === 4 ? 2 : 3;
   const facingAngle = [-Math.PI/2, 0, Math.PI/2, Math.PI][facingIdx];
   const cx2 = px * CELL + CELL/2 + 1;
   const cy2 = pz * CELL + CELL/2 + 1;
 
-  // View cone (60° sector, 2.5 cells reach)
-  const coneAngle = Math.PI / 3;  // 60°
+  const coneAngle = Math.PI / 3;
   const coneR = CELL * 2.2;
   mmCtx.save();
   mmCtx.fillStyle = 'rgba(255,220,0,0.13)';
@@ -361,7 +394,6 @@ function drawMinimap() {
   mmCtx.arc(cx2, cy2, coneR, facingAngle - coneAngle/2, facingAngle + coneAngle/2);
   mmCtx.closePath();
   mmCtx.fill();
-  // Cone outline
   mmCtx.strokeStyle = 'rgba(255,220,0,0.5)';
   mmCtx.lineWidth = 1;
   mmCtx.beginPath();
@@ -374,7 +406,6 @@ function drawMinimap() {
   mmCtx.stroke();
   mmCtx.restore();
 
-  // Player dot
   mmCtx.save();
   mmCtx.fillStyle = '#fff';
   mmCtx.shadowColor = '#0ff';
@@ -384,7 +415,6 @@ function drawMinimap() {
   mmCtx.fill();
   mmCtx.restore();
 
-  // Direction arrow (bright yellow, larger)
   const tipX = cx2 + Math.cos(facingAngle) * 5.5;
   const tipY = cy2 + Math.sin(facingAngle) * 5.5;
   const baseL = facingAngle + Math.PI*0.75;
@@ -401,14 +431,12 @@ function drawMinimap() {
   mmCtx.fill();
   mmCtx.restore();
 
-  // Compass labels (N/S/E/W)
   mmCtx.save();
-  mmCtx.font = 'bold 8px 'GenInterfaceJP', monospace';
+  mmCtx.font = "bold 8px 'GenInterfaceJP', monospace";
   mmCtx.textAlign = 'center';
   mmCtx.textBaseline = 'middle';
   const compassLabels = [['N',72,5],['S',72,139],['W',5,72],['E',139,72]];
   for (const [lbl, lx, ly] of compassLabels) {
-    // Highlight the label that matches current facing
     const isActive = (lbl==='N'&&facingIdx===0)||(lbl==='E'&&facingIdx===1)||
                      (lbl==='S'&&facingIdx===2)||(lbl==='W'&&facingIdx===3);
     mmCtx.fillStyle = isActive ? '#ffe040' : 'rgba(0,200,255,0.55)';
@@ -418,7 +446,6 @@ function drawMinimap() {
   }
   mmCtx.restore();
 
-  // Goal dot (magenta)
   mmCtx.save();
   mmCtx.fillStyle = '#ff00dd';
   mmCtx.shadowColor = '#ff00dd';
@@ -428,7 +455,6 @@ function drawMinimap() {
   mmCtx.fill();
   mmCtx.restore();
 
-  // Enemy dot (red, with glow)
   const ex = wasm.enemy_x_maze3d();
   const ez = wasm.enemy_z_maze3d();
   if (ex >= 0) {
@@ -443,40 +469,7 @@ function drawMinimap() {
   }
 }
 
-// ── Visual effects ─────────────────────────────────────────────────────────────
-function updateEffects() {
-  const w = wasm.warp_maze3d();
-  if (w > 0.01) {
-    warpEl.style.opacity    = w * 0.75;
-    warpEl.style.background =
-      `radial-gradient(ellipse at center,
-        rgba(160,0,255,${w*0.5}) 0%,
-        rgba(0,180,255,${w*0.25}) 50%,
-        rgba(255,0,200,${w*0.55}) 100%)`;
-    warpEl.style.boxShadow = `inset 0 0 ${20+w*80}px rgba(0,255,255,${w*0.7})`;
-  } else {
-    warpEl.style.opacity = '0';
-  }
-}
-
-// ── Single move ───────────────────────────────────────────────────────────────
-function doMove(action) {
-  if (!initialized) return;
-  wasm.move_maze3d(action);
-}
-
-// ── Repeat while held ─────────────────────────────────────────────────────────
-function startRepeat(action) {
-  if (!initialized) return;
-  stopRepeat();
-  doMove(action);
-  repeatId = setInterval(() => doMove(action), 200);
-}
-function stopRepeat() {
-  if (repeatId !== null) { clearInterval(repeatId); repeatId = null; }
-}
-
-// ── Flash swipe hint ──────────────────────────────────────────────────────────
+// ── Swipe hint ────────────────────────────────────────────────────────────────
 const shMap = [
   document.getElementById('sh-up'),
   document.getElementById('sh-left'),
@@ -490,176 +483,25 @@ function flashHint(action) {
   setTimeout(() => { el.classList.remove('flash'); el.style.transition='opacity 0.4s'; }, 80);
 }
 
-// ── Bind all controls ─────────────────────────────────────────────────────────
-function bindControls() {
-
-  // ── Keyboard ────────────────────────────────────────────────────────────────
-  document.addEventListener('keydown', e => {
-    if (e.code in KEYMAP) { e.preventDefault(); doMove(KEYMAP[e.code]); }
-  });
-
-  // ── D-pad (desktop) ─────────────────────────────────────────────────────────
-  const dbMap = [
-    ['db-up', 0], ['db-left', 1], ['db-right', 2], ['db-down', 3],
-  ];
-  for (const [id, action] of dbMap) {
-    const btn = document.getElementById(id);
-    btn.addEventListener('mousedown',  () => { ensureAudio(); startRepeat(action); });
-    btn.addEventListener('mouseup',    stopRepeat);
-    btn.addEventListener('mouseleave', stopRepeat);
-    btn.addEventListener('touchstart', e => { e.preventDefault(); startRepeat(action); }, {passive:false});
-    btn.addEventListener('touchend',   e => { e.preventDefault(); stopRepeat(); },         {passive:false});
-  }
-
-  // ── STARTボタン ──────────────────────────────────────────────────────────────
-  document.getElementById('btn-start').addEventListener('click', () => {
-    ensureAudio();
-    wasm.start_game_maze3d();
-    document.getElementById('title-screen').style.display = 'none';
-  });
-
-  // ── Reset / Next-level buttons ───────────────────────────────────────────────
-  document.getElementById('btn-reset').addEventListener('click', () => {
-    wasm.start_game_maze3d();
-    clearEl.style.display = 'none';
-    document.getElementById('game-over').style.display = 'none';
-    clearShown = false;
-    gameOverShown = false;
-    warpEl.style.opacity = '0';
-  });
-  document.getElementById('btn-next').addEventListener('click', () => {
-    wasm.next_level_maze3d();
-    clearEl.style.display = 'none';
-    clearShown = false;
-    warpEl.style.opacity = '0';
-  });
-
-  document.getElementById('btn-retry').addEventListener('click', () => {
-    wasm.start_game_maze3d();
-    document.getElementById('game-over').style.display = 'none';
-    gameOverShown = false;
-    clearShown = false;
-    warpEl.style.opacity = '0';
-  });
-
-  // ── Swipe gesture (全画面 / full-screen) ────────────────────────────────────
-  //   上スワイプ → 前進  下スワイプ → 後退  左スワイプ → 左折  右スワイプ → 右折
-  let swipeX0 = 0, swipeY0 = 0, swipeMoved = false;
-
-  document.addEventListener('touchstart', e => {
-    // level-clear overlay のボタンには干渉しない
-    if (e.target.closest('#level-clear, #hud, #dpad')) return;
-    ensureAudio();
-    swipeX0 = e.touches[0].clientX;
-    swipeY0 = e.touches[0].clientY;
-    swipeMoved = false;
-  }, {passive: true});
-
-  document.addEventListener('touchmove', e => {
-    if (e.target.closest('#level-clear, #hud, #dpad')) return;
-    const dx = e.touches[0].clientX - swipeX0;
-    const dy = e.touches[0].clientY - swipeY0;
-    if (!swipeMoved && (Math.abs(dx) > SWIPE_MIN || Math.abs(dy) > SWIPE_MIN)) {
-      swipeMoved = true;
-      let action;
-      if (Math.abs(dx) > Math.abs(dy)) {
-        action = dx < 0 ? 1 : 2;   // left=turn-left  right=turn-right
-      } else {
-        action = dy < 0 ? 0 : 3;   // up=forward  down=backward
-      }
-      flashHint(action);
-      doMove(action);
-    }
-  }, {passive: true});
-
-  document.addEventListener('touchend', () => { swipeMoved = false; }, {passive: true});
-}
-
-// ── Web Audio API サウンドシステム ────────────────────────────────────────────
-let audioCtx = null;
-let ambientNode = null;
-let ambientGain = null;
-
-// キャッシュ: 初期化時に全定義を読み込む
+// ── Sound definitions ─────────────────────────────────────────────────────────
 let soundDefs = {};
 function loadSoundDefs() {
-  for (let i = 1; i <= 7; i++) {
-    soundDefs[i] = JSON.parse(wasm.sound_def_maze3d(i));
-  }
+  for (let i = 1; i <= 7; i++) soundDefs[i] = JSON.parse(wasm.sound_def_maze3d(i));
 }
 
-function ensureAudio() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    startAmbient();
-  }
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-}
-
-// SoundDefのJSONから音を鳴らす汎用プレイヤー
-function playSoundDef(def, volumeScale) {
-  if (!audioCtx || !def) return;
-  volumeScale = volumeScale !== undefined ? volumeScale : 1.0;
-  const baseT = audioCtx.currentTime + (def.delay || 0);
-  for (const osc of def.oscs) {
-    const t = baseT + (osc.oscDelay || 0);
-    const oscillator = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
-    oscillator.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-    oscillator.type = osc.wave;
-    oscillator.frequency.setValueAtTime(osc.freqStart, t);
-    if (osc.freqEnd !== osc.freqStart) {
-      oscillator.frequency.linearRampToValueAtTime(osc.freqEnd, t + osc.freqTime);
-    }
-    if (osc.detune) oscillator.detune.setValueAtTime(osc.detune, t);
-    gainNode.gain.setValueAtTime(osc.gainStart * volumeScale, t);
-    gainNode.gain.linearRampToValueAtTime(osc.gainEnd * volumeScale, t + osc.duration);
-    oscillator.start(t);
-    oscillator.stop(t + osc.duration + 0.01);
-  }
-}
-
-// アンビエントドローン（ダンジョン空間音）
-function startAmbient() {
-  if (!audioCtx || ambientNode) return;
-
-  // 低周波ドローン（2重重ね）
-  const freqs = [55, 55.5]; // 微妙なデチューンでうねりを作る
-  ambientGain = audioCtx.createGain();
-  ambientGain.gain.setValueAtTime(0.0, audioCtx.currentTime);
-  ambientGain.gain.linearRampToValueAtTime(0.06 * ambVolume, audioCtx.currentTime + 3.0);
-  ambientGain.connect(audioCtx.destination);
-
-  freqs.forEach(freq => {
-    const osc = audioCtx.createOscillator();
-    osc.type = 'sawtooth';
-    osc.frequency.value = freq;
-
-    const lpf = audioCtx.createBiquadFilter();
-    lpf.type = 'lowpass';
-    lpf.frequency.value = 180;
-    lpf.Q.value = 2;
-
-    osc.connect(lpf); lpf.connect(ambientGain);
-    osc.start();
-  });
-  ambientNode = ambientGain;
-}
-
-// 音声イベントポーリング（毎フレーム呼ぶ）
+// ── Audio polling ─────────────────────────────────────────────────────────────
 function pollAudio() {
   if (!initialized) return;
   const ev = wasm.audio_event_maze3d();
   if (ev === 0) return;
-  ensureAudio();
-  switch(ev) {
-    case 1: playSoundDef(soundDefs[wasm.audio_step_parity_maze3d() ? 1 : 2], seVolume); break;
-    case 2: playSoundDef(soundDefs[3], seVolume); break;
-    case 3: playSoundDef(soundDefs[4], seVolume); break;
-    case 4: playSoundDef(soundDefs[5], seVolume); break;
-    case 5: playSoundDef(soundDefs[6], seVolume); break;
-    case 6: playSoundDef(soundDefs[7], seVolume); break;
+  audio.ensure();
+  switch (ev) {
+    case 1: audio.play(soundDefs[wasm.audio_step_parity_maze3d() ? 1 : 2], audio.seVolume); break;
+    case 2: audio.play(soundDefs[3], audio.seVolume); break;
+    case 3: audio.play(soundDefs[4], audio.seVolume); break;
+    case 4: audio.play(soundDefs[5], audio.seVolume); break;
+    case 5: audio.play(soundDefs[6], audio.seVolume); break;
+    case 6: audio.play(soundDefs[7], audio.seVolume); break;
   }
 }
 

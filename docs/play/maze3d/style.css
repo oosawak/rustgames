@@ -1,6 +1,6 @@
 /* maze3d/style.css – dedicated to this game only */
 
-/* ── GenInterfaceJP font ── */
+/* ── GenInterfaceJP font (エンジン標準フォント) ── */
 @font-face {
   font-family: 'GenInterfaceJP';
   src: url('../../fonts/GenInterfaceJP-Regular.ttf') format('truetype');
@@ -21,6 +21,10 @@
   font-weight: 700;
   font-style: normal;
   font-display: swap;
+}
+
+:root {
+  --engine-font: 'GenInterfaceJP', 'Courier New', monospace;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }

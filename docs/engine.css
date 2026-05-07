@@ -1,0 +1,30 @@
+/* engine.css — RustGames エンジン共通スタイル
+ * 標準フォント: Gen Interface JP (OFL ライセンス)
+ * https://github.com/yamatoiizuka/gen-interface-jp
+ */
+
+@font-face {
+  font-family: 'GenInterfaceJP';
+  src: url('./fonts/GenInterfaceJP-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'GenInterfaceJP';
+  src: url('./fonts/GenInterfaceJP-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'GenInterfaceJP';
+  src: url('./fonts/GenInterfaceJP-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --engine-font: 'GenInterfaceJP', 'Courier New', monospace;
+}
