@@ -3,379 +3,151 @@ layout: default
 title: API リファレンス
 ---
 
-# 📚 API リファレンス
+# API リファレンス
 
-Rust Game Engine の主要 API ドキュメントです。
+## engine.js — JS ゲームエンジンライブラリ
 
-## 📑 目次
+`docs/engine.js` は ES Modules 形式のライブラリです。
 
-- [Engine API](#engine-api)
-- [Scene API](#scene-api)
-- [Input API](#input-api)
-- [Graphics API](#graphics-api)
-- [Game Logic API](#game-logic-api)
-
----
-
-## Engine API
-
-### Engine::new
-
-ゲームエンジンを初期化します。
-
-```rust
-pub async fn new(config: RendererConfig) -> Result<Self, String>
-```
-
-**パラメータ:**
-- `config`: レンダラー設定
-
-**戻り値:**
-- `Engine`: 初期化されたエンジンインスタンス
-
-**例:**
-```rust
-let config = RendererConfig {
-    width: 1280,
-    height: 720,
-    title: "My Game".to_string(),
-};
-let engine = Engine::new(config).await?;
-```
-
-### Engine::update
-
-ゲーム状態を更新します（毎フレーム呼び出し）。
-
-```rust
-pub async fn update(&mut self, delta_time: f32)
-```
-
-**パラメータ:**
-- `delta_time`: フレーム時間（秒）
-
----
-
-## Scene API
-
-### Scene::new
-
-新規シーンを作成します。
-
-```rust
-pub fn new() -> Self
-```
-
-### Scene::create_object
-
-ゲームオブジェクトを作成します。
-
-```rust
-pub fn create_object(&mut self, name: String) -> u32
-```
-
-**パラメータ:**
-- `name`: オブジェクト名
-
-**戻り値:**
-- `u32`: オブジェクト ID
-
-**例:**
-```rust
-let scene = Scene::new();
-let cube_id = scene.create_object("Cube".to_string());
-```
-
-### Scene::set_camera
-
-カメラを設定します。
-
-```rust
-pub fn set_camera(&mut self, position: Vector3, target: Vector3)
-```
-
-**パラメータ:**
-- `position`: カメラ位置
-- `target`: カメラ注視点
-
----
-
-## Input API
-
-### InputState
-
-入力状態を管理します。
-
-```rust
-pub struct InputState {
-    pub mouse: MouseState,
-    pub keyboard: KeyboardState,
-    pub scroll_delta: f32,
-}
-```
-
-### InputState::set_key
-
-キー入力を設定します。
-
-```rust
-pub fn set_key(&mut self, key: Key, pressed: bool)
-```
-
-**パラメータ:**
-- `key`: キー種別 (W, A, S, D, Space, Escape, Enter)
-- `pressed`: 押下状態
-
-**例:**
-```rust
-input_state.set_key(Key::W, true);  // W キー押下
-input_state.set_key(Key::W, false); // W キー解放
+```js
+import { FontLoader, AudioEngine, InputManager, CanvasManager } from '../../engine.js';
 ```
 
 ---
 
-## Graphics API
+### FontLoader
 
-### Mesh::create_cube
+Gen Interface JP フォントを自動ロードして `document.fonts` に登録します。
 
-立方体メッシュを生成します。
+```js
+// 基本的な使い方（wasm モジュールを渡すだけ）
+await FontLoader.load('GenInterfaceJP', wasm);
 
-```rust
-pub fn create_cube() -> Mesh
+// カスタム URL を指定
+await FontLoader.load('GenInterfaceJP', wasm, { fontUrl: 'https://cdn.example.com/font.ttf' });
 ```
 
-**戻り値:**
-- `Mesh`: 立方体メッシュ
+**フォント取得の優先順位:**
 
-**例:**
-```rust
-let cube = graphics::create_cube();
-let mesh_data = cube.to_mesh_data(&device);
-```
+| 優先度 | 条件 | 取得元 |
+|--------|------|--------|
+| 1 | `embed-font` feature ビルド | WASM バイナリ内バイト列 → Blob URL |
+| 2 | `fontUrl` オプション指定あり | 指定 URL |
+| 3 | デフォルト | `engine.js` 隣の `fonts/` (import.meta.url で自動解決) |
 
-### ShaderModule
+---
 
-シェーダーモジュール。
+### AudioEngine
 
-```rust
-pub struct ShaderModule {
-    pub vertex_shader: wgpu::ShaderModule,
-    pub fragment_shader: wgpu::ShaderModule,
-}
-```
-
-### ShaderModule::new
-
-シェーダーを作成します。
-
-```rust
-pub fn new(device: &wgpu::Device) -> Self
+```js
+const audio = new AudioEngine();        // autoAmbient: true (デフォルト)
+audio.ensure();                          // AudioContext を遅延初期化
+audio.play(soundDefJson, volume);        // SoundDef JSON を再生
+audio.startAmbient({ freqs: [55, 55.5], filterFreq: 180, fadeIn: 3.0 });
+audio.setSeVolume(0.8);
+audio.setAmbVolume(0.4);
+audio.seVolume                           // 現在の SE 音量
+audio.ambVolume                          // 現在のアンビエント音量
 ```
 
 ---
 
-## Game Logic API
+### InputManager
 
-### GameState
+```js
+const input = new InputManager({ swipeMin: 35 });
 
-ゲーム全体の状態を管理します。
+// アクションコールバック登録 (0=前 1=左折 2=右折 3=後)
+input.onAction(action => wasm.move_game(action));
 
-```rust
-pub struct GameState {
-    pub score: u32,
-    pub moves: u32,
-    pub time_elapsed: f32,
-    pub puzzle: PuzzleLogic,
-    pub particles: ParticleSystem,
-    pub physics: PhysicsWorld,
-}
-```
+// キーボード
+input.bindKeyboard({ ArrowUp:0, KeyW:0, ArrowLeft:1, KeyA:1,
+                     ArrowRight:2, KeyD:2, ArrowDown:3, KeyS:3 });
 
-### PuzzleLogic::move_cube
+// D-pad ボタン
+input.bindDpad([['db-up',0],['db-left',1],['db-right',2],['db-down',3]],
+               () => audio.ensure());
 
-立方体を移動します。
-
-```rust
-pub fn move_cube(&mut self, cube_id: u32, new_position: (i32, i32, i32)) -> bool
-```
-
-**パラメータ:**
-- `cube_id`: 立方体 ID
-- `new_position`: 移動先座標 (x, y, z)
-
-**戻り値:**
-- `bool`: 移動成功（true）/失敗（false）
-
-**例:**
-```rust
-let success = puzzle.move_cube(1, (0, 0, 1));
-if success {
-    println!("Cube moved!");
-}
-```
-
-### PuzzleLogic::is_won
-
-パズルがクリアされたか確認します。
-
-```rust
-pub fn is_won(&self) -> bool
-```
-
-**戻り値:**
-- `bool`: クリア状態
-
-### ParticleSystem::emit_burst
-
-パーティクル放出。
-
-```rust
-pub fn emit_burst(
-    &mut self,
-    position: Vector3<f32>,
-    count: usize,
-    velocity_magnitude: f32,
-    lifetime: f32,
-    color: (f32, f32, f32, f32),
-)
-```
-
-**パラメータ:**
-- `position`: 放出位置
-- `count`: パーティクル数
-- `velocity_magnitude`: 速度の大きさ
-- `lifetime`: 生存時間（秒）
-- `color`: RGBA カラー
-
-**例:**
-```rust
-particles.emit_burst(
-    Vector3::new(0.0, 1.0, 0.0),
-    20,
-    2.0,
-    1.0,
-    (1.0, 1.0, 0.0, 1.0),  // 黄色
-);
+// スワイプ
+input.bindSwipe(['#hud','#dpad'], { onHint: flashHint, onStart: () => audio.ensure() });
 ```
 
 ---
 
-## FFI Bridge API (Unity 統合)
+### CanvasManager
 
-### GameStateFFI
-
-C 互換ゲーム状態構造体。
-
-```rust
-#[repr(C)]
-pub struct GameStateFFI {
-    pub score: u32,
-    pub moves: u32,
-    pub time_elapsed: f32,
-    pub is_won: bool,
-    pub puzzle_move_count: u32,
-}
-```
-
-### game_initialize
-
-ゲームを初期化（FFI）。
-
-```c
-int game_initialize(uint32_t width, uint32_t height);
-```
-
-**戻り値:** 0 = 成功, -1 = 失敗
-
-### game_update
-
-ゲームを更新（FFI）。
-
-```c
-int game_update(float delta_time);
-```
-
-### game_get_state
-
-ゲーム状態取得（FFI）。
-
-```c
-GameStateFFI game_get_state(void);
-```
-
-### game_move_cube
-
-立方体移動（FFI）。
-
-```c
-int game_move_cube(uint32_t cube_id, int32_t x, int32_t y, int32_t z);
-```
-
-### game_emit_particles
-
-パーティクル放出（FFI）。
-
-```c
-int game_emit_particles(float x, float y, float z, uint32_t count);
+```js
+const canvas = new CanvasManager('game-canvas', {
+  hudHeight: 44,     // HUD の高さ px
+  dpadHeight: 160,   // D-pad の高さ px
+  mobileBreak: 600,  // モバイル判定幅 px
+});
+canvas.resize();       // 即時リサイズ
+canvas.bindResize();   // window.resize に自動バインド
 ```
 
 ---
 
-## 型リファレンス
+## WASM エクスポート API (Neon Maze 3D)
 
-### Vector3
+### 初期化・ゲームループ
 
-3D ベクトル (glam::Vec3)
+| 関数 | 説明 |
+|------|------|
+| `init_maze3d(canvasId)` | ゲーム初期化 |
+| `tick_maze3d(ts)` | 毎フレーム更新 (requestAnimationFrame のタイムスタンプを渡す) |
+| `start_game_maze3d()` | ゲーム開始 / リセット |
+| `next_level_maze3d()` | 次のレベルへ |
+| `reset_maze3d()` | リセット |
 
-```rust
-pub struct Vector3 {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-}
-```
+### 入力
 
-### Matrix4
+| 関数 | 説明 |
+|------|------|
+| `move_maze3d(action)` | 移動 (0=前 1=左折 2=右折 3=後) |
 
-4x4 行列 (glam::Mat4)
+### 状態取得
 
-```rust
-pub struct Matrix4 { /* ... */ }
-```
+| 関数 | 戻り値 | 説明 |
+|------|--------|------|
+| `scene_maze3d()` | u8 | 0=Title 1=Playing 2=LevelClear 3=GameOver |
+| `steps_maze3d()` | u32 | 現レベルの歩数 |
+| `total_steps_maze3d()` | u32 | 合計歩数 |
+| `level_maze3d()` | u32 | 現在のレベル |
+| `theme_name_maze3d()` | String | 壁テーマ名 |
+| `warp_maze3d()` | f32 | ワープエフェクト量 (0.0〜1.0) |
+| `warp_done_maze3d()` | bool | ワープ完了フラグ |
+| `maze_data_maze3d()` | Uint8Array | 迷路データ (9×9) |
+| `player_x_maze3d()` | u32 | プレイヤー X 座標 |
+| `player_z_maze3d()` | u32 | プレイヤー Z 座標 |
+| `player_facing_maze3d()` | u8 | 向き (1=N 2=E 4=S 8=W) |
+| `enemy_x_maze3d()` | i32 | 敵 X 座標 (-1=非存在) |
+| `enemy_z_maze3d()` | i32 | 敵 Z 座標 |
 
-### Color
+### スコア保存 (localStorage)
 
-RGBA カラー
+| 関数 | 説明 |
+|------|------|
+| `best_steps_maze3d()` | ベスト歩数を取得 |
+| `best_level_maze3d()` | 最高レベルを取得 |
+| `play_count_maze3d()` | プレイ回数を取得 |
+| `load_se_vol_maze3d()` | SE 音量を取得 |
+| `load_amb_vol_maze3d()` | アンビエント音量を取得 |
+| `save_audio_vol_maze3d(se, amb)` | 音量を保存 |
 
-```rust
-pub struct Color {
-    pub r: f32,
-    pub g: f32,
-    pub b: f32,
-    pub a: f32,
-}
-```
+### サウンド
 
----
+| 関数 | 説明 |
+|------|------|
+| `audio_event_maze3d()` | 音声イベントを取得 (0=なし) |
+| `audio_step_parity_maze3d()` | 足音左右フラグ |
+| `sound_def_maze3d(event)` | SoundDef JSON 文字列 |
+| `all_sound_defs_maze3d()` | 全 SoundDef JSON 配列 |
 
-## エラーハンドリング
+### フォント (embed-font feature)
 
-すべての初期化関数は `Result<T, String>` を返します。
-
-```rust
-match Engine::new(config).await {
-    Ok(engine) => { /* 成功 */ },
-    Err(e) => println!("Error: {}", e),
-}
-```
-
----
-
-## 次のステップ
-
-- [統合ガイド](../guides/) で実装例を確認
-- [実行例](../examples/) でデモを試す
-
----
-
-**最終更新**: 2026年5月6日
+| 関数 | 説明 |
+|------|------|
+| `engine_font_embedded()` | フォントが埋め込まれているか |
+| `engine_font_regular()` | Regular フォントバイト列 |
+| `engine_font_bold()` | Bold フォントバイト列 |

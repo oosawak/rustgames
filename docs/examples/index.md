@@ -3,278 +3,80 @@ layout: default
 title: 実行例
 ---
 
-# 🚀 実行例
+# 実行例
 
-各プラットフォームでのゲーム実行方法を説明します。
-
-## 📋 目次
-
-- [ネイティブアプリ](#ネイティブアプリ)
-- [WASM版](#wasm版)
-- [Unity プラグイン](#unity-プラグイン)
-
----
-
-## ネイティブアプリ
-
-### ビルド
+## Neon Maze 3D をローカルで動かす
 
 ```bash
+# 1. クローン
+git clone https://github.com/oosawak/rustgames.git
 cd rustgames
-cargo build --release -p native_app
+
+# 2. WASM ビルド
+wasm-pack build wasm_app --target web --out-dir docs/play/maze3d/wasm
+rm -f docs/play/maze3d/wasm/.gitignore
+
+# 3. ローカルサーバー起動
+python3 -m http.server 8080 --directory docs
+
+# 4. ブラウザで確認
+# http://localhost:8080/play/maze3d/
 ```
 
-### 実行
+## フォント埋め込みビルド
 
-#### Windows
-```bash
-./target/release/native_app.exe
-```
-
-#### macOS / Linux
-```bash
-./target/release/native_app
-```
-
-### デバッグ実行
-
-```bash
-# ログを表示して実行
-RUST_LOG=debug cargo run -p native_app
-```
-
-### スクリーンショット
-```
-┌─────────────────────────────┐
-│   3D Puzzle Game - Native   │
-├─────────────────────────────┤
-│                             │
-│    [カラフルな立方体]        │
-│    (ユーザー操作可能)        │
-│                             │
-├─────────────────────────────┤
-│  Controls:                  │
-│  WASD: Move Camera          │
-│  Mouse: Rotate View         │
-│  ESC: Quit                  │
-└─────────────────────────────┘
-```
-
----
-
-## WASM版
-
-### ビルド
+WASM バイナリにフォントを同梱する場合（日本語フォントが OS に入っていない環境向け）:
 
 ```bash
-# wasm-pack インストール（初回のみ）
-cargo install wasm-pack
-
-# WASM ビルド
-wasm-pack build wasm_app --target web --release
+wasm-pack build wasm_app --target web --out-dir docs/play/maze3d/wasm -- --features embed-font
+rm -f docs/play/maze3d/wasm/.gitignore
 ```
 
-### ローカルサーバー起動
+> ⚠️ WASM バイナリが約 6MB 増加します。
+
+## GitHub Pages へデプロイ
 
 ```bash
-cd wasm_app/pkg
-python -m http.server 8000
+git add docs/
+git commit -m "Update WASM build"
+git push
+# → https://oosawak.github.io/rustgames/play/maze3d/ に自動反映
 ```
 
-### ブラウザで実行
-
-ブラウザを開いて以下にアクセス:
-```
-http://localhost:8000
-```
-
-### 簡易 HTML テンプレート
+## engine.js の使い方サンプル
 
 ```html
-<!-- wasm_app/index.html -->
 <!DOCTYPE html>
-<html lang="ja">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Rust Game - WASM</title>
-    <style>
-        body { margin: 0; padding: 20px; font-family: Arial; }
-        canvas { border: 1px solid #ccc; }
-        #info { margin-top: 20px; }
-    </style>
+  <link rel="stylesheet" href="../../engine.css">
 </head>
 <body>
-    <h1>3D Puzzle Game (WASM)</h1>
-    <canvas id="canvas"></canvas>
-    
-    <div id="info">
-        <p>Score: <span id="score">0</span></p>
-        <p>Moves: <span id="moves">0</span></p>
-        <p>Time: <span id="time">0.0</span>s</p>
-    </div>
+  <canvas id="game-canvas"></canvas>
+  <script type="module">
+    import init, * as wasm from './wasm/wasm_app.js';
+    import { FontLoader, AudioEngine, InputManager, CanvasManager } from '../../engine.js';
 
-    <script type="module">
-        import init, { GameInstance } from './pkg/wasm_app.js';
+    const audio  = new AudioEngine();
+    const input  = new InputManager({ swipeMin: 35 });
+    const canvas = new CanvasManager('game-canvas', { hudHeight: 0, dpadHeight: 0 });
 
-        async function run() {
-            await init();
-            const game = new GameInstance('canvas');
-            
-            let lastTime = Date.now();
-            function update() {
-                const now = Date.now();
-                const delta = (now - lastTime) / 1000;
-                lastTime = now;
-                
-                game.update(delta);
-                
-                // UI 更新
-                const state = game.get_state ? {
-                    score: game.get_score(),
-                    moves: game.get_moves(),
-                    time: game.get_time()
-                } : {};
-                
-                document.getElementById('score').textContent = state.score || 0;
-                document.getElementById('moves').textContent = state.moves || 0;
-                document.getElementById('time').textContent = (state.time || 0).toFixed(1);
-                
-                requestAnimationFrame(update);
-            }
-            update();
-        }
-        
-        run().catch(console.error);
-    </script>
+    async function start() {
+      await init('./wasm/wasm_app_bg.wasm');
+      canvas.resize();
+      canvas.bindResize();
+      await FontLoader.load('GenInterfaceJP', wasm);
+      // ゲーム初期化...
+      requestAnimationFrame(loop);
+    }
+
+    function loop(ts) {
+      wasm.tick_game(ts);
+      requestAnimationFrame(loop);
+    }
+
+    start();
+  </script>
 </body>
 </html>
 ```
-
----
-
-## Unity プラグイン
-
-### ステップ 1: FFI Bridge ビルド
-
-```bash
-# リリースビルド
-cargo build --release -p ffi_bridge
-```
-
-出力ファイル:
-- Windows: `target/release/ffi_bridge.dll`
-- macOS: `target/release/libffi_bridge.dylib`
-- Linux: `target/release/libffi_bridge.so`
-
-### ステップ 2: Unity プロジェクト設定
-
-#### ファイル配置
-```
-UnityProject/Assets/Plugins/
-├── ffi_bridge.dll        (Windows)
-├── libffi_bridge.dylib   (macOS)
-└── libffi_bridge.so      (Linux)
-```
-
-#### プラットフォーム設定
-
-**Unity Inspector:**
-1. DLL を選択
-2. Platform settings で対応 OS を有効化
-3. CPU: x86_64 に設定
-
-### ステップ 3: C# コード実装
-
-```csharp
-// Assets/Scripts/GameManager.cs
-using UnityEngine;
-using UnityEngine.UI;
-
-public class GameManager : MonoBehaviour {
-    [SerializeField] private Text scoreText;
-    [SerializeField] private Text timeText;
-
-    void Start() {
-        // 初期化
-        int result = RustGameBridge.game_initialize(1280, 720);
-        Debug.Log($"Init: {result}");
-    }
-
-    void Update() {
-        // 毎フレーム更新
-        RustGameBridge.game_update(Time.deltaTime);
-        
-        var state = RustGameBridge.game_get_state();
-        scoreText.text = $"Score: {state.score}";
-        timeText.text = $"Time: {state.timeElapsed:F1}s";
-    }
-
-    void OnDestroy() {
-        // クリーンアップ
-        RustGameBridge.game_cleanup();
-    }
-}
-```
-
-### ステップ 4: Unity エディタで実行
-
-1. **File** → **Open Scene** で新規シーン作成
-2. Canvas に UI を配置
-3. GameManager スクリプト追加
-4. **Play** ボタンをクリック
-
-### デバッグログ
-
-Unity Console で実行結果を確認:
-```
-✓ Game initialized successfully
-✓ Update: Score=100, Moves=5
-✓ Game cleaned up
-```
-
----
-
-## パフォーマンス比較
-
-| プラットフォーム | FPS | 応答時間 | メモリ |
-|---|---|---|---|
-| ネイティブ (Native) | 60+ | <1ms | ~50MB |
-| WASM (Chrome) | 45-50 | ~2ms | ~80MB |
-| Unity Plugin | 60+ | <1ms | ~60MB |
-
----
-
-## トラブルシューティング
-
-### ネイティブアプリが起動しない
-
-```bash
-# デバッグモードで実行
-RUST_BACKTRACE=1 cargo run -p native_app
-```
-
-### WASM が読み込まれない
-
-```bash
-# コンソールでエラーを確認
-# ブラウザの開発者ツール (F12) → Console
-```
-
-### Unity プラグインが見つからない
-
-```bash
-# DLL が Assets/Plugins に存在確認
-# プラットフォーム設定を確認
-# Unity を再起動
-```
-
----
-
-## 次のステップ
-
-- [API リファレンス](../api/) で詳細を確認
-- [統合ガイド](../guides/) で高度な設定を学習
-
----
-
-**最終更新**: 2026年5月6日

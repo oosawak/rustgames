@@ -1,86 +1,44 @@
 ---
 layout: default
-title: Rust wgpu Game Engine
-description: Cross-platform 3D puzzle game with Unity integration
+title: RustGames
+description: Rust + wgpu WASM ゲームエンジン
 ---
 
-# 🎮 Rust wgpu Game Engine
+# 🎮 RustGames
 
-高性能な **Rust + wgpu** ベースのゲームエンジンです。3D パズルゲームをネイティブアプリ、WASM、Unity プラグインで実行できます。
+Rust / wgpu / WebGL をベースとした WASM ゲームエンジンと、JS ゲームエンジンライブラリ (`engine.js`) の実装。
+
+## 🕹️ ゲームをプレイ
+
+| ゲーム | URL | 説明 |
+|--------|-----|------|
+| Neon Maze 3D | [プレイする](https://oosawak.github.io/rustgames/play/maze3d/) | ネオン風 3D 一人称迷路 |
+| ゲーム一覧 | [一覧を見る](https://oosawak.github.io/rustgames/play/) | |
 
 ## ✨ 主な特徴
 
-- 🚀 **ネイティブパフォーマンス** - Rust + wgpu による最適化
-- 🖥️ **クロスプラットフォーム** - Windows, macOS, Linux 対応
-- 🌐 **WASM 対応** - ブラウザで直接実行
-- 🎮 **Unity 統合** - FFI ブリッジで完全な相互運用性
-- 🔒 **メモリ安全** - Rust の型システムが自動保証
-- 💡 **API ベース** - 拡張可能なエンジン設計
-
-## 📦 プロジェクト構成
-
-```
-rustgames/
-├── engine/          ⚙️ コアゲームエンジン
-├── game_logic/      🎮 ゲームロジック
-├── native_app/      🖥️ ネイティブアプリ
-├── wasm_app/        🌐 WASM版
-├── ffi_bridge/      🔗 Unity プラグイン
-└── docs/            📚 ドキュメント
-```
-
-## 🚀 クイックスタート
-
-### ネイティブ版を実行
-```bash
-cargo run --release -p native_app
-```
-
-### WASM 版をビルド
-```bash
-wasm-pack build wasm_app --target web --release
-```
-
-### Unity プラグインをビルド
-```bash
-cargo build --release -p ffi_bridge
-```
+- 🦀 **Rust + wgpu** — WGSL シェーダー、点光源、指数フォグ
+- 🌐 **WASM 対応** — ブラウザで直接実行（wasm-pack）
+- 🔤 **Gen Interface JP フォント** — エンジン標準フォント、WASM 埋め込みも可能
+- 🎵 **SoundBuilder** — Rust で音を定義、JSON で Web Audio API に渡す
+- 🎮 **engine.js** — フォント・音声・入力・Canvas を統合した JS ライブラリ
+- 🔗 **Unity FFI** — C 互換 ABI で Unity から呼び出し可能
 
 ## 📚 ドキュメント
 
-- **[セットアップガイド](setup/)** - 開発環境構築
-- **[実行例](examples/)** - プラットフォーム別実行方法
-- **[API リファレンス](api/)** - エンジン API 詳細
-- **[統合ガイド](guides/)** - 各プラットフォーム統合手順
-
-## 🎯 ゲーム概要
-
-**3D パズル：立方体配置ゲーム**
-- 4 個の色付き立方体を 3D 空間に配置
-- 初期位置から目標位置へ移動
-- パーティクルエフェクト搭載
-- スコア・移動数カウント
+- [セットアップ](setup/) — 開発環境構築
+- [API リファレンス](api/) — engine.js / WASM エクスポート API
+- [統合ガイド](guides/) — Unity FFI Bridge
+- [実行例](examples/) — ビルド・デプロイ手順
 
 ## 🛠️ 技術スタック
 
-| 層 | 技術 |
-|---|---|
-| グラフィックス | wgpu, WGSL |
-| エンジン | Rust, async/await |
-| プラットフォーム | winit (ネイティブ), Canvas (WASM) |
-| 統合 | FFI, P/Invoke (Unity C#) |
-
-## 📝 ライセンス
-
-MIT License
-
-## 🤝 サポート
-
-- 📖 [GitHub Wiki](https://github.com/oosawak/rustgames/wiki)
-- 💬 [Discussions](https://github.com/oosawak/rustgames/discussions)
-- 🐛 [Issues](https://github.com/oosawak/rustgames/issues)
-
----
-
-**最新バージョン**: 0.1.0  
-**最終更新**: 2026年5月6日
+| カテゴリ | 技術 |
+|----------|------|
+| グラフィックス | **wgpu** (WebGL バックエンド) |
+| 言語 | **Rust 1.70+** |
+| WASM バインディング | **wasm-bindgen** |
+| シェーダー | **WGSL** |
+| JS エンジン | **engine.js** (ES Modules) |
+| フォント | **Gen Interface JP** (OFL) |
+| Unity 統合 | **FFI** (C 互換 ABI) |
