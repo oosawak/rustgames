@@ -18,6 +18,7 @@ pub mod scene;
 pub mod storage;
 pub mod audio_tool;
 pub mod font;
+pub mod blaster;
 
 use wasm_bindgen::prelude::*;
 use std::cell::RefCell;
@@ -149,3 +150,53 @@ pub fn engine_font_bold() -> Vec<u8> {
 pub fn engine_font_embedded() -> bool {
     crate::font::is_embedded()
 }
+
+// ─── Neon Blast 3D ──────────────────────────────────────────────────────────
+
+thread_local! {
+    static BLASTER: std::cell::RefCell<Option<blaster::BlasterGame>> = std::cell::RefCell::new(None);
+}
+
+#[wasm_bindgen]
+pub async fn init_blaster3d(canvas_id: &str) {
+    console_error_panic_hook::set_once();
+    let game = blaster::BlasterGame::new(canvas_id).await.unwrap();
+    BLASTER.with(|s| *s.borrow_mut() = Some(game));
+}
+
+#[wasm_bindgen] pub fn tick_blaster3d(ts: f64) { BLASTER.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.tick(ts);}}); }
+#[wasm_bindgen] pub fn start_blaster3d() { BLASTER.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.start();}}); }
+#[wasm_bindgen] pub fn move_blaster3d(dx:f32,dz:f32) { BLASTER.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.set_move(dx,dz);}}); }
+#[wasm_bindgen] pub fn shoot_blaster3d(on:bool) { BLASTER.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.set_shoot(on);}}); }
+#[wasm_bindgen] pub fn switch_camera_blaster3d() { BLASTER.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.switch_camera();}}); }
+#[wasm_bindgen] pub fn scene_blaster3d() -> u8 { BLASTER.with(|s|s.borrow().as_ref().map(|g|g.scene_u8()).unwrap_or(0)) }
+#[wasm_bindgen] pub fn camera_mode_blaster3d() -> u8 { BLASTER.with(|s|s.borrow().as_ref().map(|g|g.camera_u8()).unwrap_or(0)) }
+#[wasm_bindgen] pub fn camera_name_blaster3d() -> String { BLASTER.with(|s|s.borrow().as_ref().map(|g|g.camera_name().to_string()).unwrap_or_default()) }
+#[wasm_bindgen] pub fn player_hp_blaster3d() -> i32 { BLASTER.with(|s|s.borrow().as_ref().map(|g|g.player_hp).unwrap_or(0)) }
+#[wasm_bindgen] pub fn player_max_hp_blaster3d() -> i32 { BLASTER.with(|s|s.borrow().as_ref().map(|g|g.player_max_hp).unwrap_or(5)) }
+#[wasm_bindgen] pub fn score_blaster3d() -> u32 { BLASTER.with(|s|s.borrow().as_ref().map(|g|g.score).unwrap_or(0)) }
+#[wasm_bindgen] pub fn wave_blaster3d() -> u32 { BLASTER.with(|s|s.borrow().as_ref().map(|g|g.wave).unwrap_or(0)) }
+#[wasm_bindgen] pub fn boss_hp_blaster3d() -> i32 { BLASTER.with(|s|s.borrow().as_ref().map(|g|g.boss.hp).unwrap_or(0)) }
+#[wasm_bindgen] pub fn boss_max_hp_blaster3d() -> i32 { BLASTER.with(|s|s.borrow().as_ref().map(|g|g.boss.max_hp).unwrap_or(60)) }
+#[wasm_bindgen] pub fn bullet_count_blaster3d() -> u32 { BLASTER.with(|s|s.borrow().as_ref().map(|g|g.bullet_count()).unwrap_or(0)) }
+#[wasm_bindgen] pub fn audio_event_blaster3d() -> u8 { BLASTER.with(|s|s.borrow().as_ref().map(|g|g.audio_event).unwrap_or(0)) }
+#[wasm_bindgen] pub fn is_boss_wave_blaster3d() -> bool { BLASTER.with(|s|s.borrow().as_ref().map(|g|g.is_boss_wave).unwrap_or(false)) }
+
+/// サウンド定義 JSON を返す
+/// 1=shoot, 2=enemy_shoot, 3=enemy_hit, 4=explosion, 5=stage_clear, 6=player_hit, 7=boss_appear, 8=game_over
+#[wasm_bindgen]
+pub fn sound_def_blaster3d(event: u8) -> String {
+    use crate::blaster::audio_defs::*;
+    match event {
+        1 => sound_shoot().to_json(),
+        2 => sound_shoot().to_json(),
+        3 => sound_enemy_hit().to_json(),
+        4 => sound_explosion().to_json(),
+        5 => sound_stage_clear().to_json(),
+        6 => sound_player_hit().to_json(),
+        7 => sound_boss_appear().to_json(),
+        8 => sound_game_over().to_json(),
+        _ => "{}".to_string(),
+    }
+}
+

@@ -1,0 +1,286 @@
+/* blaster3d/style.css */
+
+@font-face {
+  font-family: 'GenInterfaceJP';
+  src: url('../../fonts/GenInterfaceJP-Regular.ttf') format('truetype');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'GenInterfaceJP';
+  src: url('../../fonts/GenInterfaceJP-Light.ttf') format('truetype');
+  font-weight: 300; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'GenInterfaceJP';
+  src: url('../../fonts/GenInterfaceJP-Bold.ttf') format('truetype');
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+
+:root {
+  --engine-font: 'GenInterfaceJP', 'Courier New', monospace;
+  --neon-cyan:    #00d4ff;
+  --neon-pink:    #ff2080;
+  --neon-orange:  #ff8800;
+  --neon-yellow:  #ffee00;
+  --bg:           #000010;
+  --hud-bg:       rgba(0,0,0,0.80);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%; height: 100%;
+  background: var(--bg);
+  color: var(--neon-cyan);
+  font-family: var(--engine-font);
+  overflow: hidden;
+  touch-action: none;
+}
+
+/* ── Canvas wrap ── */
+#canvas-wrap {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+}
+#blaster-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── HUD ── */
+#hud {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 46px;
+  background: var(--hud-bg);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 14px;
+  z-index: 20;
+  border-bottom: 1px solid rgba(0,200,255,0.2);
+  font-size: 0.82rem;
+}
+#hud .hp-bar-wrap {
+  display: flex; align-items: center; gap: 5px;
+}
+.hp-pip {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--neon-cyan);
+  box-shadow: 0 0 5px var(--neon-cyan);
+  transition: background 0.2s;
+}
+.hp-pip.dead { background: #333; box-shadow: none; }
+
+#score-val  { color: #fff; font-weight: 700; text-shadow: 0 0 6px #fff; }
+#wave-val   { color: var(--neon-yellow); text-shadow: 0 0 6px var(--neon-yellow); }
+#bullet-val { color: var(--neon-pink); text-shadow: 0 0 6px var(--neon-pink); }
+#fps-val    { color: #888; }
+#cam-val    { color: var(--neon-orange); text-shadow: 0 0 4px var(--neon-orange); font-size:0.75rem; }
+
+/* ── Boss HP bar ── */
+#boss-bar-wrap {
+  position: fixed;
+  top: 52px; left: 50%; transform: translateX(-50%);
+  width: min(420px, 90vw);
+  z-index: 21;
+  display: none;
+}
+#boss-bar-label {
+  text-align: center;
+  color: var(--neon-pink);
+  font-size: 0.78rem;
+  text-shadow: 0 0 8px var(--neon-pink);
+  margin-bottom: 3px;
+  letter-spacing: 0.1em;
+}
+#boss-bar-bg {
+  width: 100%;
+  height: 10px;
+  background: rgba(255,0,100,0.15);
+  border: 1px solid rgba(255,0,100,0.5);
+  border-radius: 5px;
+  overflow: hidden;
+}
+#boss-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff0060, #ff8800);
+  box-shadow: 0 0 8px #ff0060;
+  border-radius: 5px;
+  transition: width 0.1s;
+}
+
+/* ── Overlay base ── */
+.overlay {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: rgba(0,0,16,0.92);
+}
+.overlay.hidden { display: none; }
+
+/* ── Title ── */
+#title-screen h1 {
+  font-size: clamp(2.2em, 9vw, 4em);
+  color: var(--neon-cyan);
+  text-shadow: 0 0 20px var(--neon-cyan), 0 0 50px var(--neon-cyan);
+  margin-bottom: 10px;
+  animation: pulse-text 0.9s infinite alternate;
+  text-align: center;
+}
+#title-screen .sub {
+  color: rgba(0,212,255,0.6);
+  font-size: clamp(0.75em, 2.5vw, 0.95em);
+  text-align: center;
+  margin-bottom: 6px;
+}
+#btn-start {
+  margin-top: 28px;
+  background: transparent;
+  border: 2px solid var(--neon-cyan);
+  color: var(--neon-cyan);
+  font-family: var(--engine-font);
+  font-size: clamp(1em, 4vw, 1.4em);
+  padding: 14px 44px;
+  cursor: pointer;
+  text-shadow: 0 0 8px var(--neon-cyan);
+  box-shadow: 0 0 20px var(--neon-cyan);
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+#btn-start:active { background: rgba(0,255,255,0.2); }
+.key-hint {
+  margin-top: 16px;
+  color: rgba(0,200,255,0.4);
+  font-size: 0.75em;
+  text-align: center;
+  line-height: 1.8;
+}
+
+/* ── Result screens ── */
+.result-title {
+  font-size: clamp(1.8em, 7vw, 3em);
+  margin-bottom: 12px;
+  animation: pulse-text 0.6s infinite alternate;
+  text-align: center;
+}
+.result-sub {
+  font-size: clamp(0.9em, 3vw, 1.2em);
+  margin-bottom: 28px;
+  text-align: center;
+}
+.btn-retry {
+  background: transparent;
+  font-family: var(--engine-font);
+  font-size: clamp(1em, 4vw, 1.3em);
+  padding: 12px 36px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+/* Clear screen */
+#clear-screen .result-title { color: var(--neon-cyan); text-shadow: 0 0 20px var(--neon-cyan), 0 0 40px var(--neon-cyan); }
+#clear-screen .result-sub   { color: rgba(0,212,255,0.7); }
+#btn-clear-retry { border: 2px solid var(--neon-cyan); color: var(--neon-cyan);
+  text-shadow: 0 0 6px var(--neon-cyan); box-shadow: 0 0 14px var(--neon-cyan); }
+#btn-clear-retry:active { background: rgba(0,255,255,0.2); }
+
+/* Game over screen */
+#gameover-screen .result-title { color: var(--neon-pink); text-shadow: 0 0 20px var(--neon-pink), 0 0 40px var(--neon-pink); }
+#gameover-screen .result-sub   { color: rgba(255,50,100,0.7); }
+#btn-go-retry { border: 2px solid var(--neon-pink); color: var(--neon-pink);
+  text-shadow: 0 0 6px var(--neon-pink); box-shadow: 0 0 14px var(--neon-pink); }
+#btn-go-retry:active { background: rgba(255,30,80,0.2); }
+
+/* ── Loading ── */
+#loading {
+  position: fixed; inset: 0; background: #000010;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 999;
+  color: var(--neon-cyan);
+  font-size: 1.1em;
+  text-align: center;
+}
+
+/* ── Virtual joystick (mobile) ── */
+#vjoy-zone {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 170px;
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  z-index: 30;
+  pointer-events: none;
+}
+@media (pointer: coarse) {
+  #vjoy-zone { display: flex; }
+  /* slightly shrink canvas bottom for controls */
+  #canvas-wrap { bottom: 170px; }
+}
+.vjoy-stick {
+  width: 110px; height: 110px;
+  border: 2px solid rgba(0,200,255,0.4);
+  border-radius: 50%;
+  background: rgba(0,0,30,0.6);
+  position: relative;
+  pointer-events: all;
+  touch-action: none;
+}
+.vjoy-knob {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: rgba(0,200,255,0.5);
+  box-shadow: 0 0 10px rgba(0,200,255,0.5);
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+#btn-shoot-touch {
+  width: 90px; height: 90px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,80,0,0.6);
+  background: rgba(255,50,0,0.2);
+  color: var(--neon-orange);
+  font-size: 1.8em;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: all;
+  touch-action: none;
+  user-select: none;
+}
+#btn-cam-touch {
+  position: fixed;
+  top: 56px; right: 14px;
+  width: 54px; height: 30px;
+  border: 1px solid rgba(0,200,255,0.4);
+  border-radius: 15px;
+  background: rgba(0,0,30,0.7);
+  color: var(--neon-cyan);
+  font-size: 0.7em;
+  display: none;
+  align-items: center; justify-content: center;
+  pointer-events: all;
+  touch-action: none;
+  z-index: 31;
+}
+@media (pointer: coarse) { #btn-cam-touch { display: flex; } }
+
+/* ── Animations ── */
+@keyframes pulse-text {
+  from { opacity: 0.8; }
+  to   { opacity: 1; }
+}
+.spin {
+  width: 36px; height: 36px;
+  border: 3px solid rgba(0,200,255,0.2);
+  border-top-color: var(--neon-cyan);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto;
+}
+@keyframes spin { to { transform: rotate(360deg); } }

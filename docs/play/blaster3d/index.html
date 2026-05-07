@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Neon Blast 3D – wgpu WASM</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loading">
+  <div>
+    <div class="spin"></div>
+    <p style="margin-top:14px">LOADING wgpu WebGL…</p>
+  </div>
+</div>
+
+<!-- Canvas -->
+<div id="canvas-wrap">
+  <canvas id="blaster-canvas"></canvas>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="hp-bar-wrap" id="hp-pips"></div>
+  <span>SCORE <b id="score-val">0</b></span>
+  <span>WAVE <b id="wave-val">-</b></span>
+  <span>BULLETS <b id="bullet-val">0</b></span>
+  <span>CAM <b id="cam-val">TPS</b></span>
+  <span style="margin-left:auto">FPS <b id="fps-val">--</b></span>
+</div>
+
+<!-- Boss HP bar -->
+<div id="boss-bar-wrap">
+  <div id="boss-bar-label">⚠ BOSS</div>
+  <div id="boss-bar-bg"><div id="boss-bar-fill" style="width:100%"></div></div>
+</div>
+
+<!-- Title screen -->
+<div class="overlay" id="title-screen">
+  <h1>⚡ NEON BLAST 3D</h1>
+  <p class="sub">wgpu WebGL – 256弾同時描画 弾幕シューター</p>
+  <p class="sub">5 ウェーブ + 3 フェーズボス戦</p>
+  <button id="btn-start">▶ START</button>
+  <p class="key-hint">
+    WASD / 矢印: 移動 &nbsp;|&nbsp; Space / Z: 射撃<br>
+    Tab: カメラ切替 (TPS / TOP / FPS)
+  </p>
+</div>
+
+<!-- Stage clear screen -->
+<div class="overlay hidden" id="clear-screen">
+  <p class="result-title">🏆 BOSS CLEARED!</p>
+  <p class="result-sub" id="clear-score"></p>
+  <button class="btn-retry" id="btn-clear-retry">PLAY AGAIN ↺</button>
+</div>
+
+<!-- Game over screen -->
+<div class="overlay hidden" id="gameover-screen">
+  <p class="result-title">💀 GAME OVER</p>
+  <p class="result-sub" id="go-score"></p>
+  <button class="btn-retry" id="btn-go-retry">RETRY ↺</button>
+</div>
+
+<!-- Touch controls -->
+<div id="vjoy-zone">
+  <div class="vjoy-stick" id="vjoy-move">
+    <div class="vjoy-knob" id="vjoy-move-knob"></div>
+  </div>
+  <div id="btn-shoot-touch">🔥</div>
+</div>
+<div id="btn-cam-touch">CAM</div>
+
+<script type="module">
+import init, * as wasm from './wasm/wasm_app.js';
+import { FontLoader, AudioEngine, CanvasManager } from '../../engine.js';
+
+// ── Engine instances ─────────────────────────────────────────────────────────
+const audio  = new AudioEngine();
+const canvas = new CanvasManager('blaster-canvas', { hudHeight: 46 });
+
+// ── Input state ──────────────────────────────────────────────────────────────
+let dx = 0, dz = 0, shooting = false;
+const keys = new Set();
+
+function updateMove() {
+    let nx = 0, nz = 0;
+    if (keys.has('KeyA') || keys.has('ArrowLeft'))  nx -= 1;
+    if (keys.has('KeyD') || keys.has('ArrowRight')) nx += 1;
+    if (keys.has('KeyW') || keys.has('ArrowUp'))    nz -= 1;
+    if (keys.has('KeyS') || keys.has('ArrowDown'))  nz += 1;
+    const len = Math.sqrt(nx*nx + nz*nz);
+    if (len > 0) { nx /= len; nz /= len; }
+    dx = nx; dz = nz;
+    wasm.move_blaster3d(dx, dz);
+}
+
+document.addEventListener('keydown', e => {
+    if (e.repeat) return;
+    keys.add(e.code);
+    updateMove();
+    if (e.code === 'Space' || e.code === 'KeyZ') {
+        shooting = true;
+        wasm.shoot_blaster3d(true);
+    }
+    if (e.code === 'Tab') {
+        e.preventDefault();
+        wasm.switch_camera_blaster3d();
+    }
+});
+document.addEventListener('keyup', e => {
+    keys.delete(e.code);
+    updateMove();
+    if (e.code === 'Space' || e.code === 'KeyZ') {
+        shooting = false;
+        wasm.shoot_blaster3d(false);
+    }
+});
+
+// ── Virtual joystick (touch) ─────────────────────────────────────────────────
+const stickEl  = document.getElementById('vjoy-move');
+const knobEl   = document.getElementById('vjoy-move-knob');
+let stickId = null, stickOx = 0, stickOy = 0;
+const STICK_R = 40;
+
+stickEl.addEventListener('touchstart', e => {
+    e.preventDefault();
+    const t = e.changedTouches[0];
+    stickId = t.identifier;
+    const r = stickEl.getBoundingClientRect();
+    stickOx = r.left + r.width/2;
+    stickOy = r.top  + r.height/2;
+}, { passive: false });
+
+stickEl.addEventListener('touchmove', e => {
+    e.preventDefault();
+    for (const t of e.changedTouches) {
+        if (t.identifier !== stickId) continue;
+        let jx = t.clientX - stickOx;
+        let jy = t.clientY - stickOy;
+        const len = Math.sqrt(jx*jx + jy*jy);
+        if (len > STICK_R) { jx *= STICK_R/len; jy *= STICK_R/len; }
+        knobEl.style.transform = `translate(calc(-50% + ${jx}px), calc(-50% + ${jy}px))`;
+        const nx = len > 4 ? jx/STICK_R : 0;
+        const nz = len > 4 ? jy/STICK_R : 0;
+        wasm.move_blaster3d(nx, nz);
+    }
+}, { passive: false });
+
+['touchend','touchcancel'].forEach(ev => stickEl.addEventListener(ev, e => {
+    e.preventDefault();
+    for (const t of e.changedTouches) {
+        if (t.identifier === stickId) {
+            stickId = null;
+            knobEl.style.transform = 'translate(-50%,-50%)';
+            wasm.move_blaster3d(0, 0);
+        }
+    }
+}, { passive: false }));
+
+// Shoot button
+const btnShoot = document.getElementById('btn-shoot-touch');
+btnShoot.addEventListener('touchstart', e => { e.preventDefault(); wasm.shoot_blaster3d(true); }, { passive:false });
+btnShoot.addEventListener('touchend',   e => { e.preventDefault(); wasm.shoot_blaster3d(false); }, { passive:false });
+
+// Camera button
+document.getElementById('btn-cam-touch').addEventListener('touchstart', e => {
+    e.preventDefault();
+    wasm.switch_camera_blaster3d();
+}, { passive: false });
+
+// ── HUD elements ─────────────────────────────────────────────────────────────
+const scoreVal   = document.getElementById('score-val');
+const waveVal    = document.getElementById('wave-val');
+const bulletVal  = document.getElementById('bullet-val');
+const fpsVal     = document.getElementById('fps-val');
+const camVal     = document.getElementById('cam-val');
+const hpPips     = document.getElementById('hp-pips');
+const bossWrap   = document.getElementById('boss-bar-wrap');
+const bossFill   = document.getElementById('boss-bar-fill');
+
+const titleScreen   = document.getElementById('title-screen');
+const clearScreen   = document.getElementById('clear-screen');
+const gameoverScreen = document.getElementById('gameover-screen');
+const clearScore    = document.getElementById('clear-score');
+const goScore       = document.getElementById('go-score');
+const loadingEl     = document.getElementById('loading');
+
+// HP pips
+let cachedMaxHp = 0;
+function updateHpPips(hp, maxHp) {
+    if (maxHp !== cachedMaxHp) {
+        hpPips.innerHTML = '';
+        for (let i = 0; i < maxHp; i++) {
+            const d = document.createElement('div');
+            d.className = 'hp-pip';
+            d.id = `pip-${i}`;
+            hpPips.appendChild(d);
+        }
+        cachedMaxHp = maxHp;
+    }
+    for (let i = 0; i < maxHp; i++) {
+        const el = document.getElementById(`pip-${i}`);
+        if (el) el.className = `hp-pip${i < hp ? '' : ' dead'}`;
+    }
+}
+
+// ── FPS counter ───────────────────────────────────────────────────────────────
+const fpsHistory = new Float64Array(60);
+let fpsIdx = 0, fpsPrev = 0;
+
+// ── Audio ────────────────────────────────────────────────────────────────────
+function handleAudio(ev) {
+    if (!ev) return;
+    const json = wasm.sound_def_blaster3d(ev);
+    if (json && json !== '{}') {
+        try {
+            audio.ensure();
+            audio.play(JSON.parse(json));
+        } catch(e) {}
+    }
+}
+
+// ── Buttons ──────────────────────────────────────────────────────────────────
+document.getElementById('btn-start').addEventListener('click', () => {
+    audio.ensure();
+    wasm.start_blaster3d();
+    titleScreen.classList.add('hidden');
+});
+document.getElementById('btn-clear-retry').addEventListener('click', () => {
+    wasm.start_blaster3d();
+    clearScreen.classList.add('hidden');
+});
+document.getElementById('btn-go-retry').addEventListener('click', () => {
+    wasm.start_blaster3d();
+    gameoverScreen.classList.add('hidden');
+});
+
+// ── Scene ids ────────────────────────────────────────────────────────────────
+const SCENE_TITLE     = 0;
+const SCENE_PLAYING   = 1;
+const SCENE_STAGECLR  = 2;
+const SCENE_BOSSCLEAR = 3;
+const SCENE_GAMEOVER  = 4;
+let lastScene = -1;
+
+// ── Game loop ────────────────────────────────────────────────────────────────
+function loop(ts) {
+    // FPS
+    if (fpsPrev > 0) {
+        const dt = ts - fpsPrev;
+        fpsHistory[fpsIdx % 60] = dt;
+        fpsIdx++;
+        if (fpsIdx % 10 === 0) {
+            const avg = fpsHistory.reduce((a,b)=>a+b,0) / Math.min(fpsIdx, 60);
+            fpsVal.textContent = avg > 0 ? (1000/avg).toFixed(0) : '--';
+        }
+    }
+    fpsPrev = ts;
+
+    wasm.tick_blaster3d(ts);
+
+    const scene = wasm.scene_blaster3d();
+
+    if (scene === SCENE_PLAYING) {
+        const hp    = wasm.player_hp_blaster3d();
+        const maxHp = wasm.player_max_hp_blaster3d();
+        updateHpPips(hp, maxHp);
+        scoreVal.textContent  = wasm.score_blaster3d();
+        waveVal.textContent   = wasm.wave_blaster3d();
+        bulletVal.textContent = wasm.bullet_count_blaster3d();
+        camVal.textContent    = wasm.camera_name_blaster3d();
+
+        const isBoss = wasm.is_boss_wave_blaster3d();
+        if (isBoss) {
+            bossWrap.style.display = 'block';
+            const bHp  = Math.max(0, wasm.boss_hp_blaster3d());
+            const bMax = wasm.boss_max_hp_blaster3d();
+            bossFill.style.width = (bHp / bMax * 100).toFixed(1) + '%';
+        } else {
+            bossWrap.style.display = 'none';
+        }
+
+        handleAudio(wasm.audio_event_blaster3d());
+    }
+
+    if (scene !== lastScene) {
+        lastScene = scene;
+        if (scene === SCENE_BOSSCLEAR) {
+            const s = wasm.score_blaster3d();
+            clearScore.textContent = `SCORE: ${s}`;
+            clearScreen.classList.remove('hidden');
+            gameoverScreen.classList.add('hidden');
+            bossWrap.style.display = 'none';
+        } else if (scene === SCENE_GAMEOVER) {
+            const s = wasm.score_blaster3d();
+            goScore.textContent = `SCORE: ${s}`;
+            gameoverScreen.classList.remove('hidden');
+            clearScreen.classList.add('hidden');
+            bossWrap.style.display = 'none';
+        } else if (scene === SCENE_TITLE) {
+            titleScreen.classList.remove('hidden');
+            clearScreen.classList.add('hidden');
+            gameoverScreen.classList.add('hidden');
+        }
+    }
+
+    requestAnimationFrame(loop);
+}
+
+// ── Initialise ───────────────────────────────────────────────────────────────
+async function main() {
+    await init();
+
+    // Resize canvas to full window
+    canvas.resize();
+    canvas.bindResize();
+
+    // Font loader (optional, falls back gracefully)
+    await FontLoader.load('GenInterfaceJP', wasm).catch(() => {});
+
+    await wasm.init_blaster3d('blaster-canvas');
+
+    loadingEl.style.display = 'none';
+    requestAnimationFrame(loop);
+}
+
+main().catch(err => {
+    loadingEl.innerHTML = `<p style="color:#f44">ERROR: ${err}</p>`;
+});
+</script>
+</body>
+</html>
