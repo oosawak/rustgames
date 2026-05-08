@@ -16,6 +16,7 @@ pub struct GpuState {
     pub depth_view: wgpu::TextureView,
     pub width:      u32,
     pub height:     u32,
+    pub fmt:        wgpu::TextureFormat,
 }
 
 impl GpuState {
@@ -114,7 +115,21 @@ impl GpuState {
             mapped_at_creation:false,
         });
         Ok(GpuState{surface,device,queue,pipeline,
-                    uni_buf,bind_group,vert_buf,idx_buf,depth_view,width:w,height:h})
+                    uni_buf,bind_group,vert_buf,idx_buf,depth_view,width:w,height:h,fmt})
+    }
+
+    pub fn resize(&mut self, w: u32, h: u32) {
+        if w == self.width && h == self.height { return; }
+        self.width = w;
+        self.height = h;
+        let config = wgpu::SurfaceConfiguration {
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT, format: self.fmt,
+            width: w, height: h, present_mode: wgpu::PresentMode::Fifo,
+            alpha_mode: wgpu::CompositeAlphaMode::Opaque,
+            view_formats: vec![], desired_maximum_frame_latency: 2,
+        };
+        self.surface.configure(&self.device, &config);
+        self.depth_view = make_depth(&self.device, w, h);
     }
 
     pub fn render(&self, verts:&[Vertex], idxs:&[u32], uni:&Uni){

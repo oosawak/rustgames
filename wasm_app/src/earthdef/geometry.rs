@@ -184,9 +184,9 @@ pub fn build_uni(g: &EarthDefGame, asp: f32) -> Uni {
     let _ = LaserType::Beam;
 
     let lights = [
-        Light { pos: [0.0, 5.0, 0.0, 0.0],               col: [1.0, 1.0, 1.0, 2.5] },
-        Light { pos: [adx*10.0, ady*10.0, adz*10.0, 0.0], col: [0.0, 1.0, 1.0, beam_intensity] },
-        Light { pos: [0.0, 0.0, -10.0, 0.0],              col: [0.2, 0.2, 1.0, 1.5] },
+        Light { pos: [0.0, 8.0, 0.0, 0.0],               col: [1.0, 1.0, 1.0, 12.0] },
+        Light { pos: [adx*8.0, ady*8.0, adz*8.0, 0.0],   col: [0.0, 1.0, 1.0, beam_intensity] },
+        Light { pos: [0.0, 0.0, -8.0, 0.0],               col: [0.3, 0.5, 1.0, 8.0] },
         Light { pos: [0.0, 0.0, 0.0, 0.0],                col: [1.0, 1.0, 1.0, flash_intensity] },
     ];
 

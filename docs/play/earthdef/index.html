@@ -14,7 +14,7 @@
 </div>
 
 <div id="canvas-wrap">
-  <canvas id="earth-canvas" width="480" height="720"></canvas>
+  <canvas id="earth-canvas"></canvas>
 </div>
 
 <!-- Flash screen effect -->
@@ -224,6 +224,15 @@ function loop(ts) {
 async function main() {
   try {
     const loadEl = document.getElementById('loading');
+    // Resize canvas to actual display size before WASM init
+    const cvs = document.getElementById('earth-canvas');
+    function resizeCanvas() {
+      cvs.width  = window.innerWidth;
+      cvs.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
     loadEl.querySelector('p').textContent = 'WASMロード中…';
     await init();
     loadEl.querySelector('p').textContent = 'WebGL初期化中…';

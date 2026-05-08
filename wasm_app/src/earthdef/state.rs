@@ -118,7 +118,7 @@ impl EarthDefGame {
             time: 0.0, dt: 0.016, prev_ts: 0.0,
             earth_hp: 100, earth_max_hp: 100,
             earth_rot: 0.0, earth_hit_flash: 0.0,
-            cam_azimuth: 0.0, cam_elevation: 0.5, cam_distance: 14.0,
+            cam_azimuth: 0.0, cam_elevation: 0.3, cam_distance: 7.0,
             aim_azimuth: 0.0, aim_elevation: 0.0,
             laser_type: LaserType::Beam, laser_active: false, laser_timer: 0.0,
             flash_charges: 3, flash_max_charges: 3,
@@ -139,7 +139,8 @@ impl EarthDefGame {
         self.earth_rot = 0.0;
         self.earth_hit_flash = 0.0;
         self.cam_azimuth = 0.0;
-        self.cam_elevation = 0.5;
+        self.cam_elevation = 0.3;
+        self.cam_distance  = 7.0;
         self.aim_azimuth = 0.0;
         self.aim_elevation = 0.0;
         self.laser_type = LaserType::Beam;
@@ -158,6 +159,14 @@ impl EarthDefGame {
     }
 
     pub fn tick(&mut self, ts: f64) {
+        // Sync GPU surface to canvas size every frame
+        {
+            let win = web_sys::window().unwrap();
+            let w = win.inner_width().unwrap().as_f64().unwrap() as u32;
+            let h = win.inner_height().unwrap().as_f64().unwrap() as u32;
+            self.gpu.resize(w.max(1), h.max(1));
+        }
+
         let dt = if self.prev_ts > 0.0 {
             ((ts - self.prev_ts) * 0.001).min(0.05) as f32
         } else {
