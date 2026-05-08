@@ -222,12 +222,22 @@ function loop(ts) {
 
 // --- Init ---
 async function main() {
-  await init();
-  await wasm.init_earthdef('earth-canvas');
-  initialized = true;
-  document.getElementById('loading').style.display = 'none';
-  setupControls();
-  requestAnimationFrame(loop);
+  try {
+    const loadEl = document.getElementById('loading');
+    loadEl.querySelector('p').textContent = 'WASMロード中…';
+    await init();
+    loadEl.querySelector('p').textContent = 'WebGL初期化中…';
+    await wasm.init_earthdef('earth-canvas');
+    initialized = true;
+    loadEl.style.display = 'none';
+    setupControls();
+    requestAnimationFrame(loop);
+  } catch(e) {
+    const loadEl = document.getElementById('loading');
+    loadEl.querySelector('p').textContent = '❌ 初期化失敗: ' + e;
+    loadEl.querySelector('p').style.color = '#f44';
+    console.error('init failed:', e);
+  }
 }
 
 document.getElementById('btn-start').addEventListener('click', () => {
