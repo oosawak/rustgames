@@ -21,18 +21,20 @@ pub fn camera_view(mode: CameraMode, pos: [f32; 3], angle: f32) -> [[f32; 3]; 2]
     let dir = [sin, 0.0, cos];
     match mode {
         CameraMode::Tps => {
-            let eye = [pos[0] - dir[0] * 4.0, pos[1] + 2.5, pos[2] - dir[2] * 4.0];
-            let ctr = [pos[0], pos[1] + 0.3, pos[2]];
+            // 後方8・高さ6の俯瞰TPS。壁に近づいてもカメラが壁に刺さりにくい
+            let eye = [pos[0] - dir[0] * 8.0, pos[1] + 6.0, pos[2] - dir[2] * 8.0];
+            let ctr = [pos[0] + dir[0] * 2.0, pos[1] + 0.5, pos[2] + dir[2] * 2.0];
             [eye, ctr]
         }
         CameraMode::Top => {
-            let eye = [pos[0], pos[1] + 18.0, pos[2] + 0.01];
+            // アリーナ拡張に合わせて高さを上げる
+            let eye = [pos[0], pos[1] + 28.0, pos[2] + 0.01];
             let ctr = [pos[0], pos[1], pos[2]];
             [eye, ctr]
         }
         CameraMode::Fps => {
-            let eye = [pos[0], pos[1] + 0.4, pos[2]];
-            let ctr = [pos[0] + dir[0], pos[1] + 0.4, pos[2] + dir[2]];
+            let eye = [pos[0], pos[1] + 0.6, pos[2]];
+            let ctr = [pos[0] + dir[0], pos[1] + 0.6, pos[2] + dir[2]];
             [eye, ctr]
         }
     }

@@ -45,7 +45,7 @@ impl BulletPool {
             b.y += b.vy * dt;
             b.z += b.vz * dt;
             b.life -= dt;
-            if b.life <= 0.0 || b.x.abs() > 12.0 || b.z.abs() > 12.0 {
+            if b.life <= 0.0 || b.x.abs() > 20.0 || b.z.abs() > 20.0 {
                 b.active = false;
             }
         }
