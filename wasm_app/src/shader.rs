@@ -85,8 +85,8 @@ fn fs_main(v: VOut) -> @location(0) vec4<f32> {
         rgb = rgb * grain;
     }
 
-    // lighting × fog
-    let fog_density = 0.18;
+    // lighting × fog  (fog_col.a encodes density scale: 1.0=maze, 0.0=space)
+    let fog_density = 0.18 * u.fog_col.a;
     let fog = exp(-fog_density * fog_density * v.depth * v.depth);
     let fog_floor = clamp(v.world_y * 2.5, 0.0, 1.0);
     let fog_final = fog * (0.75 + fog_floor * 0.25);

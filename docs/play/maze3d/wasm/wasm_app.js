@@ -18,6 +18,22 @@ export function all_sound_defs_maze3d() {
 }
 
 /**
+ * @returns {number}
+ */
+export function audio_event_blaster3d() {
+    const ret = wasm.audio_event_blaster3d();
+    return ret;
+}
+
+/**
+ * @returns {number}
+ */
+export function audio_event_earthdef() {
+    const ret = wasm.audio_event_earthdef();
+    return ret;
+}
+
+/**
  * 音声イベントフラグ (0=なし 1=足音 2=壁衝突 3=レベルクリア 4=ゴール付近)
  * @returns {number}
  */
@@ -36,6 +52,14 @@ export function audio_step_parity_maze3d() {
 }
 
 /**
+ * @returns {boolean}
+ */
+export function auto_fire_blaster3d() {
+    const ret = wasm.auto_fire_blaster3d();
+    return ret !== 0;
+}
+
+/**
  * @returns {number}
  */
 export function best_level_maze3d() {
@@ -49,6 +73,70 @@ export function best_level_maze3d() {
 export function best_steps_maze3d() {
     const ret = wasm.best_steps_maze3d();
     return ret >>> 0;
+}
+
+/**
+ * @returns {number}
+ */
+export function boss_hp_blaster3d() {
+    const ret = wasm.boss_hp_blaster3d();
+    return ret;
+}
+
+/**
+ * @returns {number}
+ */
+export function boss_max_hp_blaster3d() {
+    const ret = wasm.boss_max_hp_blaster3d();
+    return ret;
+}
+
+/**
+ * @returns {number}
+ */
+export function bullet_count_blaster3d() {
+    const ret = wasm.bullet_count_blaster3d();
+    return ret >>> 0;
+}
+
+/**
+ * @returns {number}
+ */
+export function camera_mode_blaster3d() {
+    const ret = wasm.camera_mode_blaster3d();
+    return ret;
+}
+
+/**
+ * @returns {string}
+ */
+export function camera_name_blaster3d() {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.camera_name_blaster3d();
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+
+/**
+ * @returns {number}
+ */
+export function earth_hp_earthdef() {
+    const ret = wasm.earth_hp_earthdef();
+    return ret;
+}
+
+/**
+ * @returns {number}
+ */
+export function earth_max_hp_earthdef() {
+    const ret = wasm.earth_max_hp_earthdef();
+    return ret;
 }
 
 /**
@@ -102,6 +190,22 @@ export function engine_font_regular() {
     return v1;
 }
 
+export function fire_earthdef() {
+    wasm.fire_earthdef();
+}
+
+export function flash_bomb_earthdef() {
+    wasm.flash_bomb_earthdef();
+}
+
+/**
+ * @returns {number}
+ */
+export function flash_charges_earthdef() {
+    const ret = wasm.flash_charges_earthdef();
+    return ret >>> 0;
+}
+
 /**
  * @returns {boolean}
  */
@@ -114,10 +218,48 @@ export function game_over_maze3d() {
  * @param {string} canvas_id
  * @returns {Promise<void>}
  */
+export function init_blaster3d(canvas_id) {
+    const ptr0 = passStringToWasm0(canvas_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.init_blaster3d(ptr0, len0);
+    return ret;
+}
+
+/**
+ * @param {string} canvas_id
+ * @returns {Promise<void>}
+ */
+export function init_earthdef(canvas_id) {
+    const ptr0 = passStringToWasm0(canvas_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.init_earthdef(ptr0, len0);
+    return ret;
+}
+
+/**
+ * @param {string} canvas_id
+ * @returns {Promise<void>}
+ */
 export function init_maze3d(canvas_id) {
     const ptr0 = passStringToWasm0(canvas_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len0 = WASM_VECTOR_LEN;
     const ret = wasm.init_maze3d(ptr0, len0);
+    return ret;
+}
+
+/**
+ * @returns {boolean}
+ */
+export function is_boss_wave_blaster3d() {
+    const ret = wasm.is_boss_wave_blaster3d();
+    return ret !== 0;
+}
+
+/**
+ * @returns {number}
+ */
+export function laser_type_earthdef() {
+    const ret = wasm.laser_type_earthdef();
     return ret;
 }
 
@@ -164,6 +306,14 @@ export function maze_data_maze3d() {
 }
 
 /**
+ * @param {number} dx
+ * @param {number} dz
+ */
+export function move_blaster3d(dx, dz) {
+    wasm.move_blaster3d(dx, dz);
+}
+
+/**
  * @param {number} a
  */
 export function move_maze3d(a) {
@@ -187,6 +337,22 @@ export function play_count_maze3d() {
  */
 export function player_facing_maze3d() {
     const ret = wasm.player_facing_maze3d();
+    return ret;
+}
+
+/**
+ * @returns {number}
+ */
+export function player_hp_blaster3d() {
+    const ret = wasm.player_hp_blaster3d();
+    return ret;
+}
+
+/**
+ * @returns {number}
+ */
+export function player_max_hp_blaster3d() {
+    const ret = wasm.player_max_hp_blaster3d();
     return ret;
 }
 
@@ -221,9 +387,90 @@ export function save_audio_vol_maze3d(se, amb) {
 /**
  * @returns {number}
  */
+export function scene_blaster3d() {
+    const ret = wasm.scene_blaster3d();
+    return ret;
+}
+
+/**
+ * @returns {number}
+ */
+export function scene_earthdef() {
+    const ret = wasm.scene_earthdef();
+    return ret;
+}
+
+/**
+ * @returns {number}
+ */
 export function scene_maze3d() {
     const ret = wasm.scene_maze3d();
     return ret;
+}
+
+/**
+ * @returns {number}
+ */
+export function score_blaster3d() {
+    const ret = wasm.score_blaster3d();
+    return ret >>> 0;
+}
+
+/**
+ * @returns {number}
+ */
+export function score_earthdef() {
+    const ret = wasm.score_earthdef();
+    return ret >>> 0;
+}
+
+/**
+ * @param {number} x
+ * @param {number} y
+ */
+export function set_aim_input_earthdef(x, y) {
+    wasm.set_aim_input_earthdef(x, y);
+}
+
+/**
+ * @param {number} x
+ * @param {number} y
+ */
+export function set_cam_input_earthdef(x, y) {
+    wasm.set_cam_input_earthdef(x, y);
+}
+
+/**
+ * @param {number} t
+ */
+export function set_laser_type_earthdef(t) {
+    wasm.set_laser_type_earthdef(t);
+}
+
+/**
+ * @param {boolean} on
+ */
+export function shoot_blaster3d(on) {
+    wasm.shoot_blaster3d(on);
+}
+
+/**
+ * サウンド定義 JSON を返す
+ * 1=shoot, 2=enemy_shoot, 3=enemy_hit, 4=explosion, 5=stage_clear, 6=player_hit, 7=boss_appear, 8=game_over
+ * @param {number} event
+ * @returns {string}
+ */
+export function sound_def_blaster3d(event) {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.sound_def_blaster3d(event);
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
 }
 
 /**
@@ -245,6 +492,14 @@ export function sound_def_maze3d(event) {
     }
 }
 
+export function start_blaster3d() {
+    wasm.start_blaster3d();
+}
+
+export function start_earthdef() {
+    wasm.start_earthdef();
+}
+
 export function start_game_maze3d() {
     wasm.start_game_maze3d();
 }
@@ -255,6 +510,10 @@ export function start_game_maze3d() {
 export function steps_maze3d() {
     const ret = wasm.steps_maze3d();
     return ret >>> 0;
+}
+
+export function switch_camera_blaster3d() {
+    wasm.switch_camera_blaster3d();
 }
 
 /**
@@ -276,8 +535,26 @@ export function theme_name_maze3d() {
 /**
  * @param {number} ts
  */
+export function tick_blaster3d(ts) {
+    wasm.tick_blaster3d(ts);
+}
+
+/**
+ * @param {number} ts
+ */
+export function tick_earthdef(ts) {
+    wasm.tick_earthdef(ts);
+}
+
+/**
+ * @param {number} ts
+ */
 export function tick_maze3d(ts) {
     wasm.tick_maze3d(ts);
+}
+
+export function toggle_auto_fire_blaster3d() {
+    wasm.toggle_auto_fire_blaster3d();
 }
 
 /**
@@ -286,6 +563,13 @@ export function tick_maze3d(ts) {
 export function total_steps_maze3d() {
     const ret = wasm.total_steps_maze3d();
     return ret >>> 0;
+}
+
+/**
+ * @param {number} rot
+ */
+export function turret_rotate_blaster3d(rot) {
+    wasm.turret_rotate_blaster3d(rot);
 }
 
 /**
@@ -302,6 +586,22 @@ export function warp_done_maze3d() {
 export function warp_maze3d() {
     const ret = wasm.warp_maze3d();
     return ret;
+}
+
+/**
+ * @returns {number}
+ */
+export function wave_blaster3d() {
+    const ret = wasm.wave_blaster3d();
+    return ret >>> 0;
+}
+
+/**
+ * @returns {number}
+ */
+export function wave_earthdef() {
+    const ret = wasm.wave_earthdef();
+    return ret >>> 0;
 }
 function __wbg_get_imports() {
     const import0 = {
@@ -724,6 +1024,9 @@ function __wbg_get_imports() {
         },
         __wbg_endQuery_62edf1b38fcc333e: function(arg0, arg1) {
             arg0.endQuery(arg1 >>> 0);
+        },
+        __wbg_error_48655ee7e4756f8b: function(arg0) {
+            console.error(arg0);
         },
         __wbg_error_a6fa202b58aa1cd3: function(arg0, arg1) {
             let deferred0_0;
@@ -1330,7 +1633,7 @@ function __wbg_get_imports() {
             return ret;
         },
         __wbindgen_cast_0000000000000001: function(arg0, arg1) {
-            // Cast intrinsic for `Closure(Closure { owned: true, function: Function { arguments: [Externref], shim_idx: 1919, ret: Result(Unit), inner_ret: Some(Result(Unit)) }, mutable: true }) -> Externref`.
+            // Cast intrinsic for `Closure(Closure { owned: true, function: Function { arguments: [Externref], shim_idx: 1929, ret: Result(Unit), inner_ret: Some(Result(Unit)) }, mutable: true }) -> Externref`.
             const ret = makeMutClosure(arg0, arg1, wasm_bindgen__convert__closures_____invoke__h337539ba828a8639);
             return ret;
         },

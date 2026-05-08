@@ -196,6 +196,6 @@ pub fn build_uni(g: &EarthDefGame, asp: f32) -> Uni {
         warp: 0.0,
         pad: [0.0; 2],
         lights,
-        fog_col: [0.0, 0.0, 0.02, 1.0],
+        fog_col: [0.0, 0.0, 0.02, 0.0],  // a=0.0: no fog (space)
     }
 }
