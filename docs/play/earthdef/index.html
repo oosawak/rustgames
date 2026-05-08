@@ -325,8 +325,8 @@ function setupControls() {
   // Pinch-to-zoom state
   let pinchActive = false;
   let pinchStartDist = 0;
-  let pinchStartCamDist = 7.0;
-  let currentCamDist = 7.0;
+  let pinchStartCamDist = 15.0;
+  let currentCamDist = 15.0;
 
   function getTouchDist(touches) {
     const dx = touches[0].clientX - touches[1].clientX;
@@ -360,7 +360,7 @@ function setupControls() {
     if (e.touches.length === 2 && pinchActive) {
       const d = getTouchDist(e.touches);
       const ratio = pinchStartDist / d; // pinch in → ratio>1 → zoom out
-      currentCamDist = Math.min(25, Math.max(2.5, pinchStartCamDist * ratio));
+      currentCamDist = Math.min(50, Math.max(15, pinchStartCamDist * ratio));
       wasm.set_cam_distance_earthdef(currentCamDist);
     }
   }, { passive: false });

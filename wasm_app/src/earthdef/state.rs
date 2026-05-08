@@ -92,10 +92,10 @@ pub struct EarthDefGame {
 impl Enemy {
     fn new(kind: EnemyKind, x: f32, y: f32, z: f32) -> Self {
         let (hp, speed, scale) = match kind {
-            EnemyKind::Basic    => (1, 1.5f32, 0.7f32),
-            EnemyKind::Speed    => (1, 3.0,    0.45),
-            EnemyKind::Armored  => (3, 1.0,    1.1),
-            EnemyKind::Splitter => (1, 2.0,    0.65),
+            EnemyKind::Basic    => (1,  8.0f32, 0.7f32),
+            EnemyKind::Speed    => (1, 20.0,    0.40),
+            EnemyKind::Armored  => (5,  6.0,    1.2),
+            EnemyKind::Splitter => (1, 14.0,    0.65),
         };
         Enemy {
             active: true, kind, x, y, z,
@@ -118,9 +118,9 @@ impl EarthDefGame {
             gpu,
             scene: EarthDefScene::Title,
             time: 0.0, dt: 0.016, prev_ts: 0.0,
-            earth_hp: 100, earth_max_hp: 100,
+            earth_hp: 200, earth_max_hp: 200,
             earth_rot: 0.0, earth_hit_flash: 0.0,
-            cam_azimuth: 0.0, cam_elevation: 0.3, cam_distance: 7.0,
+            cam_azimuth: 0.0, cam_elevation: 0.3, cam_distance: 15.0,
             aim_azimuth: 0.0, aim_elevation: 0.0,
             laser_type: LaserType::Beam, laser_active: false, laser_timer: 0.0,
             flash_charges: 3, flash_max_charges: 3,
@@ -138,12 +138,12 @@ impl EarthDefGame {
 
     pub fn start(&mut self) {
         self.scene = EarthDefScene::Playing;
-        self.earth_hp = 100;
+        self.earth_hp = 200;
         self.earth_rot = 0.0;
         self.earth_hit_flash = 0.0;
         self.cam_azimuth = 0.0;
         self.cam_elevation = 0.3;
-        self.cam_distance  = 7.0;
+        self.cam_distance  = 15.0;
         self.aim_azimuth = 0.0;
         self.aim_elevation = 0.0;
         self.laser_type = LaserType::Beam;
@@ -236,13 +236,21 @@ impl EarthDefGame {
         }
         if self.earth_hp <= 0 { self.scene = EarthDefScene::GameOver; }
 
-        // Spawn enemies
+        // Spawn enemies – WASM stress showcase: pure chaos
         self.spawn_timer -= dt;
         if self.spawn_timer <= 0.0 {
-            let rate = (2.5 - self.wave as f32 * 0.15).max(0.5);
+            let rate = (0.5 - self.wave as f32 * 0.04).max(0.04);
             self.spawn_timer = rate;
-            let new_e = self.make_enemy();
-            self.enemies.push(new_e);
+            let burst = if self.wave >= 10     { 15 }
+                        else if self.wave >= 8  { 10 }
+                        else if self.wave >= 6  {  8 }
+                        else if self.wave >= 4  {  5 }
+                        else if self.wave >= 2  {  3 }
+                        else                    {  2 };
+            for _ in 0..burst {
+                let new_e = self.make_enemy();
+                self.enemies.push(new_e);
+            }
         }
 
         // Update beams (drain pattern for safety)
@@ -277,17 +285,28 @@ impl EarthDefGame {
         let z = phi.cos() * theta.cos() * r;
 
         let rk = lcg_f(&mut self.rng);
-        let kind = if self.wave >= 4 {
-            if rk < 0.40 { EnemyKind::Basic }
+        let kind = if self.wave >= 7 {
+            // 地獄: 全種類が均等に混在
+            if rk < 0.25      { EnemyKind::Basic }
+            else if rk < 0.50 { EnemyKind::Speed }
+            else if rk < 0.75 { EnemyKind::Armored }
+            else               { EnemyKind::Splitter }
+        } else if self.wave >= 5 {
+            if rk < 0.30      { EnemyKind::Basic }
+            else if rk < 0.55 { EnemyKind::Speed }
+            else if rk < 0.80 { EnemyKind::Armored }
+            else               { EnemyKind::Splitter }
+        } else if self.wave >= 4 {
+            if rk < 0.35      { EnemyKind::Basic }
             else if rk < 0.65 { EnemyKind::Speed }
             else if rk < 0.85 { EnemyKind::Armored }
-            else { EnemyKind::Splitter }
+            else               { EnemyKind::Splitter }
         } else if self.wave >= 3 {
-            if rk < 0.50 { EnemyKind::Basic }
+            if rk < 0.50      { EnemyKind::Basic }
             else if rk < 0.80 { EnemyKind::Speed }
-            else { EnemyKind::Armored }
+            else               { EnemyKind::Armored }
         } else if self.wave >= 2 {
-            if rk < 0.70 { EnemyKind::Basic } else { EnemyKind::Speed }
+            if rk < 0.65      { EnemyKind::Basic } else { EnemyKind::Speed }
         } else {
             EnemyKind::Basic
         };
@@ -409,12 +428,28 @@ impl EarthDefGame {
                         new_enemies.push(Enemy::new(EnemyKind::Speed, e.x - 0.6, e.y, e.z));
                     }
                     let (ex, ey, ez) = (e.x, e.y, e.z);
-                    for _ in 0..10 {
-                        let vx = (lcg_f(&mut self.rng) - 0.5) * 6.0;
-                        let vy = (lcg_f(&mut self.rng) - 0.5) * 6.0;
-                        let vz = (lcg_f(&mut self.rng) - 0.5) * 6.0;
-                        let life = 0.4 + lcg_f(&mut self.rng) * 0.6;
-                        new_particles.push(Particle { x:ex, y:ey, z:ez, vx, vy, vz, life, max_life:life, col:ecol });
+                    // Massive particle burst – WASM showcase
+                    let count: u32 = match e.kind {
+                        EnemyKind::Basic    => 40,
+                        EnemyKind::Speed    => 30,
+                        EnemyKind::Armored  => 80,
+                        EnemyKind::Splitter => 60,
+                    };
+                    for _ in 0..count {
+                        let spd = 6.0 + lcg_f(&mut self.rng) * 10.0;
+                        let vx = (lcg_f(&mut self.rng) - 0.5) * spd;
+                        let vy = (lcg_f(&mut self.rng) - 0.5) * spd;
+                        let vz = (lcg_f(&mut self.rng) - 0.5) * spd;
+                        let life = 0.5 + lcg_f(&mut self.rng) * 1.0;
+                        // mix enemy color with white flash for brightness
+                        let flash_mix = lcg_f(&mut self.rng) * 0.5;
+                        let pcol = [
+                            (ecol[0] + flash_mix).min(1.0),
+                            (ecol[1] + flash_mix).min(1.0),
+                            (ecol[2] + flash_mix).min(1.0),
+                            1.0,
+                        ];
+                        new_particles.push(Particle { x:ex, y:ey, z:ez, vx, vy, vz, life, max_life:life, col:pcol });
                     }
                     e.active = false;
                 }
@@ -427,8 +462,9 @@ impl EarthDefGame {
         self.particles.extend(new_particles);
         self.enemies.extend(new_enemies);
 
-        // Wave progression
-        if self.kills_in_wave >= 20 {
+        // Wave progression: need more kills per wave as it goes up
+        let kills_needed = 20 + self.wave * 5;
+        if self.kills_in_wave >= kills_needed {
             self.wave += 1;
             self.kills_in_wave = 0;
             wave_up = true;
@@ -463,11 +499,12 @@ impl EarthDefGame {
                 EnemyKind::Armored  => [0.8, 0.2, 0.2, 1.0],
                 EnemyKind::Splitter => [0.1, 0.9, 0.9, 1.0],
             };
-            for _ in 0..8 {
-                let vx = (lcg_f(&mut self.rng) - 0.5) * 8.0;
-                let vy = (lcg_f(&mut self.rng) - 0.5) * 8.0;
-                let vz = (lcg_f(&mut self.rng) - 0.5) * 8.0;
-                let life = 0.5 + lcg_f(&mut self.rng) * 0.8;
+            for _ in 0..60 {
+                let spd = 8.0 + lcg_f(&mut self.rng) * 14.0;
+                let vx = (lcg_f(&mut self.rng) - 0.5) * spd;
+                let vy = (lcg_f(&mut self.rng) - 0.5) * spd;
+                let vz = (lcg_f(&mut self.rng) - 0.5) * spd;
+                let life = 0.6 + lcg_f(&mut self.rng) * 1.2;
                 new_particles.push(Particle { x:e.x, y:e.y, z:e.z, vx, vy, vz, life, max_life:life, col });
             }
             e.active = false;
@@ -485,7 +522,7 @@ impl EarthDefGame {
     }
 
     pub fn set_cam_distance(&mut self, dist: f32) {
-        self.cam_distance = dist.clamp(2.5, 25.0);
+        self.cam_distance = dist.clamp(15.0, 50.0);
     }
 
     // ─── Tap-to-fire ────────────────────────────────────────────────────────
@@ -494,12 +531,6 @@ impl EarthDefGame {
         if self.laser_timer > 0.0 { return; }
 
         let asp = self.gpu.width as f32 / self.gpu.height as f32;
-
-        // Chain origin: last hit point while beams still visible
-        let (ox, oy, oz) = if let Some(cp) = self.chain_point {
-            if !self.beams.is_empty() { (cp[0], cp[1], cp[2]) } else { (0.0, 0.0, 0.0) }
-        } else { (0.0, 0.0, 0.0) };
-
         let col: [f32; 4] = match self.laser_type {
             LaserType::Beam    => [0.0, 1.0, 1.0, 1.0],
             LaserType::Spread  => [0.8, 1.0, 0.2, 1.0],
@@ -508,54 +539,41 @@ impl EarthDefGame {
 
         match self.laser_type {
             LaserType::Spread => {
+                // 3-way spread from origin
                 let (dx, dy, dz) = self.tap_to_dir(nx, ny, asp);
                 let az = dx.atan2(dz);
                 let el = dy.asin();
-                let mut hit_pos: Option<[f32; 3]> = None;
                 for offset in [-0.2f32, 0.0, 0.2] {
                     let az2 = az + offset;
                     let dx2 = el.cos() * az2.sin();
                     let dz2 = el.cos() * az2.cos();
-                    let t = self.ray_vs_enemies(ox, oy, oz, dx2, dy, dz2);
-                    self.beams.push(BeamVis { ox, oy, oz, dx: dx2, dy, dz: dz2, len: t, life: 0.25, col });
-                    if t < 24.9 && hit_pos.is_none() {
-                        hit_pos = Some([ox + dx2*t, oy + dy*t, oz + dz2*t]);
-                    }
+                    let t = self.ray_vs_enemies(0.0, 0.0, 0.0, dx2, dy, dz2);
+                    self.beams.push(BeamVis { ox:0.0, oy:0.0, oz:0.0, dx:dx2, dy, dz:dz2, len:t, life:0.25, col });
                 }
-                self.chain_point = hit_pos;
             }
             LaserType::Reflect => {
+                // Reflect: origin → target → bounce
                 let (dx, dy, dz) = if let Some(idx) = self.find_enemy_at_screen(nx, ny, asp) {
-                    let (ex, ey, ez) = (self.enemies[idx].x - ox, self.enemies[idx].y - oy, self.enemies[idx].z - oz);
+                    let (ex, ey, ez) = (self.enemies[idx].x, self.enemies[idx].y, self.enemies[idx].z);
                     let l = (ex*ex + ey*ey + ez*ez).sqrt().max(0.001);
                     (ex/l, ey/l, ez/l)
                 } else { self.tap_to_dir(nx, ny, asp) };
-                let t1 = self.ray_vs_enemies(ox, oy, oz, dx, dy, dz);
-                self.beams.push(BeamVis { ox, oy, oz, dx, dy, dz, len: t1, life: 0.35, col });
+                let t1 = self.ray_vs_enemies(0.0, 0.0, 0.0, dx, dy, dz);
+                self.beams.push(BeamVis { ox:0.0, oy:0.0, oz:0.0, dx, dy, dz, len:t1, life:0.35, col });
                 if t1 < 24.9 {
-                    let hit = [ox + dx*t1, oy + dy*t1, oz + dz*t1];
+                    let hit = [dx*t1, dy*t1, dz*t1];
                     let hl = (hit[0]*hit[0] + hit[1]*hit[1] + hit[2]*hit[2]).sqrt().max(0.001);
                     let n = [hit[0]/hl, hit[1]/hl, hit[2]/hl];
-                    let dot = dx*n[0] + dy*n[1] + dz*n[2];
-                    let (rdx, rdy, rdz) = (dx - 2.0*dot*n[0], dy - 2.0*dot*n[1], dz - 2.0*dot*n[2]);
+                    let dot2 = dx*n[0] + dy*n[1] + dz*n[2];
+                    let (rdx, rdy, rdz) = (dx - 2.0*dot2*n[0], dy - 2.0*dot2*n[1], dz - 2.0*dot2*n[2]);
                     let t2 = self.ray_vs_enemies(hit[0], hit[1], hit[2], rdx, rdy, rdz);
-                    self.beams.push(BeamVis { ox: hit[0], oy: hit[1], oz: hit[2], dx: rdx, dy: rdy, dz: rdz, len: t2, life: 0.35, col });
-                    self.chain_point = Some([hit[0]+rdx*t2, hit[1]+rdy*t2, hit[2]+rdz*t2]);
-                } else {
-                    self.chain_point = None;
+                    self.beams.push(BeamVis { ox:hit[0], oy:hit[1], oz:hit[2], dx:rdx, dy:rdy, dz:rdz, len:t2, life:0.35, col });
                 }
             }
             LaserType::Beam => {
-                let (dx, dy, dz) = if let Some(idx) = self.find_enemy_at_screen(nx, ny, asp) {
-                    let (ex, ey, ez) = (self.enemies[idx].x - ox, self.enemies[idx].y - oy, self.enemies[idx].z - oz);
-                    let l = (ex*ex + ey*ey + ez*ez).sqrt().max(0.001);
-                    (ex/l, ey/l, ez/l)
-                } else { self.tap_to_dir(nx, ny, asp) };
-                let t = self.ray_vs_enemies(ox, oy, oz, dx, dy, dz);
-                self.beams.push(BeamVis { ox, oy, oz, dx, dy, dz, len: t, life: 0.25, col });
-                self.chain_point = if t < 24.9 {
-                    Some([ox + dx*t, oy + dy*t, oz + dz*t])
-                } else { None };
+                // Auto-chain beam: keeps chaining to nearest enemy until energy=0
+                // Energy starts at 5.0; each hop costs 1.0, max 5 hops
+                self.fire_chain_beam(nx, ny, asp, col);
             }
         }
 
@@ -563,7 +581,92 @@ impl EarthDefGame {
         self.audio_event = 1;
     }
 
-    /// Nearest enemy (index) to the camera ray through tap (nx, ny) in NDC.
+    /// Chain beam: fires from origin toward tapped enemy, then auto-chains
+    /// to the nearest unhit enemy from each hit point until energy runs out.
+    fn fire_chain_beam(&mut self, nx: f32, ny: f32, asp: f32, col: [f32; 4]) {
+        const MAX_HOPS: usize = 5;
+        const CHAIN_RADIUS: f32 = 18.0; // max distance to search for next target
+
+        // First target: tapped enemy or tap direction
+        let first_dir = if let Some(idx) = self.find_enemy_at_screen(nx, ny, asp) {
+            let (ex, ey, ez) = (self.enemies[idx].x, self.enemies[idx].y, self.enemies[idx].z);
+            let l = (ex*ex + ey*ey + ez*ez).sqrt().max(0.001);
+            (ex/l, ey/l, ez/l)
+        } else {
+            self.tap_to_dir(nx, ny, asp)
+        };
+
+        let mut ox = 0.0f32;
+        let mut oy = 0.0f32;
+        let mut oz = 0.0f32;
+        let (fdx, fdy, fdz) = first_dir;
+        let mut dx = fdx;
+        let mut dy = fdy;
+        let mut dz = fdz;
+        let mut hit_indices: Vec<usize> = Vec::new(); // avoid re-hitting same enemy
+        let beam_life_base = 0.35f32;
+
+        for hop in 0..MAX_HOPS {
+            // Fade color slightly each hop: energy decreasing
+            let energy = 1.0 - hop as f32 * 0.15;
+            let hop_col = [col[0]*energy, col[1]*energy, col[2]*energy, 1.0];
+
+            let t = self.ray_vs_enemies(ox, oy, oz, dx, dy, dz);
+            let life = beam_life_base - hop as f32 * 0.03;
+            self.beams.push(BeamVis { ox, oy, oz, dx, dy, dz, len: t, life, col: hop_col });
+
+            if t >= 24.9 { break; } // missed – chain ends
+
+            // Hit point
+            let hx = ox + dx*t;
+            let hy = oy + dy*t;
+            let hz = oz + dz*t;
+
+            // Record which enemy was hit (the one closest to ray at this origin)
+            if let Some(idx) = self.nearest_enemy_to_ray(ox, oy, oz, dx, dy, dz, &hit_indices) {
+                hit_indices.push(idx);
+            }
+
+            // Find next target: nearest active enemy to hit point, not already hit
+            if let Some(next_idx) = self.nearest_enemy_from_point(hx, hy, hz, CHAIN_RADIUS, &hit_indices) {
+                let (ex, ey, ez) = (self.enemies[next_idx].x, self.enemies[next_idx].y, self.enemies[next_idx].z);
+                let (ndx, ndy, ndz) = (ex - hx, ey - hy, ez - hz);
+                let nl = (ndx*ndx + ndy*ndy + ndz*ndz).sqrt().max(0.001);
+                ox = hx; oy = hy; oz = hz;
+                dx = ndx/nl; dy = ndy/nl; dz = ndz/nl;
+            } else {
+                break; // no more targets in range
+            }
+        }
+    }
+
+    /// Nearest enemy index along a ray (for recording hits), excluding skip list.
+    fn nearest_enemy_to_ray(&self, ox: f32, oy: f32, oz: f32, dx: f32, dy: f32, dz: f32, skip: &[usize]) -> Option<usize> {
+        let mut best = None;
+        let mut best_t = f32::MAX;
+        for (i, e) in self.enemies.iter().enumerate() {
+            if !e.active || skip.contains(&i) { continue; }
+            let rel = [e.x-ox, e.y-oy, e.z-oz];
+            let t = rel[0]*dx + rel[1]*dy + rel[2]*dz;
+            if t < 0.0 { continue; }
+            let perp2 = (rel[0]-t*dx).powi(2) + (rel[1]-t*dy).powi(2) + (rel[2]-t*dz).powi(2);
+            let r = 0.7 * e.scale;
+            if perp2 < r*r && t < best_t { best_t = t; best = Some(i); }
+        }
+        best
+    }
+
+    /// Nearest active enemy within radius from a point, excluding skip list.
+    fn nearest_enemy_from_point(&self, px: f32, py: f32, pz: f32, radius: f32, skip: &[usize]) -> Option<usize> {
+        let mut best = None;
+        let mut best_d = radius;
+        for (i, e) in self.enemies.iter().enumerate() {
+            if !e.active || skip.contains(&i) { continue; }
+            let d = ((e.x-px).powi(2) + (e.y-py).powi(2) + (e.z-pz).powi(2)).sqrt();
+            if d < best_d { best_d = d; best = Some(i); }
+        }
+        best
+    }
     fn find_enemy_at_screen(&self, nx: f32, ny: f32, asp: f32) -> Option<usize> {
         let (ray_ox, ray_oy, ray_oz, ray_dx, ray_dy, ray_dz) = self.camera_ray(nx, ny, asp);
         let mut best_idx = None;

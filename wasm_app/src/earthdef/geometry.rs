@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use std::f32::consts::PI;
+use std::f32::consts::TAU;
 use crate::geometry::{Vertex, Uni, Light};
 use crate::math::{perspective, look_at, mat_mul};
 use super::state::{EarthDefGame, EnemyKind, LaserType};
@@ -56,51 +57,62 @@ fn push_box(
     push_rotated_box(verts, idxs, cx, cy, cz, sx, sy, sz, 0.0, 0.0, 0.0, col);
 }
 
-/// 14-panel polyhedron (6 axis + 8 corner panels) – gem/crystal look
-fn push_earth_poly(
+/// UV sphere for Earth with land/ocean coloring
+fn push_earth_sphere(
     verts: &mut Vec<Vertex>, idxs: &mut Vec<u32>,
     cx: f32, cy: f32, cz: f32,
-    size: f32, rot_y: f32,
-    col: [f32; 4],
+    radius: f32,
+    earth_rot: f32,
+    flash: f32,
+    damage_ratio: f32,
 ) {
-    let inv3 = (1.0f32 / 3.0f32).sqrt();
+    const NLAT: u32 = 12;
+    const NLON: u32 = 18;
+    let base = verts.len() as u32;
 
-    // 14 face normals (object space)
-    const PANEL_NORMALS: [(f32, f32, f32); 14] = [
-        // 6 axis faces
-        ( 1.0, 0.0, 0.0), (-1.0, 0.0, 0.0),
-        ( 0.0, 1.0, 0.0), ( 0.0,-1.0, 0.0),
-        ( 0.0, 0.0, 1.0), ( 0.0, 0.0,-1.0),
-        // 8 corner faces (normalised)
-        ( 0.577, 0.577, 0.577), ( 0.577, 0.577,-0.577),
-        ( 0.577,-0.577, 0.577), ( 0.577,-0.577,-0.577),
-        (-0.577, 0.577, 0.577), (-0.577, 0.577,-0.577),
-        (-0.577,-0.577, 0.577), (-0.577,-0.577,-0.577),
-    ];
-    let _ = inv3; // used inline above
+    for i in 0..=NLAT {
+        let phi = PI * i as f32 / NLAT as f32 - PI * 0.5;
+        let cp = phi.cos();
+        let sp = phi.sin();
+        for j in 0..=NLON {
+            let theta = TAU * j as f32 / NLON as f32;
+            let x = cx + radius * cp * theta.sin();
+            let y = cy + radius * sp;
+            let z = cz + radius * cp * theta.cos();
 
-    let r  = size * 0.80; // panel-centre distance from origin
-    let ps_axis   = size * 0.58; // axis panel size
-    let ps_corner = size * 0.46; // corner panel size (slightly smaller)
-    let pt = size * 0.13;        // panel thickness
+            let col = if flash > 0.0 {
+                [1.0, flash * 0.3, flash * 0.3, 1.0]
+            } else {
+                let lng = theta + earth_rot;
+                let continent = (lng * 1.7).sin() * (phi * 2.3).cos() * 0.7
+                              + (lng * 0.9 + 1.1).cos() * 0.3;
+                if continent > 0.1 {
+                    let ice = (phi.abs() - 1.1).max(0.0) * 3.0;
+                    let r = (0.2 + ice * 0.8) * damage_ratio;
+                    let g2 = (0.6 + ice * 0.4) * damage_ratio;
+                    let b = (0.2 + ice * 0.8) * damage_ratio;
+                    [r, g2, b, 1.0]
+                } else {
+                    let depth = (-continent * 2.0).clamp(0.0, 1.0);
+                    let r = (0.05 + depth * 0.05) * damage_ratio;
+                    let g2 = (0.25 + depth * 0.1) * damage_ratio;
+                    let b = (0.7 + depth * 0.3) * damage_ratio;
+                    [r, g2, b, 1.0]
+                }
+            };
+            verts.push(Vertex { pos: [x, y, z], _p: 0.0, col });
+        }
+    }
 
-    for (i, &(fnx, fny, fnz)) in PANEL_NORMALS.iter().enumerate() {
-        // Rotate face normal around Y by earth rot_y
-        let (rfnx, rfnz) = rotate_y(fnx, fnz, rot_y);
-        let rfny = fny;
-
-        // Panel centre
-        let px = cx + rfnx * r;
-        let py = cy + rfny * r;
-        let pz = cz + rfnz * r;
-
-        // Box orientation: local-Z aligned with face normal (matches beam formula)
-        let panel_ry = rfnx.atan2(rfnz);
-        let horiz    = (rfnx*rfnx + rfnz*rfnz).sqrt();
-        let panel_rx = -(rfny).atan2(horiz);
-
-        let ps = if i < 6 { ps_axis } else { ps_corner };
-        push_rotated_box(verts, idxs, px, py, pz, ps, ps, pt, panel_rx, panel_ry, 0.0, col);
+    let stride = NLON + 1;
+    for i in 0..NLAT {
+        for j in 0..NLON {
+            let a = base + i * stride + j;
+            let b = base + i * stride + j + 1;
+            let c = base + (i+1) * stride + j + 1;
+            let d = base + (i+1) * stride + j;
+            idxs.extend_from_slice(&[a, b, c, a, c, d]);
+        }
     }
 }
 
@@ -108,38 +120,37 @@ pub fn build_scene(g: &EarthDefGame) -> (Vec<Vertex>, Vec<u32>) {
     let mut verts: Vec<Vertex> = Vec::with_capacity(4096);
     let mut idxs: Vec<u32> = Vec::with_capacity(8192);
 
-    // Background stars: 200 small boxes at radius 30 (deterministic)
+    // Background stars: 200 boxes at radius 30 – twinkle based on game time
     let mut star_rng: u64 = 0xdeadbeef;
     for _ in 0..200 {
-        let f1 = crate::math::lcg_f(&mut star_rng);
-        let f2 = crate::math::lcg_f(&mut star_rng);
-        let theta = f1 * 2.0 * PI;
-        let phi = f2 * PI - PI * 0.5;
+        let f1    = crate::math::lcg_f(&mut star_rng);
+        let f2    = crate::math::lcg_f(&mut star_rng);
+        let phase = crate::math::lcg_f(&mut star_rng);
+        let base_b = 0.5 + crate::math::lcg_f(&mut star_rng) * 0.5;
+        let hue   = crate::math::lcg_f(&mut star_rng); // color tint
+        let theta = f1 * TAU;
+        let phi   = f2 * PI - PI * 0.5;
         let r = 30.0;
         let sx = r * phi.cos() * theta.sin();
         let sy = r * phi.sin();
         let sz = r * phi.cos() * theta.cos();
-        let brightness = 0.6 + crate::math::lcg_f(&mut star_rng) * 0.4;
-        push_box(&mut verts, &mut idxs, sx, sy, sz, 0.05, 0.05, 0.05,
-            [brightness, brightness, brightness, 1.0]);
+        // Twinkle: random speed and phase per star, including brief dim moments
+        let twinkle = (0.3 + 0.7 * ((g.time * (1.5 + phase * 5.0) + phase * TAU).sin() * 0.5 + 0.5));
+        let bright = base_b * twinkle;
+        // Slight warm/cool tint
+        let rc = (bright + hue * 0.25).min(1.0);
+        let gc = bright;
+        let bc = (bright + (1.0 - hue) * 0.25).min(1.0);
+        let size = 0.04 + base_b * 0.06;
+        push_box(&mut verts, &mut idxs, sx, sy, sz, size, size, size, [rc, gc, bc, 1.0]);
     }
 
-    // Earth – 14-panel polyhedron, size 0.8
-    let earth_size = 0.8;
-    let damage_ratio = g.earth_hp as f32 / g.earth_max_hp as f32;
+    // Earth – smooth UV sphere with land/ocean coloring
+    let earth_size = 1.0;
+    let damage_ratio = (g.earth_hp as f32 / g.earth_max_hp as f32).max(0.2);
     let flash = g.earth_hit_flash;
-    let earth_col = if flash > 0.0 {
-        [1.0, flash * 0.3, flash * 0.3, 1.0]
-    } else {
-        [
-            0.2 + (1.0 - damage_ratio) * 0.8,
-            0.4 * damage_ratio,
-            0.8 * damage_ratio + 0.2 * (1.0 - damage_ratio),
-            1.0,
-        ]
-    };
-    push_earth_poly(&mut verts, &mut idxs, 0.0, 0.0, 0.0,
-        earth_size, g.earth_rot, earth_col);
+    push_earth_sphere(&mut verts, &mut idxs, 0.0, 0.0, 0.0,
+        earth_size, g.earth_rot, flash, damage_ratio);
 
     // Enemies
     for e in &g.enemies {
@@ -150,6 +161,8 @@ pub fn build_scene(g: &EarthDefGame) -> (Vec<Vertex>, Vec<u32>) {
             EnemyKind::Armored  => [0.8, 0.2, 0.2, 1.0],
             EnemyKind::Splitter => [0.1, 0.9, 0.9, 1.0],
         };
+        // Glow pulse: each enemy pulses independently based on position phase
+        let pulse = 0.6 + 0.4 * ((g.time * 5.0 + e.x * 1.3 + e.z * 0.9).sin() * 0.5 + 0.5);
         let col = if e.hit_flash > 0.0 {
             let f = e.hit_flash;
             [
@@ -159,7 +172,7 @@ pub fn build_scene(g: &EarthDefGame) -> (Vec<Vertex>, Vec<u32>) {
                 1.0,
             ]
         } else {
-            base_col
+            [base_col[0]*pulse, base_col[1]*pulse, base_col[2]*pulse, 1.0]
         };
         push_rotated_box(&mut verts, &mut idxs,
             e.x, e.y, e.z,
