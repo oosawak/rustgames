@@ -307,25 +307,20 @@ impl BlasterGame {
             }
         }
 
-        // ── 敵とプレイヤーの重なりを解消 ──
+        // ── 敵とプレイヤーの重なりを解消（敵だけ押し出す・プレイヤーは動かさない） ──
         let min_dist = 1.6f32;
+        let px = self.player_x;
+        let pz = self.player_z;
         for enemy in &mut self.enemies {
             if !enemy.active { continue; }
-            let dx = enemy.x - self.player_x;
-            let dz = enemy.z - self.player_z;
+            let dx = enemy.x - px;
+            let dz = enemy.z - pz;
             let dist2 = dx*dx + dz*dz;
             if dist2 < min_dist * min_dist && dist2 > 0.0001 {
                 let dist = dist2.sqrt();
                 let overlap = min_dist - dist;
-                let nx = dx / dist * overlap;
-                let nz = dz / dist * overlap;
-                // 敵を押し出す（プレイヤーも少し押す）
-                enemy.x += nx * 0.7;
-                enemy.z += nz * 0.7;
-                self.player_x -= nx * 0.3;
-                self.player_z -= nz * 0.3;
-                self.player_x = self.player_x.clamp(-17.5, 17.5);
-                self.player_z = self.player_z.clamp(-17.5, 17.5);
+                enemy.x += dx / dist * overlap;
+                enemy.z += dz / dist * overlap;
                 enemy.x = enemy.x.clamp(-17.5, 17.5);
                 enemy.z = enemy.z.clamp(-17.5, 17.5);
             }

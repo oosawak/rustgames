@@ -12,7 +12,10 @@ Rust / wgpu / WebGL をベースとした WASM ゲームエンジンと、JS ゲ
 
 | ゲーム | URL | 説明 |
 |--------|-----|------|
-| Neon Maze 3D | [プレイする](https://oosawak.github.io/rustgames/play/maze3d/) | ネオン風 3D 一人称迷路 |
+| 🌐 Neon Maze 3D | [プレイする](https://oosawak.github.io/rustgames/play/maze3d/) | ネオン風 3D 一人称迷路 |
+| 🗺️ Neon Maze 2D | [プレイする](https://oosawak.github.io/rustgames/play/maze.html) | Canvas 2D ネオン迷路 |
+| ⚡ Neon Blast 3D | [プレイする](https://oosawak.github.io/rustgames/play/blaster3d/) | 3D 弾幕シューター・戦車操作 |
+| 🌍 Earth Defense | [プレイする](https://oosawak.github.io/rustgames/play/earthdef/) | 3D スペースシューター（開発中）|
 | ゲーム一覧 | [一覧を見る](https://oosawak.github.io/rustgames/play/) | |
 
 ## ✨ 主な特徴

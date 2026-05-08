@@ -8,7 +8,7 @@
 
 ## 収録ゲーム
 
-### Neon Maze 3D
+### 🌐 Neon Maze 3D
 **URL**: https://oosawak.github.io/rustgames/play/maze3d/
 
 wgpu / WebGL で描画するネオン風 3D 一人称迷路ゲーム。
@@ -24,6 +24,39 @@ wgpu / WebGL で描画するネオン風 3D 一人称迷路ゲーム。
 | サウンド | Web Audio API、SoundDef JSON ドリブン（7 種 + アンビエント）|
 | ミニマップ | Canvas 2D、視野コーン・方位表示 |
 | 入力 | キーボード・D-pad・スワイプ対応 |
+
+---
+
+### ⚡ Neon Blast 3D
+**URL**: https://oosawak.github.io/rustgames/play/blaster3d/
+
+wgpu WebGL で 256 発同時描画する 3D 弾幕シューター。戦車形状のキャラクターで戦う。
+
+| 機能 | 内容 |
+|------|------|
+| レンダリング | wgpu / WebGL、3D 戦車モデル（5 パーツ）、パーティクル |
+| 操作 | WASD/矢印=絶対方向移動、Q/E=砲塔回転、F=自動射撃切替 |
+| 砲塔 | 車体と砲塔が独立回転。自動エイム or 手動操作 |
+| 弾 | ホーミング弾（最近の敵を追尾）、256 発同時 |
+| 敵 | Basic / Shooter の 2 種、5 ウェーブ + 3 フェーズボス |
+| カメラ | TPS（後方視点）/ TOP（俯瞰）/ FPS の 3 モード（Tab 切替）|
+| 衝突 | 敵同士・敵とプレイヤーの押し出し処理 |
+
+---
+
+### 🌍 Earth Defense（開発中）
+**URL**: https://oosawak.github.io/rustgames/play/earthdef/
+
+地球（3D ボックス）を無数の敵キューブから守る宇宙シューター。
+
+| 機能 | 内容 |
+|------|------|
+| カメラ | 左ジョイスティックで地球を周回する軌道カメラ |
+| レーザー | 右ジョイスティックで照準、離して発射 |
+| レーザー種類 | BEAM（直線）/ SPREAD（3 方向）/ REFLECT（反射）|
+| フラッシュ爆弾 | 全敵一掃、3 チャージ制（15 秒で 1 回復）|
+| 敵種類 | Basic / Speed / Armored / Splitter（4 種）|
+| タッチ操作 | デュアルバーチャルジョイスティック対応 |
 
 ---
 
@@ -66,10 +99,18 @@ docs/
 │   │   ├── index.html
 │   │   ├── style.css
 │   │   └── wasm/        - wasm-pack ビルド出力
-│   └── game.html        - (旧 3D パズル、参考用)
+│   ├── blaster3d/       - Neon Blast 3D
+│   │   ├── index.html
+│   │   ├── style.css
+│   │   └── wasm/        - wasm-pack ビルド出力
+│   ├── earthdef/        - Earth Defense（開発中）
+│   │   ├── index.html
+│   │   ├── style.css
+│   │   └── wasm/        - wasm-pack ビルド出力
+│   └── maze.html        - Neon Maze 2D（Canvas 2D）
 ├── index.md             - トップページ
 ├── setup/               - セットアップガイド
 ├── api/                 - API リファレンス
-├── guides/              - 統合ガイド
-└── examples/            - 実行例
+├── guides/              - Unity FFI 統合ガイド
+└── examples/            - ビルド・デプロイ手順
 ```

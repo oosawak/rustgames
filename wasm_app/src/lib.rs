@@ -19,6 +19,7 @@ pub mod storage;
 pub mod audio_tool;
 pub mod font;
 pub mod blaster;
+pub mod earthdef;
 
 use wasm_bindgen::prelude::*;
 use std::cell::RefCell;
@@ -203,3 +204,33 @@ pub fn sound_def_blaster3d(event: u8) -> String {
     }
 }
 
+
+// ─── Earth Defense ──────────────────────────────────────────────────────────
+
+thread_local! {
+    static EARTHDEF: std::cell::RefCell<Option<earthdef::EarthDefGame>> = std::cell::RefCell::new(None);
+}
+
+#[wasm_bindgen]
+pub async fn init_earthdef(canvas_id: &str) {
+    console_error_panic_hook::set_once();
+    match earthdef::EarthDefGame::new(canvas_id).await {
+        Ok(g) => EARTHDEF.with(|s| *s.borrow_mut() = Some(g)),
+        Err(e) => web_sys::console::error_1(&e.into()),
+    }
+}
+#[wasm_bindgen] pub fn tick_earthdef(ts: f64) { EARTHDEF.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.tick(ts);}}); }
+#[wasm_bindgen] pub fn start_earthdef() { EARTHDEF.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.start();}}); }
+#[wasm_bindgen] pub fn set_cam_input_earthdef(x:f32,y:f32) { EARTHDEF.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.set_cam_input(x,y);}}); }
+#[wasm_bindgen] pub fn set_aim_input_earthdef(x:f32,y:f32) { EARTHDEF.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.set_aim_input(x,y);}}); }
+#[wasm_bindgen] pub fn fire_earthdef() { EARTHDEF.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.fire();}}); }
+#[wasm_bindgen] pub fn flash_bomb_earthdef() { EARTHDEF.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.flash_bomb();}}); }
+#[wasm_bindgen] pub fn set_laser_type_earthdef(t:u8) { EARTHDEF.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.set_laser_type(t);}}); }
+#[wasm_bindgen] pub fn scene_earthdef() -> u8 { EARTHDEF.with(|s|s.borrow().as_ref().map(|g|g.scene as u8).unwrap_or(0)) }
+#[wasm_bindgen] pub fn score_earthdef() -> u32 { EARTHDEF.with(|s|s.borrow().as_ref().map(|g|g.score).unwrap_or(0)) }
+#[wasm_bindgen] pub fn wave_earthdef() -> u32 { EARTHDEF.with(|s|s.borrow().as_ref().map(|g|g.wave).unwrap_or(0)) }
+#[wasm_bindgen] pub fn earth_hp_earthdef() -> i32 { EARTHDEF.with(|s|s.borrow().as_ref().map(|g|g.earth_hp).unwrap_or(0)) }
+#[wasm_bindgen] pub fn earth_max_hp_earthdef() -> i32 { EARTHDEF.with(|s|s.borrow().as_ref().map(|g|g.earth_max_hp).unwrap_or(100)) }
+#[wasm_bindgen] pub fn flash_charges_earthdef() -> u32 { EARTHDEF.with(|s|s.borrow().as_ref().map(|g|g.flash_charges).unwrap_or(0)) }
+#[wasm_bindgen] pub fn laser_type_earthdef() -> u8 { EARTHDEF.with(|s|s.borrow().as_ref().map(|g|g.laser_type as u8).unwrap_or(0)) }
+#[wasm_bindgen] pub fn audio_event_earthdef() -> u8 { EARTHDEF.with(|s|s.borrow().as_ref().map(|g|g.audio_event).unwrap_or(0)) }

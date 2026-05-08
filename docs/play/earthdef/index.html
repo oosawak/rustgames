@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Earth Defense – 地球防衛</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="loading">
+  <div class="spin"></div>
+  <p>LOADING wgpu WebGL…</p>
+</div>
+
+<div id="canvas-wrap">
+  <canvas id="earth-canvas" width="480" height="720"></canvas>
+</div>
+
+<!-- Flash screen effect -->
+<div id="flash-screen"></div>
+
+<!-- HUD -->
+<div id="hud" style="display:none">
+  <div id="hp-bar-wrap">
+    <span id="hp-bar-label">🌍</span>
+    <div id="hp-bar-bg"><div id="hp-bar-fill" style="width:100%"></div></div>
+  </div>
+  <span class="hud-item">SCORE <b id="score-val">0</b></span>
+  <span class="hud-item">WAVE <b id="wave-val">1</b></span>
+  <div id="laser-indicators">
+    <button class="laser-btn active" id="laser-beam" onclick="cycleLaser(0)">BEAM</button>
+    <button class="laser-btn" id="laser-spread" onclick="cycleLaser(1)">SPREAD</button>
+    <button class="laser-btn" id="laser-reflect" onclick="cycleLaser(2)">REFLECT</button>
+  </div>
+  <div id="flash-icons">
+    <div class="flash-icon charged" id="fi0"></div>
+    <div class="flash-icon charged" id="fi1"></div>
+    <div class="flash-icon charged" id="fi2"></div>
+  </div>
+</div>
+
+<!-- Title screen -->
+<div class="overlay" id="title-screen">
+  <h1>🌍 EARTH DEFENSE</h1>
+  <p style="font-size:1rem;color:#0ff;text-shadow:0 0 12px #0ff;">地球防衛</p>
+  <p class="sub">地球を守れ！宇宙から押し寄せる敵を撃滅しろ。</p>
+  <button id="btn-start">▶ START</button>
+  <div class="key-hint">
+    <table>
+      <tr><td>WASD</td><td>カメラ回転</td></tr>
+      <tr><td>IJKL</td><td>レーザー照準</td></tr>
+      <tr><td>Space</td><td>発射</td></tr>
+      <tr><td>B</td><td>フラッシュ爆弾</td></tr>
+      <tr><td>N</td><td>レーザー切替</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- Game over screen -->
+<div class="overlay" id="gameover-screen" style="display:none">
+  <h1>GAME OVER</h1>
+  <p class="sub">地球は滅びました…</p>
+  <div id="score-final">SCORE: 0</div>
+  <button id="btn-retry">↩ RETRY</button>
+</div>
+
+<!-- Controls -->
+<div id="controls">
+  <!-- Left joystick: camera -->
+  <div class="stick-wrap" id="left-wrap">
+    <div class="stick-base" id="left-stick">
+      <div class="stick-knob" id="left-knob"></div>
+    </div>
+    <div class="stick-label">CAMERA</div>
+  </div>
+
+  <!-- Flash bomb button -->
+  <button id="flash-btn">⚡ FLASH</button>
+
+  <!-- Right joystick: aim -->
+  <div class="stick-wrap" id="right-wrap">
+    <div class="stick-base" id="right-stick">
+      <div class="stick-knob" id="right-knob"></div>
+    </div>
+    <div class="stick-label">AIM / FIRE</div>
+  </div>
+</div>
+
+<script type="module">
+import init, * as wasm from './wasm/wasm_app.js';
+
+let initialized = false;
+let prevScene = -1;
+let prevAudioEvent = 0;
+let fpsFrames = 0, fpsLast = 0;
+let currentLaserType = 0;
+
+// --- Audio ---
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+let actx = null;
+function getACtx() {
+  if (!actx) actx = new AudioContext();
+  if (actx.state === 'suspended') actx.resume();
+  return actx;
+}
+function playTone(freq, type, dur, vol=0.3, decay=0.8) {
+  try {
+    const ctx = getACtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = type; osc.frequency.value = freq;
+    gain.gain.setValueAtTime(vol, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    osc.start(); osc.stop(ctx.currentTime + dur);
+  } catch(e) {}
+}
+function playAudio(event) {
+  switch(event) {
+    case 1: // fire
+      playTone(880, 'sawtooth', 0.12, 0.25);
+      break;
+    case 2: // enemy hit
+      playTone(440, 'square', 0.08, 0.2);
+      break;
+    case 3: // earth hit
+      playTone(120, 'sawtooth', 0.35, 0.5);
+      playTone(80, 'square', 0.35, 0.4);
+      break;
+    case 4: // flash bomb
+      playTone(200, 'sawtooth', 0.5, 0.6);
+      setTimeout(() => playTone(400, 'sine', 0.4, 0.4), 100);
+      setTimeout(() => playTone(800, 'sine', 0.3, 0.3), 200);
+      break;
+    case 5: // wave up
+      playTone(660, 'sine', 0.2, 0.35);
+      setTimeout(() => playTone(880, 'sine', 0.2, 0.35), 150);
+      setTimeout(() => playTone(1100, 'sine', 0.3, 0.35), 300);
+      break;
+  }
+}
+
+// --- HUD ---
+function updateHud() {
+  const hp = wasm.earth_hp_earthdef();
+  const maxHp = wasm.earth_max_hp_earthdef();
+  const pct = Math.max(0, hp / maxHp * 100);
+  document.getElementById('hp-bar-fill').style.width = pct + '%';
+  const hue = pct > 50 ? 120 : pct > 25 ? 60 : 0;
+  document.getElementById('hp-bar-fill').style.background = `hsl(${hue},100%,50%)`;
+  document.getElementById('score-val').textContent = wasm.score_earthdef();
+  document.getElementById('wave-val').textContent = wasm.wave_earthdef();
+
+  const lt = wasm.laser_type_earthdef();
+  if (lt !== currentLaserType) {
+    currentLaserType = lt;
+    updateLaserUI(lt);
+  }
+
+  const charges = wasm.flash_charges_earthdef();
+  for (let i = 0; i < 3; i++) {
+    const el = document.getElementById('fi' + i);
+    el.className = 'flash-icon' + (i < charges ? ' charged' : '');
+  }
+  document.getElementById('flash-btn').disabled = charges === 0;
+
+  const ae = wasm.audio_event_earthdef();
+  if (ae && ae !== prevAudioEvent) {
+    playAudio(ae);
+    prevAudioEvent = ae;
+  }
+}
+
+function updateLaserUI(t) {
+  ['laser-beam','laser-spread','laser-reflect'].forEach((id, i) => {
+    document.getElementById(id).className = 'laser-btn' + (i === t ? ' active' : '');
+  });
+}
+
+window.cycleLaser = function(t) {
+  wasm.set_laser_type_earthdef(t);
+  currentLaserType = t;
+  updateLaserUI(t);
+};
+
+// --- Scene transitions ---
+function handleScene(scene) {
+  if (scene === prevScene) return;
+  prevScene = scene;
+  const titleEl = document.getElementById('title-screen');
+  const gameoverEl = document.getElementById('gameover-screen');
+  const hudEl = document.getElementById('hud');
+  const ctrlEl = document.getElementById('controls');
+  if (scene === 0) { // Title
+    titleEl.style.display = 'flex';
+    gameoverEl.style.display = 'none';
+    hudEl.style.display = 'none';
+    ctrlEl.style.display = 'none';
+  } else if (scene === 1) { // Playing
+    titleEl.style.display = 'none';
+    gameoverEl.style.display = 'none';
+    hudEl.style.display = 'flex';
+    ctrlEl.style.display = 'flex';
+  } else if (scene === 2) { // GameOver
+    titleEl.style.display = 'none';
+    gameoverEl.style.display = 'flex';
+    hudEl.style.display = 'none';
+    ctrlEl.style.display = 'none';
+    document.getElementById('score-final').textContent = 'SCORE: ' + wasm.score_earthdef();
+  }
+}
+
+// --- Game loop ---
+function loop(ts) {
+  wasm.tick_earthdef(ts);
+  const scene = wasm.scene_earthdef();
+  handleScene(scene);
+  if (scene === 1) updateHud();
+  requestAnimationFrame(loop);
+}
+
+// --- Init ---
+async function main() {
+  await init();
+  await wasm.init_earthdef('earth-canvas');
+  initialized = true;
+  document.getElementById('loading').style.display = 'none';
+  setupControls();
+  requestAnimationFrame(loop);
+}
+
+document.getElementById('btn-start').addEventListener('click', () => {
+  getACtx();
+  wasm.start_earthdef();
+});
+document.getElementById('btn-retry').addEventListener('click', () => {
+  getACtx();
+  wasm.start_earthdef();
+  prevScene = -1;
+});
+document.getElementById('flash-btn').addEventListener('click', () => {
+  wasm.flash_bomb_earthdef();
+  // Flash screen
+  const fs = document.getElementById('flash-screen');
+  fs.style.background = 'rgba(255,255,255,0.7)';
+  setTimeout(() => fs.style.background = 'rgba(255,255,255,0)', 300);
+});
+
+// --- Joystick ---
+function makeJoystick(stickEl, knobEl, onMove, onRelease) {
+  const R = 35; // max knob displacement
+  let tid = null, ox = 0, oy = 0;
+
+  function getCenter() {
+    const rect = stickEl.getBoundingClientRect();
+    return { cx: rect.left + rect.width/2, cy: rect.top + rect.height/2 };
+  }
+
+  function onStart(ex, ey) {
+    const {cx, cy} = getCenter();
+    ox = cx; oy = cy;
+    update(ex, ey);
+  }
+
+  function update(ex, ey) {
+    let dx = ex - ox, dy = ey - oy;
+    const d = Math.hypot(dx, dy);
+    if (d > R) { dx = dx/d*R; dy = dy/d*R; }
+    knobEl.style.transform = `translate(${dx}px,${dy}px)`;
+    onMove(dx/R, dy/R);
+  }
+
+  function onEnd() {
+    knobEl.style.transform = '';
+    onRelease();
+  }
+
+  stickEl.addEventListener('touchstart', e => {
+    e.preventDefault();
+    const t = e.changedTouches[0];
+    tid = t.identifier;
+    onStart(t.clientX, t.clientY);
+  }, {passive:false});
+
+  stickEl.addEventListener('touchmove', e => {
+    e.preventDefault();
+    for (const t of e.changedTouches) {
+      if (t.identifier === tid) update(t.clientX, t.clientY);
+    }
+  }, {passive:false});
+
+  stickEl.addEventListener('touchend', e => {
+    e.preventDefault();
+    for (const t of e.changedTouches) {
+      if (t.identifier === tid) { tid = null; onEnd(); }
+    }
+  }, {passive:false});
+}
+
+function setupControls() {
+  // Left stick: camera
+  makeJoystick(
+    document.getElementById('left-stick'),
+    document.getElementById('left-knob'),
+    (x, y) => wasm.set_cam_input_earthdef(x, -y),
+    () => wasm.set_cam_input_earthdef(0, 0)
+  );
+
+  // Right stick: aim + fire on release
+  makeJoystick(
+    document.getElementById('right-stick'),
+    document.getElementById('right-knob'),
+    (x, y) => wasm.set_aim_input_earthdef(x, -y),
+    () => {
+      wasm.set_aim_input_earthdef(0, 0);
+      wasm.fire_earthdef();
+    }
+  );
+}
+
+// --- Keyboard ---
+const keys = {};
+document.addEventListener('keydown', e => {
+  if (keys[e.code]) return;
+  keys[e.code] = true;
+  const scene = wasm.scene_earthdef();
+  if (e.code === 'Space' && scene === 1) { e.preventDefault(); wasm.fire_earthdef(); }
+  if (e.code === 'KeyB' && scene === 1) { wasm.flash_bomb_earthdef(); }
+  if (e.code === 'KeyN' && scene === 1) {
+    const next = (wasm.laser_type_earthdef() + 1) % 3;
+    wasm.set_laser_type_earthdef(next);
+    currentLaserType = next;
+    updateLaserUI(next);
+  }
+  if (e.code === 'Enter' || e.code === 'NumpadEnter') {
+    if (scene === 0) wasm.start_earthdef();
+    else if (scene === 2) { wasm.start_earthdef(); prevScene = -1; }
+  }
+});
+document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+function updateKeyInput() {
+  if (!initialized) return;
+  const scene = wasm.scene_earthdef();
+  if (scene !== 1) {
+    wasm.set_cam_input_earthdef(0, 0);
+    wasm.set_aim_input_earthdef(0, 0);
+    return;
+  }
+  const cx = (keys['KeyD']?1:0) - (keys['KeyA']?1:0);
+  const cy = (keys['KeyW']?1:0) - (keys['KeyS']?1:0);
+  wasm.set_cam_input_earthdef(cx, cy);
+
+  const ax2 = (keys['KeyL']?1:0) - (keys['KeyJ']?1:0);
+  const ay2 = (keys['KeyI']?1:0) - (keys['KeyK']?1:0);
+  wasm.set_aim_input_earthdef(ax2, ay2);
+}
+setInterval(updateKeyInput, 16);
+
+main().catch(console.error);
+</script>
+</body>
+</html>
