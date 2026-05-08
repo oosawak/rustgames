@@ -78,22 +78,22 @@ pub fn build_blaster_scene(g: &BlasterGame) -> (Vec<Vertex>, Vec<u32>) {
     let mut idxs:  Vec<u32>   = Vec::with_capacity(8192);
 
     // ── アリーナ床 ────────────────────────────────────────────────────────────
-    push_box(&mut verts,&mut idxs, 0.0,-0.05,0.0, 10.0,0.05,10.0, [0.02,0.02,0.08,1.0]);
+    push_box(&mut verts,&mut idxs, 0.0,-0.05,0.0, 18.0,0.05,18.0, [0.02,0.02,0.08,1.0]);
 
     // ── グリッド線（間引き）────────────────────────────────────────────────────
     let grid_col = [0.0f32,0.25,0.45,3.0];
-    for i in -5i32..=5 {
+    for i in -9i32..=9 {
         let fi = i as f32 * 2.0;
-        push_box(&mut verts,&mut idxs, fi,  0.0,0.0,  0.025,0.015,10.0, grid_col);
-        push_box(&mut verts,&mut idxs, 0.0,0.0,fi,   10.0,0.015,0.025, grid_col);
+        push_box(&mut verts,&mut idxs, fi,  0.0,0.0,  0.025,0.015,18.0, grid_col);
+        push_box(&mut verts,&mut idxs, 0.0,0.0,fi,   18.0,0.015,0.025, grid_col);
     }
 
     // アリーナ外壁
     let wall_col = [0.0f32,0.5,0.8,3.0];
-    push_box(&mut verts,&mut idxs,  0.0,0.5,-10.1, 10.1,0.5,0.07, wall_col);
-    push_box(&mut verts,&mut idxs,  0.0,0.5, 10.1, 10.1,0.5,0.07, wall_col);
-    push_box(&mut verts,&mut idxs,-10.1,0.5,  0.0, 0.07,0.5,10.1, wall_col);
-    push_box(&mut verts,&mut idxs, 10.1,0.5,  0.0, 0.07,0.5,10.1, wall_col);
+    push_box(&mut verts,&mut idxs,  0.0,0.5,-18.1, 18.1,0.5,0.07, wall_col);
+    push_box(&mut verts,&mut idxs,  0.0,0.5, 18.1, 18.1,0.5,0.07, wall_col);
+    push_box(&mut verts,&mut idxs,-18.1,0.5,  0.0, 0.07,0.5,18.1, wall_col);
+    push_box(&mut verts,&mut idxs, 18.1,0.5,  0.0, 0.07,0.5,18.1, wall_col);
 
     // ── 自機（プレイヤー戦車） ────────────────────────────────────────────────
     if g.player_hp > 0 {

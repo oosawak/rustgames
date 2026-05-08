@@ -122,7 +122,7 @@ impl BlasterGame {
             let count = (self.wave * 2 + 2) as usize;
             for i in 0..count {
                 let angle = TAU * i as f32 / count as f32;
-                let r = 8.0 + lcg_f(&mut self.rng) * 1.5;
+                let r = 14.0 + lcg_f(&mut self.rng) * 3.0;
                 let x = angle.sin() * r;
                 let z = angle.cos() * r;
                 let enemy = if self.wave >= 4 && i % 2 == 0 {
@@ -150,8 +150,8 @@ impl BlasterGame {
             let spd = 6.0f32;
             let nx = self.player_x + self.input_dx * spd * dt;
             let nz = self.player_z + self.input_dz * spd * dt;
-            if nx.abs() < 9.5 { self.player_x = nx; }
-            if nz.abs() < 9.5 { self.player_z = nz; }
+            if nx.abs() < 17.5 { self.player_x = nx; }
+            if nz.abs() < 17.5 { self.player_z = nz; }
             // 車体は移動方向へ追従（やや遅め）
             let move_angle = self.input_dx.atan2(self.input_dz);
             let da = angle_diff(move_angle, self.player_body_angle);
@@ -262,8 +262,8 @@ impl BlasterGame {
             let ta = dir_x.atan2(dir_z);
             let da = angle_diff(ta, enemy.turret_angle);
             enemy.turret_angle += da * (dt * 10.0).min(1.0);
-            enemy.x = enemy.x.clamp(-9.5, 9.5);
-            enemy.z = enemy.z.clamp(-9.5, 9.5);
+            enemy.x = enemy.x.clamp(-17.5, 17.5);
+            enemy.z = enemy.z.clamp(-17.5, 17.5);
         }
 
         for (x, y, z, vx, vy, vz, col) in new_bullets {
@@ -277,8 +277,8 @@ impl BlasterGame {
         let b = &mut self.boss;
         let prev_x = b.x; let prev_z = b.z;
         b.move_angle += dt * 0.8;
-        b.x = b.move_angle.sin() * 5.0;
-        b.z = b.move_angle.cos() * 5.0 - 2.0;
+        b.x = b.move_angle.sin() * 9.0;
+        b.z = b.move_angle.cos() * 9.0 - 3.0;
         // 車体は実際の移動方向
         let mvx = b.x - prev_x; let mvz = b.z - prev_z;
         if mvx*mvx + mvz*mvz > 0.0001 {
