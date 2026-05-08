@@ -49,6 +49,7 @@
   <div class="key-hint">
     <table>
       <tr><td>画面タップ</td><td>敵を狙ってレーザー発射</td></tr>
+      <tr><td>2本指ピンチ</td><td>ズームイン／アウト</td></tr>
       <tr><td>WASD</td><td>カメラ回転</td></tr>
       <tr><td>Space</td><td>中心発射</td></tr>
       <tr><td>B</td><td>フラッシュ爆弾</td></tr>
@@ -320,18 +321,55 @@ function setupControls() {
 
   // Canvas tap-to-fire (touchstart + click)
   const cvs = document.getElementById('earth-canvas');
+
+  // Pinch-to-zoom state
+  let pinchActive = false;
+  let pinchStartDist = 0;
+  let pinchStartCamDist = 7.0;
+  let currentCamDist = 7.0;
+
+  function getTouchDist(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.hypot(dx, dy);
+  }
+
   function fireAtTap(clientX, clientY) {
     const rect = cvs.getBoundingClientRect();
     const nx =  (clientX - rect.left) / rect.width  * 2 - 1;
     const ny = -(clientY - rect.top)  / rect.height * 2 + 1;
     wasm.fire_at_screen_earthdef(nx, ny);
   }
+
   cvs.addEventListener('touchstart', e => {
     e.preventDefault();
     if (wasm.scene_earthdef() !== 1) return;
     getACtx();
-    fireAtTap(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+    if (e.touches.length === 2) {
+      // Start pinch
+      pinchActive = true;
+      pinchStartDist = getTouchDist(e.touches);
+      pinchStartCamDist = currentCamDist;
+    } else if (e.touches.length === 1 && !pinchActive) {
+      fireAtTap(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+    }
   }, { passive: false });
+
+  cvs.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (e.touches.length === 2 && pinchActive) {
+      const d = getTouchDist(e.touches);
+      const ratio = pinchStartDist / d; // pinch in → ratio>1 → zoom out
+      currentCamDist = Math.min(25, Math.max(2.5, pinchStartCamDist * ratio));
+      wasm.set_cam_distance_earthdef(currentCamDist);
+    }
+  }, { passive: false });
+
+  cvs.addEventListener('touchend', e => {
+    e.preventDefault();
+    if (e.touches.length < 2) pinchActive = false;
+  }, { passive: false });
+
   cvs.addEventListener('click', e => {
     if (wasm.scene_earthdef() !== 1) return;
     fireAtTap(e.clientX, e.clientY);

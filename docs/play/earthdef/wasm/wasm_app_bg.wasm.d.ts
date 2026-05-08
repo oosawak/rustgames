@@ -52,6 +52,7 @@ export const scene_maze3d: () => number;
 export const score_blaster3d: () => number;
 export const score_earthdef: () => number;
 export const set_aim_input_earthdef: (a: number, b: number) => void;
+export const set_cam_distance_earthdef: (a: number) => void;
 export const set_cam_input_earthdef: (a: number, b: number) => void;
 export const set_laser_type_earthdef: (a: number) => void;
 export const shoot_blaster3d: (a: number) => void;

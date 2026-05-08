@@ -484,6 +484,10 @@ impl EarthDefGame {
         };
     }
 
+    pub fn set_cam_distance(&mut self, dist: f32) {
+        self.cam_distance = dist.clamp(2.5, 25.0);
+    }
+
     // ─── Tap-to-fire ────────────────────────────────────────────────────────
     pub fn fire_at_screen(&mut self, nx: f32, ny: f32) {
         if self.scene != EarthDefScene::Playing { return; }

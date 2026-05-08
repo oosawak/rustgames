@@ -227,6 +227,7 @@ pub async fn init_earthdef(canvas_id: &str) {
 #[wasm_bindgen] pub fn fire_at_screen_earthdef(nx:f32,ny:f32) { EARTHDEF.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.fire_at_screen(nx,ny);}}); }
 #[wasm_bindgen] pub fn flash_bomb_earthdef() { EARTHDEF.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.flash_bomb();}}); }
 #[wasm_bindgen] pub fn set_laser_type_earthdef(t:u8) { EARTHDEF.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.set_laser_type(t);}}); }
+#[wasm_bindgen] pub fn set_cam_distance_earthdef(d:f32) { EARTHDEF.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.set_cam_distance(d);}}); }
 #[wasm_bindgen] pub fn scene_earthdef() -> u8 { EARTHDEF.with(|s|s.borrow().as_ref().map(|g|g.scene as u8).unwrap_or(0)) }
 #[wasm_bindgen] pub fn score_earthdef() -> u32 { EARTHDEF.with(|s|s.borrow().as_ref().map(|g|g.score).unwrap_or(0)) }
 #[wasm_bindgen] pub fn wave_earthdef() -> u32 { EARTHDEF.with(|s|s.borrow().as_ref().map(|g|g.wave).unwrap_or(0)) }

@@ -127,6 +127,8 @@ export function score_earthdef(): number;
 
 export function set_aim_input_earthdef(x: number, y: number): void;
 
+export function set_cam_distance_earthdef(d: number): void;
+
 export function set_cam_input_earthdef(x: number, y: number): void;
 
 export function set_laser_type_earthdef(t: number): void;
@@ -232,6 +234,7 @@ export interface InitOutput {
     readonly score_blaster3d: () => number;
     readonly score_earthdef: () => number;
     readonly set_aim_input_earthdef: (a: number, b: number) => void;
+    readonly set_cam_distance_earthdef: (a: number) => void;
     readonly set_cam_input_earthdef: (a: number, b: number) => void;
     readonly set_laser_type_earthdef: (a: number) => void;
     readonly shoot_blaster3d: (a: number) => void;

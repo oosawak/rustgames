@@ -441,6 +441,13 @@ export function set_aim_input_earthdef(x, y) {
 }
 
 /**
+ * @param {number} d
+ */
+export function set_cam_distance_earthdef(d) {
+    wasm.set_cam_distance_earthdef(d);
+}
+
+/**
  * @param {number} x
  * @param {number} y
  */
