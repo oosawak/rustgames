@@ -43,10 +43,14 @@
   <p class="sub">wgpu WebGL – 256弾同時描画 弾幕シューター</p>
   <p class="sub">5 ウェーブ + 3 フェーズボス戦</p>
   <button id="btn-start">▶ START</button>
-  <p class="key-hint">
-    WASD / 矢印: 移動 &nbsp;|&nbsp; Space / Z: 射撃<br>
-    Tab: カメラ切替 (TPS / TOP / FPS)
-  </p>
+  <div class="key-hint">
+    <table class="help-table">
+      <tr><td>WASD / 矢印キー</td><td>移動</td></tr>
+      <tr><td>Space / Z</td><td>射撃（ホーミング弾）</td></tr>
+      <tr><td><kbd>Tab</kbd></td><td>カメラ切替 TPS → TOP → FPS</td></tr>
+    </table>
+    <p style="margin-top:10px;opacity:0.5;font-size:0.85em">ゲーム中も右下の <kbd>?</kbd> ボタンで確認できます</p>
+  </div>
 </div>
 
 <!-- Stage clear screen -->
@@ -72,6 +76,18 @@
 </div>
 <div id="btn-cam-touch">CAM</div>
 
+<!-- In-game help button -->
+<button id="btn-help" title="操作ヘルプ">?</button>
+<div id="help-panel" class="hidden">
+  <p class="help-panel-title">⌨ 操作ガイド</p>
+  <table class="help-table">
+    <tr><td>WASD / 矢印キー</td><td>移動</td></tr>
+    <tr><td>Space / Z</td><td>射撃（ホーミング弾）</td></tr>
+    <tr><td><kbd>Tab</kbd></td><td>カメラ切替</td></tr>
+    <tr><td colspan="2" class="cam-modes">TPS（後方視点）→ TOP（真上）→ FPS（一人称）</td></tr>
+  </table>
+</div>
+
 <script type="module">
 import init, * as wasm from './wasm/wasm_app.js';
 import { FontLoader, AudioEngine, CanvasManager } from '../../engine.js';
@@ -96,6 +112,12 @@ function updateMove() {
     wasm.move_blaster3d(dx, dz);
 }
 
+// Help button toggle
+const helpBtn   = document.getElementById('btn-help');
+const helpPanel = document.getElementById('help-panel');
+helpBtn.addEventListener('click', () => {
+    helpPanel.classList.toggle('hidden');
+});
 document.addEventListener('keydown', e => {
     if (e.repeat) return;
     keys.add(e.code);

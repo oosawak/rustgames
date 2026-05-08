@@ -271,6 +271,76 @@ html, body {
 }
 @media (pointer: coarse) { #btn-cam-touch { display: flex; } }
 
+/* ── Help button & panel ── */
+#btn-help {
+  position: fixed;
+  bottom: 14px; right: 14px;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 2px solid rgba(0,200,255,0.6);
+  background: rgba(0,0,30,0.85);
+  color: var(--neon-cyan);
+  font-size: 1.1em; font-weight: 700;
+  cursor: pointer;
+  z-index: 35;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 10px rgba(0,200,255,0.3);
+  transition: box-shadow 0.15s;
+}
+#btn-help:hover { box-shadow: 0 0 16px rgba(0,200,255,0.7); }
+
+#help-panel {
+  position: fixed;
+  bottom: 58px; right: 14px;
+  background: rgba(0,0,24,0.92);
+  border: 1px solid rgba(0,200,255,0.4);
+  border-radius: 10px;
+  padding: 12px 16px;
+  z-index: 35;
+  min-width: 260px;
+  box-shadow: 0 0 20px rgba(0,200,255,0.2);
+}
+#help-panel.hidden { display: none; }
+.help-panel-title {
+  color: var(--neon-cyan);
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 8px var(--neon-cyan);
+}
+
+.help-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.78rem;
+  color: rgba(0,220,255,0.85);
+}
+.help-table td {
+  padding: 3px 6px;
+  vertical-align: top;
+}
+.help-table td:first-child {
+  color: var(--neon-yellow);
+  white-space: nowrap;
+  padding-right: 12px;
+}
+.cam-modes {
+  color: rgba(0,200,255,0.5) !important;
+  font-size: 0.72rem;
+  padding-top: 0 !important;
+  padding-left: 8px !important;
+}
+kbd {
+  display: inline-block;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(0,200,255,0.4);
+  border-radius: 4px;
+  padding: 0 5px;
+  font-size: 0.9em;
+  font-family: var(--engine-font);
+}
+
 /* ── Animations ── */
 @keyframes pulse-text {
   from { opacity: 0.8; }
