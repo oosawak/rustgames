@@ -28,6 +28,7 @@
   <span>WAVE <b id="wave-val">-</b></span>
   <span>BULLETS <b id="bullet-val">0</b></span>
   <span>CAM <b id="cam-val">TPS</b></span>
+  <span>操作 <b id="ctrl-val">フリー</b></span>
   <span style="margin-left:auto">FPS <b id="fps-val">--</b></span>
 </div>
 
@@ -48,8 +49,10 @@
       <tr><td>WASD / 矢印キー</td><td>移動</td></tr>
       <tr><td>Space / Z</td><td>射撃（ホーミング弾）</td></tr>
       <tr><td><kbd>Tab</kbd></td><td>カメラ切替 TPS → TOP → FPS</td></tr>
+      <tr><td><kbd>F</kbd></td><td>操作モード切替（フリー ↔ 戦車）</td></tr>
     </table>
-    <p style="margin-top:10px;opacity:0.5;font-size:0.85em">ゲーム中も右下の <kbd>?</kbd> ボタンで確認できます</p>
+    <p style="margin-top:6px;opacity:0.5;font-size:0.82em">戦車モード: ↑↓=前後進 / ←→=旋回</p>
+    <p style="margin-top:4px;opacity:0.5;font-size:0.82em">ゲーム中も右下の <kbd>?</kbd> ボタンで確認できます</p>
   </div>
 </div>
 
@@ -85,6 +88,8 @@
     <tr><td>Space / Z</td><td>射撃（ホーミング弾）</td></tr>
     <tr><td><kbd>Tab</kbd></td><td>カメラ切替</td></tr>
     <tr><td colspan="2" class="cam-modes">TPS（後方視点）→ TOP（真上）→ FPS（一人称）</td></tr>
+    <tr><td><kbd>F</kbd></td><td>操作モード切替</td></tr>
+    <tr><td colspan="2" class="cam-modes">フリー: 絶対方向移動 ／ 戦車: ↑↓=前後進・←→=旋回</td></tr>
   </table>
 </div>
 
@@ -98,18 +103,30 @@ const canvas = new CanvasManager('blaster-canvas', { hudHeight: 46 });
 
 // ── Input state ──────────────────────────────────────────────────────────────
 let dx = 0, dz = 0, shooting = false;
+let controlMode = 0; // 0=フリー, 1=戦車
 const keys = new Set();
 
 function updateMove() {
-    let nx = 0, nz = 0;
-    if (keys.has('KeyA') || keys.has('ArrowLeft'))  nx -= 1;
-    if (keys.has('KeyD') || keys.has('ArrowRight')) nx += 1;
-    if (keys.has('KeyW') || keys.has('ArrowUp'))    nz -= 1;
-    if (keys.has('KeyS') || keys.has('ArrowDown'))  nz += 1;
-    const len = Math.sqrt(nx*nx + nz*nz);
-    if (len > 0) { nx /= len; nz /= len; }
-    dx = nx; dz = nz;
-    wasm.move_blaster3d(dx, dz);
+    if (controlMode === 1) {
+        // 戦車モード: ↑=前進, ↓=後退, ←→=旋回
+        let fwd = 0, rot = 0;
+        if (keys.has('KeyW') || keys.has('ArrowUp'))    fwd += 1;
+        if (keys.has('KeyS') || keys.has('ArrowDown'))  fwd -= 1;
+        if (keys.has('KeyA') || keys.has('ArrowLeft'))  rot -= 1;
+        if (keys.has('KeyD') || keys.has('ArrowRight')) rot += 1;
+        wasm.move_tank_blaster3d(fwd, rot);
+    } else {
+        // フリーモード: 絶対方向
+        let nx = 0, nz = 0;
+        if (keys.has('KeyA') || keys.has('ArrowLeft'))  nx -= 1;
+        if (keys.has('KeyD') || keys.has('ArrowRight')) nx += 1;
+        if (keys.has('KeyW') || keys.has('ArrowUp'))    nz -= 1;
+        if (keys.has('KeyS') || keys.has('ArrowDown'))  nz += 1;
+        const len = Math.sqrt(nx*nx + nz*nz);
+        if (len > 0) { nx /= len; nz /= len; }
+        dx = nx; dz = nz;
+        wasm.move_blaster3d(dx, dz);
+    }
 }
 
 // Help button toggle
@@ -129,6 +146,11 @@ document.addEventListener('keydown', e => {
     if (e.code === 'Tab') {
         e.preventDefault();
         wasm.switch_camera_blaster3d();
+    }
+    if (e.code === 'KeyF') {
+        controlMode = controlMode === 0 ? 1 : 0;
+        wasm.set_control_mode_blaster3d(controlMode);
+        updateMove();
     }
 });
 document.addEventListener('keyup', e => {
@@ -198,6 +220,7 @@ const waveVal    = document.getElementById('wave-val');
 const bulletVal  = document.getElementById('bullet-val');
 const fpsVal     = document.getElementById('fps-val');
 const camVal     = document.getElementById('cam-val');
+const ctrlVal    = document.getElementById('ctrl-val');
 const hpPips     = document.getElementById('hp-pips');
 const bossWrap   = document.getElementById('boss-bar-wrap');
 const bossFill   = document.getElementById('boss-bar-fill');
@@ -293,6 +316,7 @@ function loop(ts) {
         waveVal.textContent   = wasm.wave_blaster3d();
         bulletVal.textContent = wasm.bullet_count_blaster3d();
         camVal.textContent    = wasm.camera_name_blaster3d();
+        ctrlVal.textContent   = wasm.control_mode_name_blaster3d();
 
         const isBoss = wasm.is_boss_wave_blaster3d();
         if (isBoss) {

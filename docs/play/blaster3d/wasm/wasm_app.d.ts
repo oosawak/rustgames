@@ -32,6 +32,8 @@ export function camera_mode_blaster3d(): number;
 
 export function camera_name_blaster3d(): string;
 
+export function control_mode_name_blaster3d(): string;
+
 export function enemy_x_maze3d(): number;
 
 export function enemy_z_maze3d(): number;
@@ -77,6 +79,8 @@ export function move_blaster3d(dx: number, dz: number): void;
 
 export function move_maze3d(a: number): void;
 
+export function move_tank_blaster3d(fwd: number, rot: number): void;
+
 export function next_level_maze3d(): void;
 
 export function play_count_maze3d(): number;
@@ -100,6 +104,8 @@ export function scene_blaster3d(): number;
 export function scene_maze3d(): number;
 
 export function score_blaster3d(): number;
+
+export function set_control_mode_blaster3d(m: number): void;
 
 export function shoot_blaster3d(on: boolean): void;
 
@@ -152,6 +158,7 @@ export interface InitOutput {
     readonly bullet_count_blaster3d: () => number;
     readonly camera_mode_blaster3d: () => number;
     readonly camera_name_blaster3d: () => [number, number];
+    readonly control_mode_name_blaster3d: () => [number, number];
     readonly enemy_x_maze3d: () => number;
     readonly enemy_z_maze3d: () => number;
     readonly engine_font_bold: () => [number, number];
@@ -167,6 +174,7 @@ export interface InitOutput {
     readonly maze_data_maze3d: () => [number, number];
     readonly move_blaster3d: (a: number, b: number) => void;
     readonly move_maze3d: (a: number) => void;
+    readonly move_tank_blaster3d: (a: number, b: number) => void;
     readonly next_level_maze3d: () => void;
     readonly play_count_maze3d: () => number;
     readonly player_facing_maze3d: () => number;
@@ -179,6 +187,7 @@ export interface InitOutput {
     readonly scene_blaster3d: () => number;
     readonly scene_maze3d: () => number;
     readonly score_blaster3d: () => number;
+    readonly set_control_mode_blaster3d: (a: number) => void;
     readonly shoot_blaster3d: (a: number) => void;
     readonly sound_def_blaster3d: (a: number) => [number, number];
     readonly sound_def_maze3d: (a: number) => [number, number];

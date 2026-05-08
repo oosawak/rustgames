@@ -51,6 +51,10 @@ pub struct BlasterGame {
     pub input_dx:      f32,
     pub input_dz:      f32,
     pub input_shoot:   bool,
+    // 0=フリー移動（絶対方向）, 1=戦車操作（前後進+旋回）
+    pub control_mode:  u8,
+    pub input_forward: f32,   // 戦車モード: 前後（+前 -後）
+    pub input_rotate:  f32,   // 戦車モード: 旋回（+右 -左）
 
     pub enemies:       Vec<BlasterEnemy>,
     pub boss:          Boss,
@@ -84,6 +88,7 @@ impl BlasterGame {
             player_hp: 5, player_max_hp: 5,
             score: 0, invincible: 0.0, shoot_timer: 0.0,
             input_dx: 0.0, input_dz: 0.0, input_shoot: false,
+            control_mode: 0, input_forward: 0.0, input_rotate: 0.0,
             enemies: Vec::new(), boss: Boss::new(),
             bullets: BulletPool::new(),
             particles: Vec::new(),
@@ -145,17 +150,31 @@ impl BlasterGame {
         self.time = ts * 0.001;
         self.audio_event = 0;
 
-        // ── プレイヤー移動 + 車体回転（移動方向） ──
-        if self.input_dx != 0.0 || self.input_dz != 0.0 {
-            let spd = 6.0f32;
-            let nx = self.player_x + self.input_dx * spd * dt;
-            let nz = self.player_z + self.input_dz * spd * dt;
-            if nx.abs() < 17.5 { self.player_x = nx; }
-            if nz.abs() < 17.5 { self.player_z = nz; }
-            // 車体は移動方向へ追従（やや遅め）
-            let move_angle = self.input_dx.atan2(self.input_dz);
-            let da = angle_diff(move_angle, self.player_body_angle);
-            self.player_body_angle += da * (dt * 7.0).min(1.0);
+        // ── プレイヤー移動（モード切替対応） ──
+        if self.control_mode == 1 {
+            // 戦車操作: ↑↓=前後進, ←→=車体旋回
+            if self.input_rotate != 0.0 {
+                self.player_body_angle += self.input_rotate * dt * 2.8;
+            }
+            if self.input_forward != 0.0 {
+                let spd = 6.0f32;
+                let nx = self.player_x + self.player_body_angle.sin() * self.input_forward * spd * dt;
+                let nz = self.player_z + self.player_body_angle.cos() * self.input_forward * spd * dt;
+                if nx.abs() < 17.5 { self.player_x = nx; }
+                if nz.abs() < 17.5 { self.player_z = nz; }
+            }
+        } else {
+            // フリー移動: 絶対方向（従来）
+            if self.input_dx != 0.0 || self.input_dz != 0.0 {
+                let spd = 6.0f32;
+                let nx = self.player_x + self.input_dx * spd * dt;
+                let nz = self.player_z + self.input_dz * spd * dt;
+                if nx.abs() < 17.5 { self.player_x = nx; }
+                if nz.abs() < 17.5 { self.player_z = nz; }
+                let move_angle = self.input_dx.atan2(self.input_dz);
+                let da = angle_diff(move_angle, self.player_body_angle);
+                self.player_body_angle += da * (dt * 7.0).min(1.0);
+            }
         }
 
         // ── 砲塔は常に最近の敵に向く（車体と独立・速め） ──
@@ -447,8 +466,11 @@ impl BlasterGame {
     }
 
     pub fn set_move(&mut self, dx: f32, dz: f32)  { self.input_dx = dx; self.input_dz = dz; }
+    pub fn set_tank_move(&mut self, fwd: f32, rot: f32) { self.input_forward = fwd; self.input_rotate = rot; }
     pub fn set_shoot(&mut self, on: bool)           { self.input_shoot = on; }
     pub fn switch_camera(&mut self)                 { self.camera = self.camera.next(); }
+    pub fn set_control_mode(&mut self, m: u8)       { self.control_mode = m; self.input_dx = 0.0; self.input_dz = 0.0; self.input_forward = 0.0; self.input_rotate = 0.0; }
+    pub fn control_mode_name(&self) -> &str         { if self.control_mode == 1 { "戦車" } else { "フリー" } }
     pub fn scene_u8(&self) -> u8                    { self.scene as u8 }
     pub fn camera_u8(&self) -> u8                   { self.camera.as_u8() }
     pub fn camera_name(&self) -> &str               { self.camera.name() }
