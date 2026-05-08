@@ -167,11 +167,11 @@ pub async fn init_blaster3d(canvas_id: &str) {
 #[wasm_bindgen] pub fn tick_blaster3d(ts: f64) { BLASTER.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.tick(ts);}}); }
 #[wasm_bindgen] pub fn start_blaster3d() { BLASTER.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.start();}}); }
 #[wasm_bindgen] pub fn move_blaster3d(dx:f32,dz:f32) { BLASTER.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.set_move(dx,dz);}}); }
-#[wasm_bindgen] pub fn move_tank_blaster3d(fwd:f32,rot:f32) { BLASTER.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.set_tank_move(fwd,rot);}}); }
 #[wasm_bindgen] pub fn shoot_blaster3d(on:bool) { BLASTER.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.set_shoot(on);}}); }
+#[wasm_bindgen] pub fn turret_rotate_blaster3d(rot:f32) { BLASTER.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.set_turret_rotate(rot);}}); }
+#[wasm_bindgen] pub fn toggle_auto_fire_blaster3d() { BLASTER.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.toggle_auto_fire();}}); }
+#[wasm_bindgen] pub fn auto_fire_blaster3d() -> bool { BLASTER.with(|s|s.borrow().as_ref().map(|g|g.auto_fire).unwrap_or(false)) }
 #[wasm_bindgen] pub fn switch_camera_blaster3d() { BLASTER.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.switch_camera();}}); }
-#[wasm_bindgen] pub fn set_control_mode_blaster3d(m:u8) { BLASTER.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.set_control_mode(m);}}); }
-#[wasm_bindgen] pub fn control_mode_name_blaster3d() -> String { BLASTER.with(|s|s.borrow().as_ref().map(|g|g.control_mode_name().to_string()).unwrap_or_default()) }
 #[wasm_bindgen] pub fn scene_blaster3d() -> u8 { BLASTER.with(|s|s.borrow().as_ref().map(|g|g.scene_u8()).unwrap_or(0)) }
 #[wasm_bindgen] pub fn camera_mode_blaster3d() -> u8 { BLASTER.with(|s|s.borrow().as_ref().map(|g|g.camera_u8()).unwrap_or(0)) }
 #[wasm_bindgen] pub fn camera_name_blaster3d() -> String { BLASTER.with(|s|s.borrow().as_ref().map(|g|g.camera_name().to_string()).unwrap_or_default()) }

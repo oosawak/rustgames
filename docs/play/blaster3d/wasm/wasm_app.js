@@ -44,6 +44,14 @@ export function audio_step_parity_maze3d() {
 }
 
 /**
+ * @returns {boolean}
+ */
+export function auto_fire_blaster3d() {
+    const ret = wasm.auto_fire_blaster3d();
+    return ret !== 0;
+}
+
+/**
  * @returns {number}
  */
 export function best_level_maze3d() {
@@ -99,22 +107,6 @@ export function camera_name_blaster3d() {
     let deferred1_1;
     try {
         const ret = wasm.camera_name_blaster3d();
-        deferred1_0 = ret[0];
-        deferred1_1 = ret[1];
-        return getStringFromWasm0(ret[0], ret[1]);
-    } finally {
-        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
-    }
-}
-
-/**
- * @returns {string}
- */
-export function control_mode_name_blaster3d() {
-    let deferred1_0;
-    let deferred1_1;
-    try {
-        const ret = wasm.control_mode_name_blaster3d();
         deferred1_0 = ret[0];
         deferred1_1 = ret[1];
         return getStringFromWasm0(ret[0], ret[1]);
@@ -269,14 +261,6 @@ export function move_maze3d(a) {
     wasm.move_maze3d(a);
 }
 
-/**
- * @param {number} fwd
- * @param {number} rot
- */
-export function move_tank_blaster3d(fwd, rot) {
-    wasm.move_tank_blaster3d(fwd, rot);
-}
-
 export function next_level_maze3d() {
     wasm.next_level_maze3d();
 }
@@ -363,13 +347,6 @@ export function scene_maze3d() {
 export function score_blaster3d() {
     const ret = wasm.score_blaster3d();
     return ret >>> 0;
-}
-
-/**
- * @param {number} m
- */
-export function set_control_mode_blaster3d(m) {
-    wasm.set_control_mode_blaster3d(m);
 }
 
 /**
@@ -467,12 +444,23 @@ export function tick_maze3d(ts) {
     wasm.tick_maze3d(ts);
 }
 
+export function toggle_auto_fire_blaster3d() {
+    wasm.toggle_auto_fire_blaster3d();
+}
+
 /**
  * @returns {number}
  */
 export function total_steps_maze3d() {
     const ret = wasm.total_steps_maze3d();
     return ret >>> 0;
+}
+
+/**
+ * @param {number} rot
+ */
+export function turret_rotate_blaster3d(rot) {
+    wasm.turret_rotate_blaster3d(rot);
 }
 
 /**

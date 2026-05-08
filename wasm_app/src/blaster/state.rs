@@ -41,20 +41,18 @@ pub struct BlasterGame {
     pub player_x:      f32,
     pub player_z:      f32,
     pub player_body_angle:   f32,  // 車体（移動方向）
-    pub player_turret_angle: f32,  // 砲塔（最近の敵方向）
+    pub player_turret_angle: f32,  // 砲塔
     pub player_hp:     i32,
     pub player_max_hp: i32,
     pub score:         u32,
     pub invincible:    f32,
     pub shoot_timer:   f32,
 
-    pub input_dx:      f32,
-    pub input_dz:      f32,
-    pub input_shoot:   bool,
-    // 0=フリー移動（絶対方向）, 1=戦車操作（前後進+旋回）
-    pub control_mode:  u8,
-    pub input_forward: f32,   // 戦車モード: 前後（+前 -後）
-    pub input_rotate:  f32,   // 戦車モード: 旋回（+右 -左）
+    pub input_dx:          f32,   // 絶対方向移動 X
+    pub input_dz:          f32,   // 絶対方向移動 Z
+    pub input_shoot:       bool,  // 手動射撃
+    pub input_turret_rot:  f32,   // 砲塔手動回転（+右, -左）
+    pub auto_fire:         bool,  // 自動射撃モード（ON時は砲塔手動操作）
 
     pub enemies:       Vec<BlasterEnemy>,
     pub boss:          Boss,
@@ -88,7 +86,7 @@ impl BlasterGame {
             player_hp: 5, player_max_hp: 5,
             score: 0, invincible: 0.0, shoot_timer: 0.0,
             input_dx: 0.0, input_dz: 0.0, input_shoot: false,
-            control_mode: 0, input_forward: 0.0, input_rotate: 0.0,
+            input_turret_rot: 0.0, auto_fire: false,
             enemies: Vec::new(), boss: Boss::new(),
             bullets: BulletPool::new(),
             particles: Vec::new(),
@@ -150,42 +148,44 @@ impl BlasterGame {
         self.time = ts * 0.001;
         self.audio_event = 0;
 
-        // ── プレイヤー移動（モード切替対応） ──
-        if self.control_mode == 1 {
-            // 戦車操作: ↑↓=前後進, ←→=車体旋回
-            if self.input_rotate != 0.0 {
-                self.player_body_angle += self.input_rotate * dt * 2.8;
-            }
-            if self.input_forward != 0.0 {
-                let spd = 6.0f32;
-                let nx = self.player_x + self.player_body_angle.sin() * self.input_forward * spd * dt;
-                let nz = self.player_z + self.player_body_angle.cos() * self.input_forward * spd * dt;
-                if nx.abs() < 17.5 { self.player_x = nx; }
-                if nz.abs() < 17.5 { self.player_z = nz; }
-            }
-        } else {
-            // フリー移動: 絶対方向（従来）
-            if self.input_dx != 0.0 || self.input_dz != 0.0 {
-                let spd = 6.0f32;
-                let nx = self.player_x + self.input_dx * spd * dt;
-                let nz = self.player_z + self.input_dz * spd * dt;
-                if nx.abs() < 17.5 { self.player_x = nx; }
-                if nz.abs() < 17.5 { self.player_z = nz; }
-                let move_angle = self.input_dx.atan2(self.input_dz);
-                let da = angle_diff(move_angle, self.player_body_angle);
-                self.player_body_angle += da * (dt * 7.0).min(1.0);
-            }
+        // ── プレイヤー移動（絶対方向）+ 車体は移動方向に追従 ──
+        if self.input_dx != 0.0 || self.input_dz != 0.0 {
+            let spd = 6.0f32;
+            let nx = self.player_x + self.input_dx * spd * dt;
+            let nz = self.player_z + self.input_dz * spd * dt;
+            if nx.abs() < 17.5 { self.player_x = nx; }
+            if nz.abs() < 17.5 { self.player_z = nz; }
+            // 車体は移動方向にスムーズに向く
+            let move_angle = self.input_dx.atan2(self.input_dz);
+            let da = angle_diff(move_angle, self.player_body_angle);
+            self.player_body_angle += da * (dt * 8.0).min(1.0);
         }
 
-        // ── 砲塔は常に最近の敵に向く（車体と独立・速め） ──
-        let aim_angle = self.nearest_enemy_angle();
-        let da = angle_diff(aim_angle, self.player_turret_angle);
-        self.player_turret_angle += da * (dt * 12.0).min(1.0);
+        // ── 砲塔制御 ──
+        // 自動射撃OFF: 砲塔は自動エイム（最近の敵に向く）
+        // 自動射撃ON : 砲塔はQ/Eで手動操作
+        if self.auto_fire {
+            // 手動砲塔回転（input_turret_rot: +右/-左, 毎フレームJSからセット）
+            self.player_turret_angle += self.input_turret_rot * dt * 3.0;
+        } else {
+            // 自動エイム: 最近の敵に向く
+            let aim_angle = self.nearest_enemy_angle();
+            let da = angle_diff(aim_angle, self.player_turret_angle);
+            self.player_turret_angle += da * (dt * 12.0).min(1.0);
+        }
 
-        // ── 自動ショット（砲塔の向きで発射） ──
+        // ── 射撃 ──
         self.shoot_timer -= dt;
-        if self.input_shoot && self.shoot_timer <= 0.0 {
-            self.shoot_timer = 0.12;
+        let can_shoot = self.shoot_timer <= 0.0;
+        let do_shoot = if self.auto_fire {
+            // 自動射撃モード: タイマーで自動発射
+            can_shoot
+        } else {
+            // 手動射撃モード: Space/Zを押している時
+            self.input_shoot && can_shoot
+        };
+        if do_shoot {
+            self.shoot_timer = if self.auto_fire { 0.18 } else { 0.12 };
             let (s, c) = (self.player_turret_angle.sin(), self.player_turret_angle.cos());
             let spd = 18.0f32;
             self.bullets.spawn(
@@ -283,6 +283,52 @@ impl BlasterGame {
             enemy.turret_angle += da * (dt * 10.0).min(1.0);
             enemy.x = enemy.x.clamp(-17.5, 17.5);
             enemy.z = enemy.z.clamp(-17.5, 17.5);
+        }
+
+        // ── 敵同士の重なりを解消（セパレーション） ──
+        let n = self.enemies.len();
+        for i in 0..n {
+            for j in (i+1)..n {
+                if !self.enemies[i].active || !self.enemies[j].active { continue; }
+                let dx = self.enemies[j].x - self.enemies[i].x;
+                let dz = self.enemies[j].z - self.enemies[i].z;
+                let dist2 = dx*dx + dz*dz;
+                let min_dist = 1.6f32; // 戦車の半径×2
+                if dist2 < min_dist * min_dist && dist2 > 0.0001 {
+                    let dist = dist2.sqrt();
+                    let overlap = (min_dist - dist) * 0.5;
+                    let nx = dx / dist * overlap;
+                    let nz = dz / dist * overlap;
+                    self.enemies[i].x -= nx;
+                    self.enemies[i].z -= nz;
+                    self.enemies[j].x += nx;
+                    self.enemies[j].z += nz;
+                }
+            }
+        }
+
+        // ── 敵とプレイヤーの重なりを解消 ──
+        let min_dist = 1.6f32;
+        for enemy in &mut self.enemies {
+            if !enemy.active { continue; }
+            let dx = enemy.x - self.player_x;
+            let dz = enemy.z - self.player_z;
+            let dist2 = dx*dx + dz*dz;
+            if dist2 < min_dist * min_dist && dist2 > 0.0001 {
+                let dist = dist2.sqrt();
+                let overlap = min_dist - dist;
+                let nx = dx / dist * overlap;
+                let nz = dz / dist * overlap;
+                // 敵を押し出す（プレイヤーも少し押す）
+                enemy.x += nx * 0.7;
+                enemy.z += nz * 0.7;
+                self.player_x -= nx * 0.3;
+                self.player_z -= nz * 0.3;
+                self.player_x = self.player_x.clamp(-17.5, 17.5);
+                self.player_z = self.player_z.clamp(-17.5, 17.5);
+                enemy.x = enemy.x.clamp(-17.5, 17.5);
+                enemy.z = enemy.z.clamp(-17.5, 17.5);
+            }
         }
 
         for (x, y, z, vx, vy, vz, col) in new_bullets {
@@ -466,11 +512,11 @@ impl BlasterGame {
     }
 
     pub fn set_move(&mut self, dx: f32, dz: f32)  { self.input_dx = dx; self.input_dz = dz; }
-    pub fn set_tank_move(&mut self, fwd: f32, rot: f32) { self.input_forward = fwd; self.input_rotate = rot; }
     pub fn set_shoot(&mut self, on: bool)           { self.input_shoot = on; }
+    pub fn set_turret_rotate(&mut self, rot: f32)   { self.input_turret_rot = rot; }
+    pub fn toggle_auto_fire(&mut self)              { self.auto_fire = !self.auto_fire; }
+    pub fn set_auto_fire(&mut self, on: bool)       { self.auto_fire = on; }
     pub fn switch_camera(&mut self)                 { self.camera = self.camera.next(); }
-    pub fn set_control_mode(&mut self, m: u8)       { self.control_mode = m; self.input_dx = 0.0; self.input_dz = 0.0; self.input_forward = 0.0; self.input_rotate = 0.0; }
-    pub fn control_mode_name(&self) -> &str         { if self.control_mode == 1 { "戦車" } else { "フリー" } }
     pub fn scene_u8(&self) -> u8                    { self.scene as u8 }
     pub fn camera_u8(&self) -> u8                   { self.camera.as_u8() }
     pub fn camera_name(&self) -> &str               { self.camera.name() }

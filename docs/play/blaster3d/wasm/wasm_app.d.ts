@@ -18,6 +18,8 @@ export function audio_event_maze3d(): number;
  */
 export function audio_step_parity_maze3d(): boolean;
 
+export function auto_fire_blaster3d(): boolean;
+
 export function best_level_maze3d(): number;
 
 export function best_steps_maze3d(): number;
@@ -31,8 +33,6 @@ export function bullet_count_blaster3d(): number;
 export function camera_mode_blaster3d(): number;
 
 export function camera_name_blaster3d(): string;
-
-export function control_mode_name_blaster3d(): string;
 
 export function enemy_x_maze3d(): number;
 
@@ -79,8 +79,6 @@ export function move_blaster3d(dx: number, dz: number): void;
 
 export function move_maze3d(a: number): void;
 
-export function move_tank_blaster3d(fwd: number, rot: number): void;
-
 export function next_level_maze3d(): void;
 
 export function play_count_maze3d(): number;
@@ -104,8 +102,6 @@ export function scene_blaster3d(): number;
 export function scene_maze3d(): number;
 
 export function score_blaster3d(): number;
-
-export function set_control_mode_blaster3d(m: number): void;
 
 export function shoot_blaster3d(on: boolean): void;
 
@@ -135,7 +131,11 @@ export function tick_blaster3d(ts: number): void;
 
 export function tick_maze3d(ts: number): void;
 
+export function toggle_auto_fire_blaster3d(): void;
+
 export function total_steps_maze3d(): number;
+
+export function turret_rotate_blaster3d(rot: number): void;
 
 export function warp_done_maze3d(): boolean;
 
@@ -151,6 +151,7 @@ export interface InitOutput {
     readonly audio_event_blaster3d: () => number;
     readonly audio_event_maze3d: () => number;
     readonly audio_step_parity_maze3d: () => number;
+    readonly auto_fire_blaster3d: () => number;
     readonly best_level_maze3d: () => number;
     readonly best_steps_maze3d: () => number;
     readonly boss_hp_blaster3d: () => number;
@@ -158,7 +159,6 @@ export interface InitOutput {
     readonly bullet_count_blaster3d: () => number;
     readonly camera_mode_blaster3d: () => number;
     readonly camera_name_blaster3d: () => [number, number];
-    readonly control_mode_name_blaster3d: () => [number, number];
     readonly enemy_x_maze3d: () => number;
     readonly enemy_z_maze3d: () => number;
     readonly engine_font_bold: () => [number, number];
@@ -174,7 +174,6 @@ export interface InitOutput {
     readonly maze_data_maze3d: () => [number, number];
     readonly move_blaster3d: (a: number, b: number) => void;
     readonly move_maze3d: (a: number) => void;
-    readonly move_tank_blaster3d: (a: number, b: number) => void;
     readonly next_level_maze3d: () => void;
     readonly play_count_maze3d: () => number;
     readonly player_facing_maze3d: () => number;
@@ -187,7 +186,6 @@ export interface InitOutput {
     readonly scene_blaster3d: () => number;
     readonly scene_maze3d: () => number;
     readonly score_blaster3d: () => number;
-    readonly set_control_mode_blaster3d: (a: number) => void;
     readonly shoot_blaster3d: (a: number) => void;
     readonly sound_def_blaster3d: (a: number) => [number, number];
     readonly sound_def_maze3d: (a: number) => [number, number];
@@ -198,7 +196,9 @@ export interface InitOutput {
     readonly theme_name_maze3d: () => [number, number];
     readonly tick_blaster3d: (a: number) => void;
     readonly tick_maze3d: (a: number) => void;
+    readonly toggle_auto_fire_blaster3d: () => void;
     readonly total_steps_maze3d: () => number;
+    readonly turret_rotate_blaster3d: (a: number) => void;
     readonly warp_done_maze3d: () => number;
     readonly warp_maze3d: () => number;
     readonly wave_blaster3d: () => number;
