@@ -56,6 +56,54 @@ fn push_box(
     push_rotated_box(verts, idxs, cx, cy, cz, sx, sy, sz, 0.0, 0.0, 0.0, col);
 }
 
+/// 14-panel polyhedron (6 axis + 8 corner panels) – gem/crystal look
+fn push_earth_poly(
+    verts: &mut Vec<Vertex>, idxs: &mut Vec<u32>,
+    cx: f32, cy: f32, cz: f32,
+    size: f32, rot_y: f32,
+    col: [f32; 4],
+) {
+    let inv3 = (1.0f32 / 3.0f32).sqrt();
+
+    // 14 face normals (object space)
+    const PANEL_NORMALS: [(f32, f32, f32); 14] = [
+        // 6 axis faces
+        ( 1.0, 0.0, 0.0), (-1.0, 0.0, 0.0),
+        ( 0.0, 1.0, 0.0), ( 0.0,-1.0, 0.0),
+        ( 0.0, 0.0, 1.0), ( 0.0, 0.0,-1.0),
+        // 8 corner faces (normalised)
+        ( 0.577, 0.577, 0.577), ( 0.577, 0.577,-0.577),
+        ( 0.577,-0.577, 0.577), ( 0.577,-0.577,-0.577),
+        (-0.577, 0.577, 0.577), (-0.577, 0.577,-0.577),
+        (-0.577,-0.577, 0.577), (-0.577,-0.577,-0.577),
+    ];
+    let _ = inv3; // used inline above
+
+    let r  = size * 0.80; // panel-centre distance from origin
+    let ps_axis   = size * 0.58; // axis panel size
+    let ps_corner = size * 0.46; // corner panel size (slightly smaller)
+    let pt = size * 0.13;        // panel thickness
+
+    for (i, &(fnx, fny, fnz)) in PANEL_NORMALS.iter().enumerate() {
+        // Rotate face normal around Y by earth rot_y
+        let (rfnx, rfnz) = rotate_y(fnx, fnz, rot_y);
+        let rfny = fny;
+
+        // Panel centre
+        let px = cx + rfnx * r;
+        let py = cy + rfny * r;
+        let pz = cz + rfnz * r;
+
+        // Box orientation: local-Z aligned with face normal (matches beam formula)
+        let panel_ry = rfnx.atan2(rfnz);
+        let horiz    = (rfnx*rfnx + rfnz*rfnz).sqrt();
+        let panel_rx = -(rfny).atan2(horiz);
+
+        let ps = if i < 6 { ps_axis } else { ps_corner };
+        push_rotated_box(verts, idxs, px, py, pz, ps, ps, pt, panel_rx, panel_ry, 0.0, col);
+    }
+}
+
 pub fn build_scene(g: &EarthDefGame) -> (Vec<Vertex>, Vec<u32>) {
     let mut verts: Vec<Vertex> = Vec::with_capacity(4096);
     let mut idxs: Vec<u32> = Vec::with_capacity(8192);
@@ -76,8 +124,8 @@ pub fn build_scene(g: &EarthDefGame) -> (Vec<Vertex>, Vec<u32>) {
             [brightness, brightness, brightness, 1.0]);
     }
 
-    // Earth
-    let earth_size = 1.5;
+    // Earth – 14-panel polyhedron, size 0.8
+    let earth_size = 0.8;
     let damage_ratio = g.earth_hp as f32 / g.earth_max_hp as f32;
     let flash = g.earth_hit_flash;
     let earth_col = if flash > 0.0 {
@@ -90,9 +138,8 @@ pub fn build_scene(g: &EarthDefGame) -> (Vec<Vertex>, Vec<u32>) {
             1.0,
         ]
     };
-    push_rotated_box(&mut verts, &mut idxs, 0.0, 0.0, 0.0,
-        earth_size, earth_size, earth_size,
-        g.earth_rot * 0.7, g.earth_rot, 0.0, earth_col);
+    push_earth_poly(&mut verts, &mut idxs, 0.0, 0.0, 0.0,
+        earth_size, g.earth_rot, earth_col);
 
     // Enemies
     for e in &g.enemies {

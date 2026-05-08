@@ -216,7 +216,7 @@ impl EarthDefGame {
         for e in &mut self.enemies {
             if !e.active { continue; }
             let dist = (e.x*e.x + e.y*e.y + e.z*e.z).sqrt();
-            if dist < 1.5 {
+            if dist < 0.9 {
                 e.active = false;
                 earth_damage += 10;
             } else {
