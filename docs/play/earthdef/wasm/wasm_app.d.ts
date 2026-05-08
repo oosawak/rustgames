@@ -63,6 +63,8 @@ export function engine_font_embedded(): boolean;
  */
 export function engine_font_regular(): Uint8Array;
 
+export function fire_at_screen_earthdef(nx: number, ny: number): void;
+
 export function fire_earthdef(): void;
 
 export function flash_bomb_earthdef(): void;
@@ -198,6 +200,7 @@ export interface InitOutput {
     readonly enemy_z_maze3d: () => number;
     readonly engine_font_bold: () => [number, number];
     readonly engine_font_embedded: () => number;
+    readonly fire_at_screen_earthdef: (a: number, b: number) => void;
     readonly fire_earthdef: () => void;
     readonly flash_bomb_earthdef: () => void;
     readonly flash_charges_earthdef: () => number;

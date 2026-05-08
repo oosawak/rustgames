@@ -48,9 +48,9 @@
   <button id="btn-start">▶ START</button>
   <div class="key-hint">
     <table>
+      <tr><td>画面タップ</td><td>敵を狙ってレーザー発射</td></tr>
       <tr><td>WASD</td><td>カメラ回転</td></tr>
-      <tr><td>IJKL</td><td>レーザー照準</td></tr>
-      <tr><td>Space</td><td>発射</td></tr>
+      <tr><td>Space</td><td>中心発射</td></tr>
       <tr><td>B</td><td>フラッシュ爆弾</td></tr>
       <tr><td>N</td><td>レーザー切替</td></tr>
     </table>
@@ -77,14 +77,6 @@
 
   <!-- Flash bomb button -->
   <button id="flash-btn">⚡ FLASH</button>
-
-  <!-- Right joystick: aim -->
-  <div class="stick-wrap" id="right-wrap">
-    <div class="stick-base" id="right-stick">
-      <div class="stick-knob" id="right-knob"></div>
-    </div>
-    <div class="stick-label">AIM / FIRE</div>
-  </div>
 </div>
 
 <script type="module">
@@ -318,7 +310,7 @@ function makeJoystick(stickEl, knobEl, onMove, onRelease) {
 }
 
 function setupControls() {
-  // Left stick: camera
+  // Left stick: camera rotation
   makeJoystick(
     document.getElementById('left-stick'),
     document.getElementById('left-knob'),
@@ -326,16 +318,24 @@ function setupControls() {
     () => wasm.set_cam_input_earthdef(0, 0)
   );
 
-  // Right stick: aim + fire on release
-  makeJoystick(
-    document.getElementById('right-stick'),
-    document.getElementById('right-knob'),
-    (x, y) => wasm.set_aim_input_earthdef(x, -y),
-    () => {
-      wasm.set_aim_input_earthdef(0, 0);
-      wasm.fire_earthdef();
-    }
-  );
+  // Canvas tap-to-fire (touchstart + click)
+  const cvs = document.getElementById('earth-canvas');
+  function fireAtTap(clientX, clientY) {
+    const rect = cvs.getBoundingClientRect();
+    const nx =  (clientX - rect.left) / rect.width  * 2 - 1;
+    const ny = -(clientY - rect.top)  / rect.height * 2 + 1;
+    wasm.fire_at_screen_earthdef(nx, ny);
+  }
+  cvs.addEventListener('touchstart', e => {
+    e.preventDefault();
+    if (wasm.scene_earthdef() !== 1) return;
+    getACtx();
+    fireAtTap(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+  }, { passive: false });
+  cvs.addEventListener('click', e => {
+    if (wasm.scene_earthdef() !== 1) return;
+    fireAtTap(e.clientX, e.clientY);
+  });
 }
 
 // --- Keyboard ---
@@ -370,10 +370,6 @@ function updateKeyInput() {
   const cx = (keys['KeyD']?1:0) - (keys['KeyA']?1:0);
   const cy = (keys['KeyW']?1:0) - (keys['KeyS']?1:0);
   wasm.set_cam_input_earthdef(cx, cy);
-
-  const ax2 = (keys['KeyL']?1:0) - (keys['KeyJ']?1:0);
-  const ay2 = (keys['KeyI']?1:0) - (keys['KeyK']?1:0);
-  wasm.set_aim_input_earthdef(ax2, ay2);
 }
 setInterval(updateKeyInput, 16);
 

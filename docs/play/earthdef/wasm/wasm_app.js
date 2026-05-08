@@ -190,6 +190,14 @@ export function engine_font_regular() {
     return v1;
 }
 
+/**
+ * @param {number} nx
+ * @param {number} ny
+ */
+export function fire_at_screen_earthdef(nx, ny) {
+    wasm.fire_at_screen_earthdef(nx, ny);
+}
+
 export function fire_earthdef() {
     wasm.fire_earthdef();
 }

@@ -20,6 +20,7 @@ export const enemy_x_maze3d: () => number;
 export const enemy_z_maze3d: () => number;
 export const engine_font_bold: () => [number, number];
 export const engine_font_embedded: () => number;
+export const fire_at_screen_earthdef: (a: number, b: number) => void;
 export const fire_earthdef: () => void;
 export const flash_bomb_earthdef: () => void;
 export const flash_charges_earthdef: () => number;
