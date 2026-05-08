@@ -46,6 +46,7 @@ html, body {
   display: block;
   width: 100%;
   height: 100%;
+  background: #000010;
 }
 
 /* ── HUD ── */

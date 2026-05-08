@@ -40,7 +40,8 @@ pub struct BlasterGame {
 
     pub player_x:      f32,
     pub player_z:      f32,
-    pub player_angle:  f32,
+    pub player_body_angle:   f32,  // 車体（移動方向）
+    pub player_turret_angle: f32,  // 砲塔（最近の敵方向）
     pub player_hp:     i32,
     pub player_max_hp: i32,
     pub score:         u32,
@@ -78,7 +79,8 @@ impl BlasterGame {
             gpu,
             scene: BlasterScene::Title,
             time: 0.0, dt: 0.0, prev_ts: 0.0,
-            player_x: 0.0, player_z: 5.0, player_angle: 0.0,
+            player_x: 0.0, player_z: 5.0,
+            player_body_angle: 0.0, player_turret_angle: 0.0,
             player_hp: 5, player_max_hp: 5,
             score: 0, invincible: 0.0, shoot_timer: 0.0,
             input_dx: 0.0, input_dz: 0.0, input_shoot: false,
@@ -94,7 +96,8 @@ impl BlasterGame {
 
     pub fn start(&mut self) {
         self.scene = BlasterScene::Playing;
-        self.player_x = 0.0; self.player_z = 5.0; self.player_angle = 0.0;
+        self.player_x = 0.0; self.player_z = 5.0;
+        self.player_body_angle = 0.0; self.player_turret_angle = 0.0;
         self.player_hp = self.player_max_hp;
         self.score = 0; self.invincible = 2.0;
         self.enemies.clear();
@@ -142,34 +145,43 @@ impl BlasterGame {
         self.time = ts * 0.001;
         self.audio_event = 0;
 
-        // ── プレイヤー移動（移動方向とエイムは独立）──
+        // ── プレイヤー移動 + 車体回転（移動方向） ──
         if self.input_dx != 0.0 || self.input_dz != 0.0 {
             let spd = 6.0f32;
             let nx = self.player_x + self.input_dx * spd * dt;
             let nz = self.player_z + self.input_dz * spd * dt;
             if nx.abs() < 9.5 { self.player_x = nx; }
             if nz.abs() < 9.5 { self.player_z = nz; }
+            // 車体は移動方向へ追従（やや遅め）
+            let move_angle = self.input_dx.atan2(self.input_dz);
+            let da = angle_diff(move_angle, self.player_body_angle);
+            self.player_body_angle += da * (dt * 7.0).min(1.0);
         }
 
-        // ── オートエイム: 最近の敵/ボスに向く ──
-        let target_angle = self.nearest_enemy_angle();
-        let da = angle_diff(target_angle, self.player_angle);
-        self.player_angle += da * (dt * 8.0).min(1.0);
+        // ── 砲塔は常に最近の敵に向く（車体と独立・速め） ──
+        let aim_angle = self.nearest_enemy_angle();
+        let da = angle_diff(aim_angle, self.player_turret_angle);
+        self.player_turret_angle += da * (dt * 12.0).min(1.0);
 
-        // ── 自動ショット ──
+        // ── 自動ショット（砲塔の向きで発射） ──
         self.shoot_timer -= dt;
         if self.input_shoot && self.shoot_timer <= 0.0 {
             self.shoot_timer = 0.12;
-            let (s, c) = (self.player_angle.sin(), self.player_angle.cos());
+            let (s, c) = (self.player_turret_angle.sin(), self.player_turret_angle.cos());
             let spd = 18.0f32;
             self.bullets.spawn(
                 self.player_x, 0.5, self.player_z,
-                s * spd, 0.0, c * spd, 2.5, true, [0.3, 0.8, 1.0],
+                s * spd, 0.0, c * spd, 2.5, true, true, [0.3, 0.8, 1.0],
             );
             self.audio_event = 1;
         }
 
         self.bullets.tick(dt);
+        // ホーミング弾のターゲットリストを作成
+        let mut targets: Vec<(f32,f32)> = self.enemies.iter()
+            .filter(|e| e.active).map(|e| (e.x, e.z)).collect();
+        if self.boss.active { targets.push((self.boss.x, self.boss.z)); }
+        self.bullets.update_homing(&targets, dt);
         self.invincible -= dt;
 
         self.update_enemies(dt);
@@ -215,14 +227,27 @@ impl BlasterGame {
                     let spd = 3.0f32;
                     enemy.x += dir_x * spd * dt;
                     enemy.z += dir_z * spd * dt;
+                    // 車体は移動方向（＝プレイヤー方向）
+                    let ba = dir_x.atan2(dir_z);
+                    let da = angle_diff(ba, enemy.body_angle);
+                    enemy.body_angle += da * (dt * 5.0).min(1.0);
                 }
                 EnemyKind::Shooter => {
                     let target_dist = 5.0f32;
                     let radial = (dist - target_dist) * 2.0;
                     let tan_x = -dir_z;
                     let tan_z = dir_x;
-                    enemy.x += (dir_x * radial + tan_x * 2.0) * dt;
-                    enemy.z += (dir_z * radial + tan_z * 2.0) * dt;
+                    let mx = dir_x * radial + tan_x * 2.0;
+                    let mz = dir_z * radial + tan_z * 2.0;
+                    enemy.x += mx * dt;
+                    enemy.z += mz * dt;
+                    // 車体は実際の移動方向
+                    let mlen = (mx*mx+mz*mz).sqrt();
+                    if mlen > 0.1 {
+                        let ba = (mx/mlen).atan2(mz/mlen);
+                        let da = angle_diff(ba, enemy.body_angle);
+                        enemy.body_angle += da * (dt * 4.0).min(1.0);
+                    }
                     enemy.shoot_timer -= dt;
                     if enemy.shoot_timer <= 0.0 {
                         enemy.shoot_timer = 2.0;
@@ -233,21 +258,39 @@ impl BlasterGame {
                     }
                 }
             }
+            // 砲塔は常にプレイヤー方向（速く回転）
+            let ta = dir_x.atan2(dir_z);
+            let da = angle_diff(ta, enemy.turret_angle);
+            enemy.turret_angle += da * (dt * 10.0).min(1.0);
             enemy.x = enemy.x.clamp(-9.5, 9.5);
             enemy.z = enemy.z.clamp(-9.5, 9.5);
         }
 
         for (x, y, z, vx, vy, vz, col) in new_bullets {
-            self.bullets.spawn(x, y, z, vx, vy, vz, 3.0, false, col);
+            self.bullets.spawn(x, y, z, vx, vy, vz, 3.0, false, false, col);
         }
     }
 
     fn update_boss(&mut self, dt: f32) {
         if !self.boss.active { return; }
+        let px = self.player_x; let pz = self.player_z;
         let b = &mut self.boss;
+        let prev_x = b.x; let prev_z = b.z;
         b.move_angle += dt * 0.8;
         b.x = b.move_angle.sin() * 5.0;
         b.z = b.move_angle.cos() * 5.0 - 2.0;
+        // 車体は実際の移動方向
+        let mvx = b.x - prev_x; let mvz = b.z - prev_z;
+        if mvx*mvx + mvz*mvz > 0.0001 {
+            let ba = mvx.atan2(mvz);
+            let da = angle_diff(ba, b.body_angle);
+            b.body_angle += da * (dt * 4.0).min(1.0);
+        }
+        // 砲塔はプレイヤー方向
+        let ta = (px - b.x).atan2(pz - b.z);
+        let da = angle_diff(ta, b.turret_angle);
+        b.turret_angle += da * (dt * 6.0).min(1.0);
+
         b.pattern_angle += dt * match b.phase {
             BossPhase::Phase1 => 1.5,
             BossPhase::Phase2 => 2.5,
@@ -269,14 +312,11 @@ impl BlasterGame {
                 BossPhase::Phase3 => 16,
                 BossPhase::Dead   => 0,
             };
-            let bx  = b.x;
-            let bz  = b.z;
+            let bx  = b.x; let bz  = b.z;
             let ang = b.pattern_angle;
             let spd = match b.phase {
-                BossPhase::Phase1 => 6.0f32,
-                BossPhase::Phase2 => 8.0,
-                BossPhase::Phase3 => 10.0,
-                BossPhase::Dead   => 0.0,
+                BossPhase::Phase1 => 6.0f32, BossPhase::Phase2 => 8.0,
+                BossPhase::Phase3 => 10.0,   BossPhase::Dead   => 0.0,
             };
             let mut spawns: Vec<(f32, f32)> = Vec::new();
             for i in 0..count {
@@ -284,7 +324,7 @@ impl BlasterGame {
                 spawns.push((a.sin() * spd, a.cos() * spd));
             }
             for (vx, vz) in spawns {
-                self.bullets.spawn(bx, 0.5, bz, vx, 0.0, vz, 3.5, false, [1.0, 0.5, 0.0]);
+                self.bullets.spawn(bx, 0.5, bz, vx, 0.0, vz, 3.5, false, false, [1.0, 0.5, 0.0]);
             }
         }
     }
@@ -419,7 +459,7 @@ impl BlasterGame {
         let px = self.player_x;
         let pz = self.player_z;
         let mut best_dist2 = f32::MAX;
-        let mut best_angle = self.player_angle;
+        let mut best_angle = self.player_turret_angle;
 
         // 敵を探す
         for enemy in &self.enemies {

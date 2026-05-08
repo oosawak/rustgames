@@ -7,7 +7,8 @@ pub struct Boss {
     pub hp: i32,
     pub max_hp: i32,
     pub phase: BossPhase,
-    pub angle: f32,
+    pub body_angle:   f32,   // 車体（円運動の接線方向）
+    pub turret_angle: f32,   // 砲塔（プレイヤー方向・独立回転）
     pub shoot_timer: f32,
     pub pattern_angle: f32,
     pub move_angle: f32,
@@ -18,8 +19,8 @@ impl Boss {
         Self {
             active: false, x: 0.0, y: 0.5, z: -8.0,
             hp: 60, max_hp: 60, phase: BossPhase::Phase1,
-            angle: 0.0, shoot_timer: 0.0,
-            pattern_angle: 0.0, move_angle: 0.0,
+            body_angle: 0.0, turret_angle: 0.0,
+            shoot_timer: 0.0, pattern_angle: 0.0, move_angle: 0.0,
         }
     }
 

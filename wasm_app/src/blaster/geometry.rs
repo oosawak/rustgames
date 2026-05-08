@@ -3,19 +3,29 @@ use crate::math::{mat_mul, perspective, look_at};
 use super::state::BlasterGame;
 use super::camera_mode::{CameraMode, camera_view};
 
-fn push_box(verts: &mut Vec<Vertex>, idxs: &mut Vec<u32>,
-            cx: f32, cy: f32, cz: f32,
-            sx: f32, sy: f32, sz: f32,
-            col: [f32; 4]) {
+// ── Y 軸回転ヘルパー ─────────────────────────────────────────────────────────
+#[inline]
+fn rot_y(x: f32, z: f32, a: f32) -> (f32, f32) {
+    let (sa, ca) = (a.sin(), a.cos());
+    (x * ca + z * sa, -x * sa + z * ca)
+}
+
+/// タンク中心からのローカルオフセット(ox,oy,oz)と半サイズ(sx,sy,sz)を
+/// Y 軸角 angle で回転したボックスを追加する
+fn push_part(verts: &mut Vec<Vertex>, idxs: &mut Vec<u32>,
+             cx: f32, cy: f32, cz: f32,
+             ox: f32, oy: f32, oz: f32,
+             sx: f32, sy: f32, sz: f32,
+             angle: f32, col: [f32; 4]) {
+    let (rx, rz) = rot_y(ox, oz, angle);
+    let (wcx, wcy, wcz) = (cx + rx, cy + oy, cz + rz);
     let base = verts.len() as u32;
-    let (x0, x1) = (cx - sx, cx + sx);
-    let (y0, y1) = (cy - sy, cy + sy);
-    let (z0, z1) = (cz - sz, cz + sz);
-    for &(x, y, z) in &[
-        (x0,y0,z0),(x1,y0,z0),(x1,y1,z0),(x0,y1,z0),
-        (x0,y0,z1),(x1,y0,z1),(x1,y1,z1),(x0,y1,z1),
+    for &(lx, ly, lz) in &[
+        (-sx,-sy,-sz),(sx,-sy,-sz),(sx,sy,-sz),(-sx,sy,-sz),
+        (-sx,-sy, sz),(sx,-sy, sz),(sx,sy, sz),(-sx,sy, sz),
     ] {
-        verts.push(Vertex { pos: [x, y, z], _p: 0.0, col });
+        let (vx, vz) = rot_y(lx, lz, angle);
+        verts.push(Vertex { pos: [wcx + vx, wcy + ly, wcz + vz], _p: 0.0, col });
     }
     for &(a, b, c, d) in &[
         (0u32,1,2,3),(4,7,6,5),(0,4,5,1),(2,6,7,3),(0,3,7,4),(1,5,6,2)
@@ -24,120 +34,161 @@ fn push_box(verts: &mut Vec<Vertex>, idxs: &mut Vec<u32>,
     }
 }
 
+/// 軸平行ボックス（アリーナ・パーティクル用）
+fn push_box(verts: &mut Vec<Vertex>, idxs: &mut Vec<u32>,
+            cx: f32, cy: f32, cz: f32,
+            sx: f32, sy: f32, sz: f32, col: [f32; 4]) {
+    push_part(verts, idxs, cx, cy, cz, 0.0, 0.0, 0.0, sx, sy, sz, 0.0, col);
+}
+
+/// ダイヤモンド型の弾（インデックス数を節約）
+fn push_diamond(verts: &mut Vec<Vertex>, idxs: &mut Vec<u32>,
+                x: f32, y: f32, z: f32, r: f32, col: [f32; 4]) {
+    let base = verts.len() as u32;
+    for &pos in &[(x,y+r,z),(x,y-r,z),(x+r,y,z),(x-r,y,z),(x,y,z+r),(x,y,z-r)] {
+        verts.push(Vertex { pos: [pos.0, pos.1, pos.2], _p: 0.0, col });
+    }
+    idxs.extend_from_slice(&[
+        base,base+2,base+4, base,base+4,base+3, base,base+3,base+5, base,base+5,base+2,
+        base+1,base+4,base+2, base+1,base+3,base+4, base+1,base+5,base+3, base+1,base+2,base+5,
+    ]);
+}
+
+/// 戦車を描画する
+/// - body_angle  : 車体（車台・履帯）の向き ← 移動方向
+/// - turret_angle: 砲塔・砲身の向き         ← 自動エイム方向（独立回転）
+fn draw_tank(verts: &mut Vec<Vertex>, idxs: &mut Vec<u32>,
+             cx: f32, cz: f32,
+             body_angle: f32, turret_angle: f32,
+             track_col: [f32; 4], hull_col: [f32; 4],
+             turret_col: [f32; 4], barrel_col: [f32; 4]) {
+    // 左右履帯（車体と同方向）
+    push_part(verts,idxs, cx,0.0,cz, -0.60,0.12,0.0, 0.13,0.12,0.86, body_angle, track_col);
+    push_part(verts,idxs, cx,0.0,cz,  0.60,0.12,0.0, 0.13,0.12,0.86, body_angle, track_col);
+    // 車体ハル
+    push_part(verts,idxs, cx,0.0,cz,  0.0,0.42,0.0,  0.50,0.18,0.72, body_angle, hull_col);
+    // 砲塔（turret_angle で独立回転）
+    push_part(verts,idxs, cx,0.0,cz,  0.0,0.76,-0.04, 0.27,0.15,0.24, turret_angle, turret_col);
+    // 砲身（砲塔と同じ angle）
+    push_part(verts,idxs, cx,0.0,cz,  0.0,0.68,0.60,  0.07,0.07,0.30, turret_angle, barrel_col);
+}
+
 pub fn build_blaster_scene(g: &BlasterGame) -> (Vec<Vertex>, Vec<u32>) {
     let mut verts: Vec<Vertex> = Vec::with_capacity(4096);
     let mut idxs:  Vec<u32>   = Vec::with_capacity(8192);
 
-    // ── アリーナ床 ──────────────────────────────────────────────────────────
-    {
-        let base = verts.len() as u32;
-        let s = 10.0f32;
-        let fc = [0.02f32, 0.02, 0.08, 1.0];
-        for &(x, z) in &[(-s, s), (s, s), (s, -s), (-s, -s)] {
-            verts.push(Vertex { pos: [x, -0.05, z], _p: 0.0, col: fc });
-        }
-        idxs.extend_from_slice(&[base, base+1, base+2, base, base+2, base+3]);
+    // ── アリーナ床 ────────────────────────────────────────────────────────────
+    push_box(&mut verts,&mut idxs, 0.0,-0.05,0.0, 10.0,0.05,10.0, [0.02,0.02,0.08,1.0]);
+
+    // ── グリッド線（間引き）────────────────────────────────────────────────────
+    let grid_col = [0.0f32,0.25,0.45,3.0];
+    for i in -5i32..=5 {
+        let fi = i as f32 * 2.0;
+        push_box(&mut verts,&mut idxs, fi,  0.0,0.0,  0.025,0.015,10.0, grid_col);
+        push_box(&mut verts,&mut idxs, 0.0,0.0,fi,   10.0,0.015,0.025, grid_col);
     }
 
-    // ── グリッド線（ネオン cyan・間引いて頂点数を抑える） ───────────────────
-    let grid_col = [0.0f32, 0.3, 0.5, 3.0];
-    for i in (-4i32..=4).step_by(2) {
-        let fi = i as f32 * 2.5;
-        push_box(&mut verts, &mut idxs, fi,  0.0, 0.0, 0.03, 0.02, 10.0, grid_col);
-        push_box(&mut verts, &mut idxs, 0.0, 0.0, fi,  10.0, 0.02, 0.03, grid_col);
-    }
+    // アリーナ外壁
+    let wall_col = [0.0f32,0.5,0.8,3.0];
+    push_box(&mut verts,&mut idxs,  0.0,0.5,-10.1, 10.1,0.5,0.07, wall_col);
+    push_box(&mut verts,&mut idxs,  0.0,0.5, 10.1, 10.1,0.5,0.07, wall_col);
+    push_box(&mut verts,&mut idxs,-10.1,0.5,  0.0, 0.07,0.5,10.1, wall_col);
+    push_box(&mut verts,&mut idxs, 10.1,0.5,  0.0, 0.07,0.5,10.1, wall_col);
 
-    // ── アリーナ外壁 ────────────────────────────────────────────────────────
-    let wall_col = [0.0f32, 0.5, 0.8, 3.0];
-    push_box(&mut verts, &mut idxs,  0.0, 0.5, -10.1, 10.1, 0.6, 0.08, wall_col);
-    push_box(&mut verts, &mut idxs,  0.0, 0.5,  10.1, 10.1, 0.6, 0.08, wall_col);
-    push_box(&mut verts, &mut idxs, -10.1, 0.5,  0.0, 0.08, 0.6, 10.1, wall_col);
-    push_box(&mut verts, &mut idxs,  10.1, 0.5,  0.0, 0.08, 0.6, 10.1, wall_col);
-
-    // ── 自機 ────────────────────────────────────────────────────────────────
+    // ── 自機（プレイヤー戦車） ────────────────────────────────────────────────
     if g.player_hp > 0 {
-        let (px, py, pz) = (g.player_x, 0.5f32, g.player_z);
-        let ang = g.player_angle;
-        let (s, c) = (ang.sin(), ang.cos());
-        let ship_col = [0.2f32, 0.8, 1.0, 3.0];
-        let tip  = [px + s*0.5,        py,       pz + c*0.5];
-        let lr   = [px - c*0.25,       py,       pz + s*0.25];
-        let rr   = [px + c*0.25,       py,       pz - s*0.25];
-        let rear = [px - s*0.4,        py,       pz - c*0.4];
-        let wl   = [px - s*0.15 - c*0.5, py,     pz - c*0.15 + s*0.5];
-        let wr   = [px - s*0.15 + c*0.5, py,     pz - c*0.15 - s*0.5];
-        let top  = [px, py + 0.3, pz];
-        let base = verts.len() as u32;
-        for &pos in &[tip, lr, rr, rear, wl, wr, top] {
-            let col = if pos == top { [0.5f32, 0.9, 1.0, 3.0] } else { ship_col };
-            verts.push(Vertex { pos, _p: 0.0, col });
+        let flash = (g.invincible > 0.0) && ((g.time * 8.0) as i32 % 2 == 0);
+        if !flash {
+            draw_tank(&mut verts, &mut idxs,
+                g.player_x, g.player_z,
+                g.player_body_angle, g.player_turret_angle,
+                [0.02,0.20,0.55,3.0],  // 履帯
+                [0.08,0.45,0.85,3.0],  // 車体
+                [0.15,0.65,1.00,3.0],  // 砲塔
+                [0.40,0.90,1.00,3.0],  // 砲身
+            );
         }
-        // base=tip, +1=lr, +2=rr, +3=rear, +4=wl, +5=wr, +6=top
-        idxs.extend_from_slice(&[
-            base,   base+1, base+6,
-            base,   base+6, base+2,
-            base,   base+1, base+3,
-            base,   base+2, base+3,
-            base+1, base+4, base+3,
-            base+2, base+3, base+5,
-        ]);
     }
 
-    // ── 敵 ──────────────────────────────────────────────────────────────────
+    // ── 敵戦車 ────────────────────────────────────────────────────────────────
     for enemy in &g.enemies {
         if !enemy.active { continue; }
-        let col = match enemy.kind {
-            super::enemy::EnemyKind::Basic   => [1.0f32, 0.3, 0.1, 3.0],
-            super::enemy::EnemyKind::Shooter => [1.0f32, 0.1, 0.8, 3.0],
+        let (track_col, hull_col, turret_col, barrel_col) = match enemy.kind {
+            super::enemy::EnemyKind::Basic => (
+                [0.30f32,0.05,0.02,3.0],
+                [0.65,0.15,0.04,3.0],
+                [0.85,0.30,0.08,3.0],
+                [1.00,0.50,0.15,3.0],
+            ),
+            super::enemy::EnemyKind::Shooter => (
+                [0.25f32,0.02,0.35,3.0],
+                [0.55,0.04,0.75,3.0],
+                [0.80,0.10,1.00,3.0],
+                [1.00,0.35,1.00,3.0],
+            ),
         };
-        let sz = match enemy.kind {
-            super::enemy::EnemyKind::Basic   => 0.35,
-            super::enemy::EnemyKind::Shooter => 0.45,
-        };
-        push_box(&mut verts, &mut idxs, enemy.x, enemy.y, enemy.z, sz, sz, sz, col);
-        let hp_ratio = enemy.hp as f32 / enemy.max_hp as f32;
-        let bar_col = [1.0 - hp_ratio, hp_ratio, 0.0, 3.0];
-        push_box(&mut verts, &mut idxs, enemy.x, enemy.y + sz + 0.15, enemy.z,
-                 hp_ratio * sz, 0.06, 0.06, bar_col);
+        draw_tank(&mut verts, &mut idxs,
+            enemy.x, enemy.z,
+            enemy.body_angle, enemy.turret_angle,
+            track_col, hull_col, turret_col, barrel_col,
+        );
+        // HP バー（砲塔上空）
+        let hp_ratio = (enemy.hp as f32 / enemy.max_hp as f32).clamp(0.0,1.0);
+        push_box(&mut verts,&mut idxs,
+            enemy.x, 1.5, enemy.z,
+            hp_ratio * 0.4, 0.05, 0.05,
+            [1.0-hp_ratio, hp_ratio, 0.0, 3.0]);
     }
 
-    // ── ボス ────────────────────────────────────────────────────────────────
+    // ── ボス戦車（大型・2砲塔） ───────────────────────────────────────────────
     if g.boss.active {
         let b = &g.boss;
-        let phase_col: [f32; 4] = match b.phase {
-            super::boss::BossPhase::Phase1 => [1.0, 0.5, 0.0, 3.0],
-            super::boss::BossPhase::Phase2 => [1.0, 0.1, 0.5, 3.0],
-            super::boss::BossPhase::Phase3 => [1.0, 0.0, 0.0, 3.0],
-            super::boss::BossPhase::Dead   => [0.3, 0.3, 0.3, 3.0],
+        let phase_col: ([f32;4],[f32;4],[f32;4],[f32;4]) = match b.phase {
+            super::boss::BossPhase::Phase1 =>
+                ([0.35,0.18,0.02,3.0],[0.70,0.35,0.05,3.0],[0.90,0.55,0.10,3.0],[1.0,0.75,0.20,3.0]),
+            super::boss::BossPhase::Phase2 =>
+                ([0.40,0.02,0.20,3.0],[0.80,0.05,0.45,3.0],[1.00,0.10,0.65,3.0],[1.0,0.30,0.80,3.0]),
+            super::boss::BossPhase::Phase3 =>
+                ([0.35,0.00,0.00,3.0],[0.75,0.00,0.00,3.0],[1.00,0.05,0.05,3.0],[1.0,0.20,0.20,3.0]),
+            super::boss::BossPhase::Dead =>
+                ([0.15,0.15,0.15,3.0],[0.25,0.25,0.25,3.0],[0.30,0.30,0.30,3.0],[0.35,0.35,0.35,3.0]),
         };
-        push_box(&mut verts, &mut idxs, b.x, b.y,       b.z, 1.2, 0.5, 1.2, phase_col);
-        push_box(&mut verts, &mut idxs, b.x, b.y + 0.5, b.z, 0.4, 0.4, 0.4, [1.0, 1.0, 0.5, 3.0]);
+        // 大型車体（1.6倍スケール）
+        push_part(&mut verts,&mut idxs, b.x,0.0,b.z, -0.92,0.19,0.0, 0.21,0.19,1.35, b.body_angle, phase_col.0);
+        push_part(&mut verts,&mut idxs, b.x,0.0,b.z,  0.92,0.19,0.0, 0.21,0.19,1.35, b.body_angle, phase_col.0);
+        push_part(&mut verts,&mut idxs, b.x,0.0,b.z,  0.0,0.67,0.0,  0.78,0.27,1.15, b.body_angle, phase_col.1);
+        // 砲塔（大型・独立回転）
+        push_part(&mut verts,&mut idxs, b.x,0.0,b.z,  0.0,1.22,-0.06, 0.42,0.24,0.38, b.turret_angle, phase_col.2);
+        // 左右2本の砲身
+        push_part(&mut verts,&mut idxs, b.x,0.0,b.z, -0.18,1.08,0.95, 0.09,0.09,0.48, b.turret_angle, phase_col.3);
+        push_part(&mut verts,&mut idxs, b.x,0.0,b.z,  0.18,1.08,0.95, 0.09,0.09,0.48, b.turret_angle, phase_col.3);
+        // HP バー
         let hp_ratio = (b.hp as f32 / b.max_hp as f32).max(0.0);
-        push_box(&mut verts, &mut idxs, b.x, b.y + 1.2, b.z,
-                 hp_ratio * 2.0, 0.1, 0.1, [1.0 - hp_ratio, hp_ratio, 0.0, 3.0]);
+        push_box(&mut verts,&mut idxs, b.x,2.2,b.z, hp_ratio*1.8,0.1,0.1,
+                 [1.0-hp_ratio,hp_ratio,0.0,3.0]);
     }
 
-    // ── 弾 ──────────────────────────────────────────────────────────────────
+    // ── 弾（ダイヤモンド型） ──────────────────────────────────────────────────
     for bullet in &g.bullets.pool {
         if !bullet.active { continue; }
-        let r = if bullet.is_player { 0.12 } else { 0.10 };
+        let r = if bullet.is_player { 0.15 } else { 0.12 };
         let col = [bullet.col[0], bullet.col[1], bullet.col[2], 3.0f32];
-        push_box(&mut verts, &mut idxs, bullet.x, bullet.y, bullet.z, r, r, r, col);
+        push_diamond(&mut verts, &mut idxs, bullet.x, bullet.y, bullet.z, r, col);
     }
 
     // ── パーティクル ────────────────────────────────────────────────────────
     for p in &g.particles {
         if p.life <= 0.0 { continue; }
-        let alpha = (p.life / p.max_life).min(1.0);
-        let col = [p.col[0] * alpha, p.col[1] * alpha, p.col[2] * alpha, 3.0f32];
-        push_box(&mut verts, &mut idxs, p.x, p.y, p.z, 0.08, 0.08, 0.08, col);
+        let a = (p.life / p.max_life).min(1.0);
+        let col = [p.col[0]*a, p.col[1]*a, p.col[2]*a, 3.0f32];
+        push_diamond(&mut verts, &mut idxs, p.x, p.y, p.z, 0.1, col);
     }
 
     (verts, idxs)
 }
 
 pub fn build_blaster_uni(g: &BlasterGame, aspect: f32) -> Uni {
-    let [eye, ctr] = camera_view(g.camera, [g.player_x, 0.5, g.player_z], g.player_angle);
+    let [eye, ctr] = camera_view(g.camera, [g.player_x, 0.5, g.player_z], g.player_body_angle);
     let up = match g.camera {
         CameraMode::Top => [0.0f32, 1.0, 0.01],
         _ => [0.0, 1.0, 0.0],
@@ -162,3 +213,4 @@ pub fn build_blaster_uni(g: &BlasterGame, aspect: f32) -> Uni {
         fog_col: [0.0, 0.0, 0.02, 1.0],
     }
 }
+
