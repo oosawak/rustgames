@@ -166,6 +166,44 @@
     let currentRomName = '';
     let audioCtx = null, audioQueue = 0;
 
+    // BGM system
+    let bgmNodes = [];
+    let bgmCtx = null;
+    let bgmTimer = null;
+
+    function startBgm() {
+      stopBgm();
+      if (!audioCtx) ensureAudio();
+      bgmCtx = audioCtx;
+      const NOTES = [523, 659, 784, 1047, 784, 659, 523, 392];
+      const DUR = 0.13;
+      let t = bgmCtx.currentTime + 0.1;
+      function scheduleMeasure() {
+        for (let i = 0; i < NOTES.length; i++) {
+          const osc = bgmCtx.createOscillator();
+          const gain = bgmCtx.createGain();
+          osc.type = 'square';
+          osc.frequency.value = NOTES[i];
+          gain.gain.setValueAtTime(0.08, t + i * DUR);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + i * DUR + DUR * 0.9);
+          osc.connect(gain);
+          gain.connect(bgmCtx.destination);
+          osc.start(t + i * DUR);
+          osc.stop(t + i * DUR + DUR);
+          bgmNodes.push(osc);
+        }
+        t += NOTES.length * DUR;
+        bgmTimer = setTimeout(scheduleMeasure, (t - bgmCtx.currentTime - 0.5) * 1000);
+      }
+      scheduleMeasure();
+    }
+
+    function stopBgm() {
+      clearTimeout(bgmTimer);
+      bgmNodes.forEach(n => { try { n.stop(); } catch(e){} });
+      bgmNodes = [];
+    }
+
     function ensureAudio() {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
       if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -193,6 +231,7 @@
     }
 
     function ejectRom() {
+      stopBgm();
       currentRomData = null;
       currentRomName = '';
       document.querySelectorAll('.rom-btn').forEach(b => b.classList.remove('active'));
@@ -207,6 +246,7 @@
       currentRomName = name;
       wasm.load_rom_msx(data);
       status.textContent = '▶ ' + name + ' 実行中';
+      startBgm();
     }
 
     async function main() {

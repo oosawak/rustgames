@@ -105,6 +105,7 @@ COL_TEXT    EQU 15  ; white text
 START:
         DI
         LD      SP, $F380       ; safe stack in RAM
+        EI                      ; enable interrupts (needed for BIOS)
 
         ; Init VDP
         CALL    INIT_VDP
@@ -118,12 +119,11 @@ START:
 
         ; Main game loop
 MAIN_LOOP:
-        ; Wait for VSYNC (read JIFFY until it changes)
-        LD      A, (JIFFY)
+        ; Wait for VSYNC by polling VDP status bit 7
 WAIT_VBL:
-        CP      (JIFFY)
-        JR      Z, WAIT_VBL
-        LD      A, (JIFFY)
+        IN      A, ($99)        ; read VDP status register
+        AND     $80             ; check VBLANK flag (bit 7)
+        JR      Z, WAIT_VBL    ; wait until VBLANK
 
         LD      A, (FRAME)
         INC     A

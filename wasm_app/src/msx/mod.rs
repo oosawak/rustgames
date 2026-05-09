@@ -35,6 +35,7 @@ impl MsxState {
 
         // Set VBLANK pending and trigger INT if enabled
         self.bus.vdp.int_pending = true;
+        self.bus.vdp.status |= 0x80;  // VBLANK flag (bit 7)
         if self.bus.vdp.take_interrupt() {
             let data = match self.cpu.im {
                 2 => 0xFF,
@@ -53,6 +54,10 @@ impl MsxState {
 
         self.bus.vdp.render_frame(&mut self.frame_buffer);
         self.audio_buffer = self.bus.psg.take_samples();
+
+        // Update JIFFY counter at $FC9E in RAM (MSX BIOS work area)
+        let jiffy = self.bus.ram[0xFC9E].wrapping_add(1);
+        self.bus.ram[0xFC9E] = jiffy;
     }
 
     pub fn frame_buffer(&self) -> &[u8] {
