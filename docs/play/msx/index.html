@@ -123,9 +123,28 @@
       color: #0a0;
       white-space: pre;
       overflow-x: auto;
-      max-height: 80px;
+      max-height: 120px;
       min-height: 1em;
+      overflow-y: auto;
     }
+    #debug-bar {
+      width: 100%;
+      display: flex;
+      justify-content: flex-end;
+      background: #001100;
+      padding: 2px 8px;
+      border-top: 1px solid #030;
+    }
+    #btn-copy-log {
+      background: #000;
+      color: #0f0;
+      border: 1px solid #0f0;
+      font-family: monospace;
+      font-size: 10px;
+      padding: 2px 8px;
+      cursor: pointer;
+    }
+    #btn-copy-log:active { background: #0f0; color: #000; }
   </style>
 </head>
 <body>
@@ -140,6 +159,9 @@
   </div>
 
   <canvas id="msx-canvas" width="256" height="192"></canvas>
+  <div id="debug-bar">
+    <button id="btn-copy-log">📋 ログをコピー</button>
+  </div>
   <div id="debug-panel">デバッグ情報はここに表示されます...</div>
 
   <div id="gamepad">
@@ -191,6 +213,7 @@
       ]);
       if (r1.ok) wasm.load_bios_msx(new Uint8Array(await r1.arrayBuffer()));
       if (r2.ok) wasm.load_sub_rom_msx(new Uint8Array(await r2.arrayBuffer()));
+      dbgLog(`BIOS loaded: main=${r1.ok} sub=${r2.ok}`);
     }
 
     async function resetMsx() {
@@ -199,8 +222,10 @@
       await loadBios();
       if (currentRomData) {
         wasm.load_rom_msx(currentRomData);
+        dbgLog(`RESET with ROM: ${currentRomName}`);
         status.textContent = '🔄 RESET — ▶ ' + currentRomName;
       } else {
+        dbgLog('RESET (no ROM)');
         status.textContent = '🔄 RESET';
       }
     }
@@ -225,6 +250,7 @@
       status.textContent = '▶ ' + name + ' 実行中';
       console.log('[MSX] ROM loaded & reset:', name, 'size=', data.length, 'bytes',
                   'magic=', data[0].toString(16), data[1].toString(16));
+      dbgLog(`ROM load: ${name} size=${data.length} magic=${data[0].toString(16)}${data[1].toString(16)}`);
     }
 
     async function main() {
@@ -241,6 +267,24 @@
       const ctx       = canvas.getContext('2d');
       const imageData = ctx.createImageData(256, 192);
       const debugEl   = document.getElementById('debug-panel');
+      const logLines  = [];
+
+      function dbgLog(msg) {
+        const ts = new Date().toISOString().slice(11,23);
+        const line = `[${ts}] ${msg}`;
+        logLines.push(line);
+        if (logLines.length > 50) logLines.shift();
+        debugEl.textContent = logLines.join('\n');
+        debugEl.scrollTop = debugEl.scrollHeight;
+        console.log('[MSX]', msg);
+      }
+
+      document.getElementById('btn-copy-log').addEventListener('click', () => {
+        navigator.clipboard.writeText(logLines.join('\n')).then(() => {
+          document.getElementById('btn-copy-log').textContent = '✅ コピー完了';
+          setTimeout(() => { document.getElementById('btn-copy-log').textContent = '📋 ログをコピー'; }, 1500);
+        });
+      });
 
       let frameCount = 0;
       function analyzeFrame(buf) {
@@ -270,9 +314,7 @@
         if (frameCount % 60 === 0) {
           const a = analyzeFrame(fb);
           const pct = Math.round(a.nonBlack / a.total * 100);
-          const line = `frame=${frameCount} 非黒=${pct}% (${a.nonBlack}px)\n上位色: ${a.topColors || 'なし（全黒）'}`;
-          debugEl.textContent = line;
-          console.log('[MSX]', line);
+          dbgLog(`frame=${frameCount} 非黒=${pct}% (${a.nonBlack}px) ${a.topColors || '全黒'}`);
         }
 
         if (audioCtx) {
