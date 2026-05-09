@@ -75,7 +75,7 @@
 <script type="module">
 import init, {
   init_pacman, tick_pacman, draw_pacman, set_input_pacman,
-  score_pacman, lives_pacman, phase_pacman
+  score_pacman, lives_pacman, phase_pacman, audio_event_pacman
 } from './wasm/wasm_app.js';
 
 await init();
@@ -84,9 +84,60 @@ const titleScreen = document.getElementById('title-screen');
 const scoreDisplay = document.getElementById('score-display');
 const livesDisplay = document.getElementById('lives-display');
 
-let started = false;
-let lastTime = null;
-let currentDir = 0;
+// --- Audio ---
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+let actx = null;
+function getACtx() {
+  if (!actx) actx = new AudioContext();
+  if (actx.state === 'suspended') actx.resume();
+  return actx;
+}
+function playTone(freq, type, dur, vol, freqEnd) {
+  try {
+    const ctx = getACtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    if (freqEnd !== undefined) osc.frequency.linearRampToValueAtTime(freqEnd, ctx.currentTime + dur);
+    gain.gain.setValueAtTime(vol, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    osc.start(); osc.stop(ctx.currentTime + dur);
+  } catch(e) {}
+}
+let dotToggle = false;
+function playAudio(ev) {
+  switch(ev) {
+    case 1: // ドット食べ (交互に音程変化)
+      dotToggle = !dotToggle;
+      playTone(dotToggle ? 440 : 494, 'square', 0.04, 0.08);
+      break;
+    case 2: // パワーペレット
+      playTone(200, 'sawtooth', 0.12, 0.3, 800);
+      setTimeout(() => playTone(800, 'sine', 0.2, 0.25), 100);
+      break;
+    case 3: // ゴースト食べ
+      playTone(800, 'sine', 0.06, 0.3);
+      setTimeout(() => playTone(600, 'sine', 0.06, 0.25), 60);
+      setTimeout(() => playTone(1000, 'sine', 0.1, 0.3), 120);
+      break;
+    case 4: // 死亡
+      playTone(440, 'sawtooth', 0.5, 0.4, 110);
+      setTimeout(() => playTone(330, 'sawtooth', 0.4, 0.3, 82), 200);
+      setTimeout(() => playTone(220, 'square', 0.3, 0.25, 55), 400);
+      break;
+    case 5: // レベルクリア
+      [523, 659, 784, 1047].forEach((f, i) =>
+        setTimeout(() => playTone(f, 'sine', 0.2, 0.3), i * 120));
+      break;
+    case 6: // ゲームオーバー
+      playTone(300, 'sawtooth', 1.0, 0.4, 60);
+      setTimeout(() => playTone(250, 'sawtooth', 0.8, 0.35, 50), 300);
+      break;
+  }
+}
+let prevAudioEvent = 0;
 
 function startGame() {
   if (started) return;
@@ -102,6 +153,14 @@ function loop(ts) {
 
   tick_pacman(dt);
   draw_pacman();
+
+  // Audio
+  const ae = audio_event_pacman();
+  if (ae !== 0 && ae !== prevAudioEvent) {
+    playAudio(ae);
+    prevAudioEvent = ae;
+  }
+  if (ae === 0) prevAudioEvent = 0;
 
   const score = score_pacman();
   const lives = lives_pacman();

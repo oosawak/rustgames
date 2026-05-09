@@ -10,7 +10,6 @@ pub struct Player {
     pub alive: bool,
     pub anim_frame: f64,
     pub cell: f64,
-    last_cell: (i32, i32),
 }
 
 // 0=上, 1=右, 2=下, 3=左
@@ -24,7 +23,6 @@ impl Player {
             dir: 3, next_dir: 3,
             speed: cell * 7.5,
             alive: true, anim_frame: 0.0, cell,
-            last_cell: (26, 13),
         }
     }
 
@@ -33,7 +31,6 @@ impl Player {
         self.y = 26.0 * self.cell;
         self.dir = 3; self.next_dir = 3;
         self.alive = true; self.anim_frame = 0.0;
-        self.last_cell = (26, 13);
     }
 
     pub fn row(&self) -> i32 { (self.y / self.cell).round() as i32 }
@@ -52,49 +49,64 @@ impl Player {
         let col = self.col();
         let cx = col as f64 * self.cell;
         let cy = row as f64 * self.cell;
+        let thresh = self.cell * 0.45; // セル中心への吸着閾値
 
-        // 新しいセルに入ったとき方向転換を試みる
-        if (row, col) != self.last_cell {
-            self.last_cell = (row, col);
+        // 毎フレーム: next_dir への転換を試みる
+        let nd = self.next_dir;
+        if nd != self.dir {
+            let is_reverse = nd == (self.dir + 2) % 4;
+            let nd_is_horiz = nd == 1 || nd == 3;
 
-            // 逆方向は即転換
-            if self.next_dir == (self.dir + 2) % 4 {
-                self.dir = self.next_dir;
-                self.x = cx; self.y = cy;
+            let can_turn = if is_reverse {
+                // 逆方向: 両軸ともセル中心近くなら即転換
+                (self.x - cx).abs() < thresh && (self.y - cy).abs() < thresh
             } else {
-                // 直角方向: 先が通れるなら転換
-                let nd = self.next_dir;
-                let nr = row + DIR_DY[nd as usize];
-                let nc = col + DIR_DX[nd as usize];
-                if map.is_passable(nr, nc) {
-                    self.dir = nd;
-                    self.x = cx; self.y = cy;
+                // 直角方向: 垂直軸がセル中心近くで、かつ進行方向が通れる
+                let aligned = if nd_is_horiz {
+                    (self.y - cy).abs() < thresh
+                } else {
+                    (self.x - cx).abs() < thresh
+                };
+                if aligned {
+                    let nr = row + DIR_DY[nd as usize];
+                    let nc = (col + DIR_DX[nd as usize]).rem_euclid(COLS as i32);
+                    map.is_passable(nr, nc)
+                } else {
+                    false
                 }
+            };
+
+            if can_turn {
+                self.dir = nd;
+                // 垂直軸をセル中心にスナップ
+                if nd_is_horiz { self.y = cy; } else { self.x = cx; }
             }
         }
 
-        // 前方の壁チェック
+        // 現在方向への移動: 次のセルが壁なら止まる
         let d = self.dir as usize;
         let next_r = row + DIR_DY[d];
-        let next_c = col + DIR_DX[d];
+        let next_c = (col + DIR_DX[d]).rem_euclid(COLS as i32);
 
-        // セル境界を越えるか？
-        let crossing = match d {
-            0 => self.y - dist < cy,          // 上: 現在セルの上端を越える
-            1 => self.x + dist > cx + self.cell - 1.0, // 右
-            2 => self.y + dist > cy + self.cell - 1.0, // 下
-            3 => self.x - dist < cx,          // 左
+        // セル境界を越えるかどうかチェック
+        let half = self.cell * 0.5;
+        let will_cross = match d {
+            0 => self.y - dist < cy - half,   // 上
+            1 => self.x + dist > cx + half,   // 右
+            2 => self.y + dist > cy + half,   // 下
+            3 => self.x - dist < cx - half,   // 左
             _ => false,
         };
 
-        if crossing && map.is_wall(next_r, next_c) {
-            // 壁手前のセル中央で止まる
-            self.x = cx; self.y = cy;
+        if will_cross && map.is_wall(next_r, next_c) {
+            // 壁手前のセル中央にスナップして停止
+            self.x = cx;
+            self.y = cy;
             return;
         }
 
-        // トンネル
-        if row == 13 || row == 14 {
+        // トンネル (row 13)
+        if row == 13 {
             let w = COLS as f64 * self.cell;
             self.x = ((self.x + DIR_DX[d] as f64 * dist) % w + w) % w;
             self.y += DIR_DY[d] as f64 * dist;

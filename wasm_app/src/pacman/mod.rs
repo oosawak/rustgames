@@ -15,6 +15,7 @@ pub enum GamePhase {
     LevelClear,
 }
 
+// audio_event: 0=なし, 1=ドット, 2=パワーペレット, 3=ゴースト食べ, 4=死亡, 5=レベルクリア, 6=ゲームオーバー
 pub struct PacmanGame {
     pub map: Map,
     pub player: Player,
@@ -27,6 +28,7 @@ pub struct PacmanGame {
     pub time: f64,
     pub ctx: CanvasRenderingContext2d,
     pub cell: f64,
+    pub audio_event: u8,
     dying_timer: f32,
     scatter_timer: f32,
     scatter_phase: u8,
@@ -55,6 +57,7 @@ impl PacmanGame {
             time: 0.0,
             ctx,
             cell,
+            audio_event: 0,
             dying_timer: 0.0,
             scatter_timer: 7.0,
             scatter_phase: 0,
@@ -70,6 +73,7 @@ impl PacmanGame {
                 self.dying_timer -= dt;
                 if self.dying_timer <= 0.0 {
                     if self.lives == 0 {
+                        self.audio_event = 6; // ゲームオーバー
                         self.state = GamePhase::GameOver;
                     } else {
                         self.reset_after_death();
@@ -107,6 +111,8 @@ impl PacmanGame {
             }
         }
 
+        self.audio_event = 0; // 毎フレームリセット
+
         // Update player
         self.player.update(dt, &self.map);
 
@@ -116,15 +122,19 @@ impl PacmanGame {
         if pts > 0 {
             self.score += pts;
             if pts == 50 {
+                self.audio_event = 2; // パワーペレット
                 self.power_timer = 8.0;
                 for g in &mut self.ghosts {
                     g.frighten();
                 }
+            } else {
+                self.audio_event = 1; // 通常ドット
             }
         }
 
         self.dot_count = self.map.remaining_dots();
         if self.dot_count == 0 {
+            self.audio_event = 5; // レベルクリア
             self.state = GamePhase::LevelClear;
             return;
         }
@@ -146,9 +156,11 @@ impl PacmanGame {
                     GhostMode::Frightened => {
                         g.mode = GhostMode::Eaten;
                         self.score += 200;
+                        self.audio_event = 3; // ゴースト食べ
                     }
                     GhostMode::Eaten => {}
                     _ => {
+                        self.audio_event = 4; // 死亡
                         self.state = GamePhase::Dying;
                         self.dying_timer = 2.0;
                         self.lives = self.lives.saturating_sub(1);

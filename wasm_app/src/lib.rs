@@ -1,5 +1,6 @@
 // エントリーポイント: モジュール宣言と #[wasm_bindgen] エクスポート関数のみを含む薄いファイル
 
+pub mod msx;
 pub mod constants;
 pub mod shader;
 pub mod math;
@@ -309,4 +310,61 @@ pub fn phase_pacman() -> u8 {
         pacman::GamePhase::GameOver  => 2,
         pacman::GamePhase::LevelClear => 3,
     }).unwrap_or(0))
+}
+
+#[wasm_bindgen]
+pub fn audio_event_pacman() -> u8 {
+    PACMAN.with(|p| p.borrow().as_ref().map(|g| g.audio_event).unwrap_or(0))
+}
+
+// ── MSX エミュレータ ─────────────────────────────────────────────────────────
+
+thread_local! {
+    static MSX: std::cell::RefCell<Option<msx::MsxState>> = std::cell::RefCell::new(None);
+}
+
+#[wasm_bindgen]
+pub fn init_msx() {
+    console_error_panic_hook::set_once();
+    MSX.with(|s| *s.borrow_mut() = Some(msx::MsxState::new()));
+}
+
+#[wasm_bindgen]
+pub fn load_bios_msx(data: &[u8]) {
+    MSX.with(|s| { if let Some(m) = s.borrow_mut().as_mut() { m.bus.load_bios(data); } });
+}
+
+#[wasm_bindgen]
+pub fn load_sub_rom_msx(data: &[u8]) {
+    MSX.with(|s| { if let Some(m) = s.borrow_mut().as_mut() { m.bus.load_sub_rom(data); } });
+}
+
+#[wasm_bindgen]
+pub fn load_rom_msx(data: &[u8]) {
+    MSX.with(|s| { if let Some(m) = s.borrow_mut().as_mut() { m.bus.load_rom(data); } });
+}
+
+#[wasm_bindgen]
+pub fn tick_msx() {
+    MSX.with(|s| { if let Some(m) = s.borrow_mut().as_mut() { m.tick_frame(); } });
+}
+
+#[wasm_bindgen]
+pub fn frame_buffer_msx() -> Vec<u8> {
+    MSX.with(|s| s.borrow().as_ref().map(|m| m.frame_buffer.clone()).unwrap_or_default())
+}
+
+#[wasm_bindgen]
+pub fn audio_samples_msx() -> Vec<f32> {
+    MSX.with(|s| s.borrow_mut().as_mut().map(|m| m.bus.psg.take_samples()).unwrap_or_default())
+}
+
+#[wasm_bindgen]
+pub fn key_down_msx(code: &str) {
+    MSX.with(|s| { if let Some(m) = s.borrow_mut().as_mut() { m.bus.keyboard.key_down(code); } });
+}
+
+#[wasm_bindgen]
+pub fn key_up_msx(code: &str) {
+    MSX.with(|s| { if let Some(m) = s.borrow_mut().as_mut() { m.bus.keyboard.key_up(code); } });
 }

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>MSX Emulator — RustGames</title>
+  <style>
+    body {
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      font-family: monospace;
+      color: #0f0;
+    }
+    h1 { margin: 8px 0; font-size: 18px; letter-spacing: 2px; }
+    canvas {
+      width: 512px;
+      height: 384px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      border: 2px solid #0f0;
+      cursor: none;
+      display: block;
+    }
+    #status { margin: 8px 0; font-size: 13px; min-height: 1.4em; }
+    #drop-zone {
+      border: 2px dashed #0f0;
+      padding: 8px 24px;
+      margin: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 0.2s;
+    }
+    #drop-zone.drag-over { background: #020; }
+    #info { font-size: 11px; color: #080; margin: 4px 0; }
+  </style>
+</head>
+<body>
+  <h1>MSX1 EMULATOR</h1>
+  <div id="status">Loading C-BIOS...</div>
+  <canvas id="msx-canvas" width="256" height="192"></canvas>
+  <div id="drop-zone">🎮 ROMファイルをここにドロップ (.rom / .ROM)</div>
+  <div id="info">C-BIOS: https://cbios.sourceforge.net/ — keyboard: direct mapping</div>
+
+  <script type="module">
+    import init, * as wasm from './wasm/wasm_app.js';
+
+    async function main() {
+      await init();
+      wasm.init_msx();
+
+      const status = document.getElementById('status');
+
+      // Fetch C-BIOS
+      try {
+        const [mainResp, subResp] = await Promise.all([
+          fetch('./cbios/cbios_main_msx1.rom'),
+          fetch('./cbios/cbios_sub.rom'),
+        ]);
+        if (!mainResp.ok) throw new Error(`C-BIOS main ROM not found (HTTP ${mainResp.status})`);
+        if (!subResp.ok)  throw new Error(`C-BIOS sub ROM not found (HTTP ${subResp.status})`);
+        const mainData = new Uint8Array(await mainResp.arrayBuffer());
+        const subData  = new Uint8Array(await subResp.arrayBuffer());
+        wasm.load_bios_msx(mainData);
+        wasm.load_sub_rom_msx(subData);
+        status.textContent = `C-BIOS loaded (main: ${mainData.length}B, sub: ${subData.length}B). Ready.`;
+      } catch (e) {
+        status.textContent = `BIOS: ${e.message} — Drop a ROM to continue without BIOS`;
+      }
+
+      // Canvas 2D context
+      const canvas = document.getElementById('msx-canvas');
+      const ctx = canvas.getContext('2d');
+      const imageData = ctx.createImageData(256, 192);
+
+      // Web Audio API
+      let audioCtx = null;
+      let audioQueue = 0; // seconds of buffered audio
+      function ensureAudio() {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
+        }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+      }
+
+      // Game loop
+      function loop() {
+        wasm.tick_msx();
+
+        // Render frame
+        const fb = wasm.frame_buffer_msx();
+        imageData.data.set(fb);
+        ctx.putImageData(imageData, 0, 0);
+
+        // Audio
+        if (audioCtx) {
+          const samples = wasm.audio_samples_msx();
+          if (samples.length > 0) {
+            const buf = audioCtx.createBuffer(1, samples.length, 44100);
+            buf.copyToChannel(samples, 0);
+            const src = audioCtx.createBufferSource();
+            src.buffer = buf;
+            src.connect(audioCtx.destination);
+            const startAt = Math.max(audioCtx.currentTime, audioCtx.currentTime + audioQueue);
+            src.start(startAt);
+            audioQueue = Math.max(0, startAt - audioCtx.currentTime) + samples.length / 44100;
+            // Drain queue slowly to avoid buildup
+            audioQueue = Math.max(0, audioQueue - 1/60);
+          }
+        }
+
+        requestAnimationFrame(loop);
+      }
+      requestAnimationFrame(loop);
+
+      // Keyboard events
+      document.addEventListener('keydown', e => {
+        ensureAudio();
+        e.preventDefault();
+        wasm.key_down_msx(e.code);
+      });
+      document.addEventListener('keyup', e => {
+        e.preventDefault();
+        wasm.key_up_msx(e.code);
+      });
+
+      // ROM drag & drop
+      const dropZone = document.getElementById('drop-zone');
+      dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+      dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+      dropZone.addEventListener('drop', async e => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        ensureAudio();
+        const file = e.dataTransfer.files[0];
+        if (!file) return;
+        const data = new Uint8Array(await file.arrayBuffer());
+        wasm.load_rom_msx(data);
+        status.textContent = `ROM loaded: ${file.name} (${data.length} bytes)`;
+      });
+
+      // Also allow click-to-load
+      dropZone.addEventListener('click', () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.rom,.ROM,.bin,.BIN';
+        input.onchange = async () => {
+          if (!input.files[0]) return;
+          ensureAudio();
+          const data = new Uint8Array(await input.files[0].arrayBuffer());
+          wasm.load_rom_msx(data);
+          status.textContent = `ROM loaded: ${input.files[0].name} (${data.length} bytes)`;
+        };
+        input.click();
+      });
+    }
+
+    main().catch(e => {
+      document.getElementById('status').textContent = `Error: ${e.message}`;
+      console.error(e);
+    });
+  </script>
+</body>
+</html>
