@@ -68,16 +68,16 @@
     }
     #dpad {
       display: grid;
-      grid-template-columns: repeat(3, 54px);
-      grid-template-rows: repeat(3, 54px);
-      gap: 3px;
+      grid-template-columns: repeat(3, 72px);
+      grid-template-rows: repeat(3, 72px);
+      gap: 5px;
     }
     .dpad-btn {
       background: #111;
-      border: 1px solid #0f0;
-      border-radius: 6px;
+      border: 2px solid #0f0;
+      border-radius: 10px;
       color: #0f0;
-      font-size: 20px;
+      font-size: 28px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -90,17 +90,17 @@
     .dpad-empty { background: transparent; border: none; }
     #action-btns {
       display: grid;
-      grid-template-columns: repeat(2, 58px);
-      grid-template-rows: repeat(2, 58px);
-      gap: 8px;
+      grid-template-columns: repeat(2, 74px);
+      grid-template-rows: repeat(2, 74px);
+      gap: 10px;
     }
     .action-btn {
       border-radius: 50%;
-      border: 1px solid #0f0;
+      border: 2px solid #0f0;
       background: #111;
       color: #0f0;
       font-family: monospace;
-      font-size: 11px;
+      font-size: 13px;
       font-weight: bold;
       cursor: pointer;
       touch-action: none;
@@ -114,6 +114,18 @@
     #btn-reset { border-color: #f80; color: #f80; }
     #btn-reset:active { background: #f80; color: #000; }
     .action-empty { background: transparent; border: none; }
+    #debug-panel {
+      width: 100%;
+      background: #001100;
+      border-top: 1px solid #030;
+      padding: 4px 8px;
+      font-size: 10px;
+      color: #0a0;
+      white-space: pre;
+      overflow-x: auto;
+      max-height: 80px;
+      min-height: 1em;
+    }
   </style>
 </head>
 <body>
@@ -128,6 +140,7 @@
   </div>
 
   <canvas id="msx-canvas" width="256" height="192"></canvas>
+  <div id="debug-panel">デバッグ情報はここに表示されます...</div>
 
   <div id="gamepad">
     <div id="dpad">
@@ -244,8 +257,13 @@
       ensureAudio();
       currentRomData = data;
       currentRomName = name;
+      // ROM ロード後に必ず CPU リセット → C-BIOS がカートリッジを再スキャンする
+      wasm.init_msx();
+      await loadBios();
       wasm.load_rom_msx(data);
       status.textContent = '▶ ' + name + ' 実行中';
+      console.log('[MSX] ROM loaded & reset:', name, 'size=', data.length, 'bytes',
+                  'magic=', data[0].toString(16), data[1].toString(16));
       startBgm();
     }
 
@@ -262,11 +280,41 @@
       const canvas    = document.getElementById('msx-canvas');
       const ctx       = canvas.getContext('2d');
       const imageData = ctx.createImageData(256, 192);
+      const debugEl   = document.getElementById('debug-panel');
+
+      let frameCount = 0;
+      function analyzeFrame(buf) {
+        let black = 0, nonBlack = 0;
+        const colorMap = {};
+        for (let i = 0; i < buf.length; i += 4) {
+          const r = buf[i], g = buf[i+1], b = buf[i+2];
+          if (r === 0 && g === 0 && b === 0) { black++; continue; }
+          nonBlack++;
+          const key = `rgb(${r},${g},${b})`;
+          colorMap[key] = (colorMap[key] || 0) + 1;
+        }
+        const total = black + nonBlack;
+        const topColors = Object.entries(colorMap)
+          .sort((a,b) => b[1]-a[1]).slice(0,3)
+          .map(([k,v]) => `${k}×${v}`).join(' | ');
+        return { black, nonBlack, total, topColors };
+      }
 
       function loop() {
         wasm.tick_msx();
-        imageData.data.set(wasm.frame_buffer_msx());
+        const fb = wasm.frame_buffer_msx();
+        imageData.data.set(fb);
         ctx.putImageData(imageData, 0, 0);
+
+        frameCount++;
+        if (frameCount % 60 === 0) {
+          const a = analyzeFrame(fb);
+          const pct = Math.round(a.nonBlack / a.total * 100);
+          const line = `frame=${frameCount} 非黒=${pct}% (${a.nonBlack}px)\n上位色: ${a.topColors || 'なし（全黒）'}`;
+          debugEl.textContent = line;
+          console.log('[MSX]', line);
+        }
+
         if (audioCtx) {
           const samples = wasm.audio_samples_msx();
           if (samples.length > 0) {
