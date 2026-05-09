@@ -26,76 +26,79 @@
       display: block;
     }
     #status { margin: 8px 0; font-size: 13px; min-height: 1.4em; }
-    #drop-zone {
-      border: 2px dashed #0f0;
-      padding: 8px 24px;
-      margin: 8px;
+    #btn-row { display: flex; gap: 10px; margin: 8px 0; flex-wrap: wrap; justify-content: center; }
+    .rom-btn {
+      background: #000;
+      color: #0f0;
+      border: 2px solid #0f0;
+      padding: 8px 20px;
+      font-family: monospace;
+      font-size: 14px;
       cursor: pointer;
-      font-size: 13px;
-      transition: background 0.2s;
+      letter-spacing: 1px;
+      transition: background 0.15s, color 0.15s;
     }
-    #drop-zone.drag-over { background: #020; }
+    .rom-btn:hover { background: #0f0; color: #000; }
+    .rom-btn.active { background: #0a0; color: #fff; border-color: #0a0; }
     #info { font-size: 11px; color: #080; margin: 4px 0; }
   </style>
 </head>
 <body>
   <h1>MSX1 EMULATOR</h1>
-  <div id="status">Loading C-BIOS...</div>
+  <div id="status">Loading...</div>
   <canvas id="msx-canvas" width="256" height="192"></canvas>
-  <div id="drop-zone">🎮 ROMファイルをここにドロップ (.rom / .ROM)</div>
-  <div id="info">C-BIOS: https://cbios.sourceforge.net/ — keyboard: direct mapping</div>
+  <div id="btn-row">
+    <button class="rom-btn" data-rom="lineboy.rom">▶ LINEBOY</button>
+    <button class="rom-btn" id="btn-custom">📂 カスタムROM</button>
+  </div>
+  <div id="info">← → で移動 / Space でジャンプ | 星を10個集めよう！</div>
 
   <script type="module">
     import init, * as wasm from './wasm/wasm_app.js';
+
+    const status = document.getElementById('status');
+
+    // Built-in ROM list
+    const BUILTIN_ROMS = [
+      { id: 'lineboy', label: '▶ LINEBOY', file: './lineboy.rom', info: '← → 移動 / Space ジャンプ | 星を10個集めよう！' },
+    ];
 
     async function main() {
       await init();
       wasm.init_msx();
 
-      const status = document.getElementById('status');
-
-      // Fetch C-BIOS
+      // Load C-BIOS
       try {
         const [mainResp, subResp] = await Promise.all([
           fetch('./cbios/cbios_main_msx1.rom'),
           fetch('./cbios/cbios_sub.rom'),
         ]);
-        if (!mainResp.ok) throw new Error(`C-BIOS main ROM not found (HTTP ${mainResp.status})`);
-        if (!subResp.ok)  throw new Error(`C-BIOS sub ROM not found (HTTP ${subResp.status})`);
-        const mainData = new Uint8Array(await mainResp.arrayBuffer());
-        const subData  = new Uint8Array(await subResp.arrayBuffer());
-        wasm.load_bios_msx(mainData);
-        wasm.load_sub_rom_msx(subData);
-        status.textContent = `C-BIOS loaded (main: ${mainData.length}B, sub: ${subData.length}B). Ready.`;
+        if (!mainResp.ok) throw new Error(`C-BIOS not found (${mainResp.status})`);
+        if (!subResp.ok)  throw new Error(`C-BIOS sub not found (${subResp.status})`);
+        wasm.load_bios_msx(new Uint8Array(await mainResp.arrayBuffer()));
+        wasm.load_sub_rom_msx(new Uint8Array(await subResp.arrayBuffer()));
+        status.textContent = 'C-BIOS OK — ゲームを選んでください';
       } catch (e) {
-        status.textContent = `BIOS: ${e.message} — Drop a ROM to continue without BIOS`;
+        status.textContent = `BIOS: ${e.message}`;
       }
 
-      // Canvas 2D context
+      // Canvas
       const canvas = document.getElementById('msx-canvas');
       const ctx = canvas.getContext('2d');
       const imageData = ctx.createImageData(256, 192);
 
-      // Web Audio API
-      let audioCtx = null;
-      let audioQueue = 0; // seconds of buffered audio
+      // Audio
+      let audioCtx = null, audioQueue = 0;
       function ensureAudio() {
-        if (!audioCtx) {
-          audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
-        }
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
         if (audioCtx.state === 'suspended') audioCtx.resume();
       }
 
       // Game loop
       function loop() {
         wasm.tick_msx();
-
-        // Render frame
-        const fb = wasm.frame_buffer_msx();
-        imageData.data.set(fb);
+        imageData.data.set(wasm.frame_buffer_msx());
         ctx.putImageData(imageData, 0, 0);
-
-        // Audio
         if (audioCtx) {
           const samples = wasm.audio_samples_msx();
           if (samples.length > 0) {
@@ -107,61 +110,71 @@
             const startAt = Math.max(audioCtx.currentTime, audioCtx.currentTime + audioQueue);
             src.start(startAt);
             audioQueue = Math.max(0, startAt - audioCtx.currentTime) + samples.length / 44100;
-            // Drain queue slowly to avoid buildup
             audioQueue = Math.max(0, audioQueue - 1/60);
           }
         }
-
         requestAnimationFrame(loop);
       }
       requestAnimationFrame(loop);
 
-      // Keyboard events
-      document.addEventListener('keydown', e => {
-        ensureAudio();
-        e.preventDefault();
-        wasm.key_down_msx(e.code);
-      });
-      document.addEventListener('keyup', e => {
-        e.preventDefault();
-        wasm.key_up_msx(e.code);
-      });
+      // Keyboard
+      document.addEventListener('keydown', e => { ensureAudio(); e.preventDefault(); wasm.key_down_msx(e.code); });
+      document.addEventListener('keyup',   e => { e.preventDefault(); wasm.key_up_msx(e.code); });
 
-      // ROM drag & drop
-      const dropZone = document.getElementById('drop-zone');
-      dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
-      dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-      dropZone.addEventListener('drop', async e => {
-        e.preventDefault();
-        dropZone.classList.remove('drag-over');
+      // ROM loader helper
+      async function loadRomData(data, name) {
         ensureAudio();
-        const file = e.dataTransfer.files[0];
-        if (!file) return;
-        const data = new Uint8Array(await file.arrayBuffer());
         wasm.load_rom_msx(data);
-        status.textContent = `ROM loaded: ${file.name} (${data.length} bytes)`;
-      });
+        status.textContent = `ROM: ${name} (${data.length} bytes) — 実行中`;
+      }
 
-      // Also allow click-to-load
-      dropZone.addEventListener('click', () => {
+      // Built-in ROM buttons
+      const btnRow = document.getElementById('btn-row');
+      for (const rom of BUILTIN_ROMS) {
+        const btn = document.createElement('button');
+        btn.className = 'rom-btn';
+        btn.textContent = rom.label;
+        btn.addEventListener('click', async () => {
+          document.querySelectorAll('.rom-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById('info').textContent = rom.info;
+          status.textContent = `${rom.label} 読み込み中...`;
+          const resp = await fetch(rom.file);
+          const data = new Uint8Array(await resp.arrayBuffer());
+          await loadRomData(data, rom.label);
+        });
+        btnRow.insertBefore(btn, document.getElementById('btn-custom'));
+      }
+
+      // Custom ROM button
+      document.getElementById('btn-custom').addEventListener('click', () => {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = '.rom,.ROM,.bin,.BIN';
         input.onchange = async () => {
           if (!input.files[0]) return;
-          ensureAudio();
+          document.querySelectorAll('.rom-btn').forEach(b => b.classList.remove('active'));
+          document.getElementById('btn-custom').classList.add('active');
+          document.getElementById('info').textContent = input.files[0].name;
           const data = new Uint8Array(await input.files[0].arrayBuffer());
-          wasm.load_rom_msx(data);
-          status.textContent = `ROM loaded: ${input.files[0].name} (${data.length} bytes)`;
+          await loadRomData(data, input.files[0].name);
         };
         input.click();
       });
+
+      // Drag & drop (canvas)
+      canvas.addEventListener('dragover', e => e.preventDefault());
+      canvas.addEventListener('drop', async e => {
+        e.preventDefault();
+        const file = e.dataTransfer.files[0];
+        if (!file) return;
+        document.querySelectorAll('.rom-btn').forEach(b => b.classList.remove('active'));
+        const data = new Uint8Array(await file.arrayBuffer());
+        await loadRomData(data, file.name);
+      });
     }
 
-    main().catch(e => {
-      document.getElementById('status').textContent = `Error: ${e.message}`;
-      console.error(e);
-    });
+    main().catch(e => { status.textContent = `Error: ${e.message}`; console.error(e); });
   </script>
 </body>
 </html>
