@@ -18,8 +18,8 @@ pub const DIR_DY: [i32; 4] = [-1, 0, 1, 0];
 
 impl Player {
     pub fn new(cell: f64) -> Self {
-        let start_col = 13.5;
-        let start_row = 23.0;
+        let start_col = 13.0;
+        let start_row = 26.0;
         Player {
             x: start_col * cell,
             y: start_row * cell,
@@ -33,8 +33,8 @@ impl Player {
     }
 
     pub fn reset(&mut self) {
-        let start_col = 13.5;
-        let start_row = 23.0;
+        let start_col = 13.0;
+        let start_row = 26.0;
         self.x = start_col * self.cell;
         self.y = start_row * self.cell;
         self.dir = 3;
@@ -61,7 +61,8 @@ impl Player {
         let cy = (self.y / self.cell).round() * self.cell;
         let dx = (self.x - cx).abs();
         let dy = (self.y - cy).abs();
-        dx < self.cell * 0.4 && dy < self.cell * 0.4
+        // 閾値を広めにして方向転換しやすくする
+        dx < self.cell * 0.6 && dy < self.cell * 0.6
     }
 
     pub fn update(&mut self, dt: f32, map: &Map) {
@@ -69,15 +70,17 @@ impl Player {
 
         self.anim_frame += dt as f64 * 8.0;
 
-        // Try to apply next_dir when near cell center
+        let row = self.row();
+        let col = self.col();
+
+        // セル中央付近で next_dir への転換を試みる
         if self.near_center() {
-            let row = self.row();
-            let col = self.col();
             let nd = self.next_dir;
             let nr = row + DIR_DY[nd as usize];
             let nc = col + DIR_DX[nd as usize];
             if map.is_passable(nr, nc) {
                 self.dir = self.next_dir;
+                // セル中央にスナップして正確な移動を保証
                 self.x = col as f64 * self.cell;
                 self.y = row as f64 * self.cell;
             }
@@ -90,7 +93,7 @@ impl Player {
         let new_x = self.x + dx;
         let new_y = self.y + dy;
 
-        // Tunnel wrap-around
+        // トンネル折り返し
         let row = self.row();
         if row == 13 || row == 14 {
             self.x = ((new_x % (COLS as f64 * self.cell)) + COLS as f64 * self.cell) % (COLS as f64 * self.cell);
@@ -98,17 +101,16 @@ impl Player {
             return;
         }
 
-        // Check if new position would hit a wall
-        let next_row = ((new_y + self.cell * 0.4 * DIR_DY[d] as f64) / self.cell).floor() as i32;
-        let next_col = ((new_x + self.cell * 0.4 * DIR_DX[d] as f64) / self.cell).floor() as i32;
+        // 壁衝突判定（前方の少し先を見る）
+        let ahead = self.cell * 0.45;
+        let next_row = ((new_y + ahead * DIR_DY[d] as f64) / self.cell).floor() as i32;
+        let next_col = ((new_x + ahead * DIR_DX[d] as f64) / self.cell).floor() as i32;
 
         if !map.is_wall(next_row, next_col) {
             self.x = new_x;
             self.y = new_y;
-        } else {
-            self.x = self.col() as f64 * self.cell;
-            self.y = self.row() as f64 * self.cell;
         }
+        // 壁に当たったら止まるだけ（セルにスナップしない→ガクつき解消）
     }
 
     pub fn draw(&self, ctx: &CanvasRenderingContext2d, offset_y: f64) {
