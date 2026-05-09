@@ -64,10 +64,14 @@ impl Bus {
                 }
             }
             1 => {
-                // Cartridge slot
-                if !self.cart.is_empty() {
-                    let off = addr as usize % self.cart.len().max(1);
-                    self.cart[off]
+                // Cartridge: mapped to $4000-$7FFF (16KB) or $4000-$BFFF (32KB)
+                if !self.cart.is_empty() && addr >= 0x4000 {
+                    let off = (addr - 0x4000) as usize;
+                    if off < self.cart.len() {
+                        self.cart[off]
+                    } else {
+                        0xFF
+                    }
                 } else {
                     0xFF
                 }
