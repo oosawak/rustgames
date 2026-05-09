@@ -20,6 +20,7 @@ pub mod audio_tool;
 pub mod font;
 pub mod blaster;
 pub mod earthdef;
+pub mod pacman;
 
 use wasm_bindgen::prelude::*;
 use std::cell::RefCell;
@@ -236,3 +237,76 @@ pub async fn init_earthdef(canvas_id: &str) {
 #[wasm_bindgen] pub fn flash_charges_earthdef() -> u32 { EARTHDEF.with(|s|s.borrow().as_ref().map(|g|g.flash_charges).unwrap_or(0)) }
 #[wasm_bindgen] pub fn laser_type_earthdef() -> u8 { EARTHDEF.with(|s|s.borrow().as_ref().map(|g|g.laser_type as u8).unwrap_or(0)) }
 #[wasm_bindgen] pub fn audio_event_earthdef() -> u8 { EARTHDEF.with(|s|s.borrow().as_ref().map(|g|g.audio_event).unwrap_or(0)) }
+
+// ---- Pac-Man ----
+thread_local! {
+    static PACMAN: RefCell<Option<pacman::PacmanGame>> = RefCell::new(None);
+}
+
+#[wasm_bindgen]
+pub fn init_pacman() {
+    use wasm_bindgen::JsCast;
+    let window = web_sys::window().unwrap();
+    let document = window.document().unwrap();
+    let canvas = document.get_element_by_id("pacman-canvas")
+        .unwrap()
+        .dyn_into::<web_sys::HtmlCanvasElement>()
+        .unwrap();
+    let ctx = canvas.get_context("2d")
+        .unwrap()
+        .unwrap()
+        .dyn_into::<web_sys::CanvasRenderingContext2d>()
+        .unwrap();
+    let cell = 20.0_f64;
+    PACMAN.with(|p| {
+        *p.borrow_mut() = Some(pacman::PacmanGame::new(ctx, cell));
+    });
+}
+
+#[wasm_bindgen]
+pub fn tick_pacman(dt: f32) {
+    PACMAN.with(|p| {
+        if let Some(g) = p.borrow_mut().as_mut() {
+            g.tick(dt);
+        }
+    });
+}
+
+#[wasm_bindgen]
+pub fn draw_pacman() {
+    PACMAN.with(|p| {
+        if let Some(g) = p.borrow().as_ref() {
+            g.draw();
+        }
+    });
+}
+
+#[wasm_bindgen]
+pub fn set_input_pacman(dir: i32) {
+    PACMAN.with(|p| {
+        if let Some(g) = p.borrow_mut().as_mut() {
+            g.set_input(dir);
+        }
+    });
+}
+
+#[wasm_bindgen]
+pub fn score_pacman() -> u32 {
+    PACMAN.with(|p| p.borrow().as_ref().map(|g| g.score).unwrap_or(0))
+}
+
+#[wasm_bindgen]
+pub fn lives_pacman() -> u8 {
+    PACMAN.with(|p| p.borrow().as_ref().map(|g| g.lives).unwrap_or(0))
+}
+
+/// Returns game phase: 0=Playing, 1=Dying, 2=GameOver, 3=LevelClear
+#[wasm_bindgen]
+pub fn phase_pacman() -> u8 {
+    PACMAN.with(|p| p.borrow().as_ref().map(|g| match g.state {
+        pacman::GamePhase::Playing   => 0,
+        pacman::GamePhase::Dying     => 1,
+        pacman::GamePhase::GameOver  => 2,
+        pacman::GamePhase::LevelClear => 3,
+    }).unwrap_or(0))
+}

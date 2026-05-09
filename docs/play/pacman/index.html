@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pac-Man</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #111;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: monospace;
+    color: #fff;
+    user-select: none;
+  }
+  h1 {
+    color: yellow;
+    font-size: 2rem;
+    margin-bottom: 12px;
+    letter-spacing: 4px;
+  }
+  #pacman-canvas {
+    display: block;
+    background: black;
+    border: 2px solid #333;
+    image-rendering: pixelated;
+  }
+  #title-screen {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    background: rgba(0,0,0,0.85);
+    border: 2px solid yellow;
+    padding: 40px 60px;
+    border-radius: 8px;
+  }
+  #title-screen h2 { color: yellow; font-size: 2.5rem; letter-spacing: 6px; }
+  #title-screen p  { color: #ccc; font-size: 1rem; }
+  #title-screen .controls { color: #aaa; font-size: 0.85rem; line-height: 1.8; text-align: center; }
+  #wrapper { position: relative; }
+  #score-bar { color: white; font-size: 1rem; margin-bottom: 6px; width: 560px; display: flex; justify-content: space-between; }
+</style>
+</head>
+<body>
+<h1>PAC-MAN</h1>
+<div id="score-bar">
+  <span id="score-display">SCORE: 0</span>
+  <span id="lives-display">LIVES: ♥♥♥</span>
+</div>
+<div id="wrapper">
+  <canvas id="pacman-canvas" width="560" height="700"></canvas>
+  <div id="title-screen">
+    <h2>PAC-MAN</h2>
+    <p>Eat all dots to advance!</p>
+    <div class="controls">
+      Arrow Keys / WASD — Move<br>
+      Swipe — Move (touch)<br>
+      Eat blue ghosts when powered up!
+    </div>
+    <p style="color:yellow;font-size:1.2rem;animation:blink 1s step-end infinite">PRESS SPACE TO START</p>
+  </div>
+</div>
+
+<style>
+@keyframes blink { 50% { opacity: 0; } }
+</style>
+
+<script type="module">
+import init, {
+  init_pacman, tick_pacman, draw_pacman, set_input_pacman,
+  score_pacman, lives_pacman, phase_pacman
+} from './wasm/wasm_app.js';
+
+await init();
+
+const titleScreen = document.getElementById('title-screen');
+const scoreDisplay = document.getElementById('score-display');
+const livesDisplay = document.getElementById('lives-display');
+
+let started = false;
+let lastTime = null;
+let currentDir = 0;
+
+function startGame() {
+  if (started) return;
+  started = true;
+  titleScreen.style.display = 'none';
+  init_pacman();
+  requestAnimationFrame(loop);
+}
+
+function loop(ts) {
+  const dt = lastTime == null ? 0.016 : Math.min((ts - lastTime) / 1000, 0.05);
+  lastTime = ts;
+
+  tick_pacman(dt);
+  draw_pacman();
+
+  const score = score_pacman();
+  const lives = lives_pacman();
+  const phase = phase_pacman();
+
+  scoreDisplay.textContent = 'SCORE: ' + score;
+  livesDisplay.textContent = 'LIVES: ' + '♥'.repeat(lives);
+
+  if (phase === 2) {
+    // Game Over — show restart prompt after delay
+    setTimeout(() => {
+      if (confirm('GAME OVER! Score: ' + score + '\nPlay again?')) {
+        started = false;
+        lastTime = null;
+        titleScreen.style.display = 'flex';
+      }
+    }, 500);
+    return;
+  }
+
+  if (phase === 3) {
+    // Level Clear
+    setTimeout(() => {
+      alert('LEVEL CLEAR! Score: ' + score);
+      started = false;
+      lastTime = null;
+      titleScreen.style.display = 'flex';
+    }, 500);
+    return;
+  }
+
+  requestAnimationFrame(loop);
+}
+
+// Keyboard input
+const KEY_MAP = {
+  ArrowUp: 1, KeyW: 1, w: 1,
+  ArrowRight: 2, KeyD: 2, d: 2,
+  ArrowDown: 3, KeyS: 3, s: 3,
+  ArrowLeft: 4, KeyA: 4, a: 4,
+};
+
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.key === ' ') {
+    e.preventDefault();
+    startGame();
+    return;
+  }
+  const dir = KEY_MAP[e.code] || KEY_MAP[e.key];
+  if (dir) {
+    e.preventDefault();
+    if (started) set_input_pacman(dir);
+  }
+});
+
+// Touch/swipe input
+let touchStartX = 0, touchStartY = 0;
+document.addEventListener('touchstart', e => {
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+  if (!started) startGame();
+}, { passive: true });
+
+document.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+  if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+  if (!started) return;
+  if (Math.abs(dx) > Math.abs(dy)) {
+    set_input_pacman(dx > 0 ? 2 : 4); // right or left
+  } else {
+    set_input_pacman(dy > 0 ? 3 : 1); // down or up
+  }
+}, { passive: true });
+</script>
+</body>
+</html>
