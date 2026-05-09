@@ -2,45 +2,105 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
   <title>MSX Emulator — RustGames</title>
   <style>
+    * { box-sizing: border-box; }
     body {
       background: #000;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       min-height: 100vh;
       margin: 0;
+      padding: 8px;
       font-family: monospace;
       color: #0f0;
     }
-    h1 { margin: 8px 0; font-size: 18px; letter-spacing: 2px; }
+    h1 { margin: 6px 0; font-size: 16px; letter-spacing: 2px; }
     canvas {
-      width: 512px;
-      height: 384px;
+      width: 100%;
+      max-width: 512px;
+      height: auto;
+      aspect-ratio: 4/3;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
       border: 2px solid #0f0;
-      cursor: none;
       display: block;
     }
-    #status { margin: 8px 0; font-size: 13px; min-height: 1.4em; }
-    #btn-row { display: flex; gap: 10px; margin: 8px 0; flex-wrap: wrap; justify-content: center; }
+    #status { margin: 4px 0; font-size: 12px; min-height: 1.4em; text-align: center; }
+    #btn-row { display: flex; gap: 8px; margin: 6px 0; flex-wrap: wrap; justify-content: center; }
     .rom-btn {
       background: #000;
       color: #0f0;
       border: 2px solid #0f0;
-      padding: 8px 20px;
+      padding: 8px 16px;
       font-family: monospace;
-      font-size: 14px;
+      font-size: 13px;
       cursor: pointer;
       letter-spacing: 1px;
-      transition: background 0.15s, color 0.15s;
+      touch-action: manipulation;
     }
-    .rom-btn:hover { background: #0f0; color: #000; }
-    .rom-btn.active { background: #0a0; color: #fff; border-color: #0a0; }
-    #info { font-size: 11px; color: #080; margin: 4px 0; }
+    .rom-btn:active, .rom-btn.active { background: #0f0; color: #000; }
+    #info { font-size: 10px; color: #060; margin: 2px 0; text-align: center; }
+
+    /* D-pad */
+    #gamepad {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 512px;
+      margin-top: 10px;
+      padding: 0 8px;
+      user-select: none;
+    }
+    #dpad {
+      display: grid;
+      grid-template-columns: repeat(3, 56px);
+      grid-template-rows: repeat(3, 56px);
+      gap: 4px;
+    }
+    .dpad-btn {
+      background: #111;
+      border: 2px solid #0f0;
+      border-radius: 8px;
+      color: #0f0;
+      font-size: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .dpad-btn:active { background: #0f0; color: #000; }
+    .dpad-center { background: #000; border: none; }
+    #action-btns {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+    }
+    .action-btn {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: 2px solid #0f0;
+      background: #111;
+      color: #0f0;
+      font-family: monospace;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .action-btn:active { background: #0f0; color: #000; }
   </style>
 </head>
 <body>
@@ -48,38 +108,56 @@
   <div id="status">Loading...</div>
   <canvas id="msx-canvas" width="256" height="192"></canvas>
   <div id="btn-row">
-    <button class="rom-btn" data-rom="lineboy.rom">▶ LINEBOY</button>
+    <!-- ROMボタンはJSで追加 -->
     <button class="rom-btn" id="btn-custom">📂 カスタムROM</button>
   </div>
-  <div id="info">← → で移動 / Space でジャンプ | 星を10個集めよう！</div>
+  <div id="info">ゲームを選んでください</div>
+
+  <!-- スマホ用ゲームパッド -->
+  <div id="gamepad">
+    <div id="dpad">
+      <div></div>
+      <div class="dpad-btn" id="btn-up">▲</div>
+      <div></div>
+      <div class="dpad-btn" id="btn-left">◀</div>
+      <div class="dpad-center"></div>
+      <div class="dpad-btn" id="btn-right">▶</div>
+      <div></div>
+      <div class="dpad-btn" id="btn-down">▼</div>
+      <div></div>
+    </div>
+    <div id="action-btns">
+      <button class="action-btn" id="btn-space">JUMP</button>
+      <button class="action-btn" id="btn-enter">START</button>
+      <button class="action-btn" id="btn-reset" style="border-color:#f80;color:#f80;font-size:11px;">RESET</button>
+    </div>
+  </div>
 
   <script type="module">
     import init, * as wasm from './wasm/wasm_app.js';
 
     const status = document.getElementById('status');
 
-    // Built-in ROM list
     const BUILTIN_ROMS = [
-      { id: 'lineboy', label: '▶ LINEBOY', file: './lineboy.rom', info: '← → 移動 / Space ジャンプ | 星を10個集めよう！' },
+      { label: '▶ LINEBOY', file: './lineboy.rom', info: '星を10個集めよう！敵に注意！' },
     ];
 
     async function main() {
       await init();
       wasm.init_msx();
 
-      // Load C-BIOS
+      // C-BIOS ロード
       try {
-        const [mainResp, subResp] = await Promise.all([
+        const [r1, r2] = await Promise.all([
           fetch('./cbios/cbios_main_msx1.rom'),
           fetch('./cbios/cbios_sub.rom'),
         ]);
-        if (!mainResp.ok) throw new Error(`C-BIOS not found (${mainResp.status})`);
-        if (!subResp.ok)  throw new Error(`C-BIOS sub not found (${subResp.status})`);
-        wasm.load_bios_msx(new Uint8Array(await mainResp.arrayBuffer()));
-        wasm.load_sub_rom_msx(new Uint8Array(await subResp.arrayBuffer()));
-        status.textContent = 'C-BIOS OK — ゲームを選んでください';
+        if (!r1.ok || !r2.ok) throw new Error('C-BIOS fetch failed');
+        wasm.load_bios_msx(new Uint8Array(await r1.arrayBuffer()));
+        wasm.load_sub_rom_msx(new Uint8Array(await r2.arrayBuffer()));
+        status.textContent = 'Ready — ゲームを選んでください';
       } catch (e) {
-        status.textContent = `BIOS: ${e.message}`;
+        status.textContent = `BIOS error: ${e.message}`;
       }
 
       // Canvas
@@ -105,11 +183,10 @@
             const buf = audioCtx.createBuffer(1, samples.length, 44100);
             buf.copyToChannel(samples, 0);
             const src = audioCtx.createBufferSource();
-            src.buffer = buf;
-            src.connect(audioCtx.destination);
-            const startAt = Math.max(audioCtx.currentTime, audioCtx.currentTime + audioQueue);
-            src.start(startAt);
-            audioQueue = Math.max(0, startAt - audioCtx.currentTime) + samples.length / 44100;
+            src.buffer = buf; src.connect(audioCtx.destination);
+            const t = Math.max(audioCtx.currentTime, audioCtx.currentTime + audioQueue);
+            src.start(t);
+            audioQueue = Math.max(0, t - audioCtx.currentTime) + samples.length / 44100;
             audioQueue = Math.max(0, audioQueue - 1/60);
           }
         }
@@ -117,61 +194,109 @@
       }
       requestAnimationFrame(loop);
 
-      // Keyboard
+      // キーボード
       document.addEventListener('keydown', e => { ensureAudio(); e.preventDefault(); wasm.key_down_msx(e.code); });
       document.addEventListener('keyup',   e => { e.preventDefault(); wasm.key_up_msx(e.code); });
 
-      // ROM loader helper
-      async function loadRomData(data, name) {
+      // ROMロード共通（現在のROMを保持しておきリセットに使う）
+      let currentRomData = null;
+      let currentRomName = '';
+      async function loadRom(data, name) {
         ensureAudio();
+        currentRomData = data;
+        currentRomName = name;
         wasm.load_rom_msx(data);
-        status.textContent = `ROM: ${name} (${data.length} bytes) — 実行中`;
+        status.textContent = `▶ ${name} 実行中`;
       }
 
-      // Built-in ROM buttons
+      // リセット: MSXを再初期化してBIOS+ROMを再ロード
+      async function resetMsx() {
+        ensureAudio();
+        wasm.init_msx();
+        try {
+          const [r1, r2] = await Promise.all([
+            fetch('./cbios/cbios_main_msx1.rom'),
+            fetch('./cbios/cbios_sub.rom'),
+          ]);
+          if (r1.ok) wasm.load_bios_msx(new Uint8Array(await r1.arrayBuffer()));
+          if (r2.ok) wasm.load_sub_rom_msx(new Uint8Array(await r2.arrayBuffer()));
+        } catch (_) {}
+        if (currentRomData) {
+          wasm.load_rom_msx(currentRomData);
+          status.textContent = `🔄 RESET — ▶ ${currentRomName} 実行中`;
+        } else {
+          status.textContent = '🔄 RESET — ゲームを選んでください';
+        }
+      }
+
+      // 組み込みROMボタン生成（重複しないようJSのみで追加）
       const btnRow = document.getElementById('btn-row');
+      const btnCustom = document.getElementById('btn-custom');
       for (const rom of BUILTIN_ROMS) {
         const btn = document.createElement('button');
         btn.className = 'rom-btn';
         btn.textContent = rom.label;
         btn.addEventListener('click', async () => {
+          ensureAudio();
           document.querySelectorAll('.rom-btn').forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
           document.getElementById('info').textContent = rom.info;
-          status.textContent = `${rom.label} 読み込み中...`;
+          status.textContent = '読み込み中...';
           const resp = await fetch(rom.file);
-          const data = new Uint8Array(await resp.arrayBuffer());
-          await loadRomData(data, rom.label);
+          if (!resp.ok) { status.textContent = `ROM fetch error: ${resp.status}`; return; }
+          await loadRom(new Uint8Array(await resp.arrayBuffer()), rom.label);
         });
-        btnRow.insertBefore(btn, document.getElementById('btn-custom'));
+        btnRow.insertBefore(btn, btnCustom);
       }
 
-      // Custom ROM button
-      document.getElementById('btn-custom').addEventListener('click', () => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.rom,.ROM,.bin,.BIN';
-        input.onchange = async () => {
-          if (!input.files[0]) return;
+      // カスタムROM
+      btnCustom.addEventListener('click', () => {
+        const inp = document.createElement('input');
+        inp.type = 'file'; inp.accept = '.rom,.ROM,.bin,.BIN';
+        inp.onchange = async () => {
+          if (!inp.files[0]) return;
+          ensureAudio();
           document.querySelectorAll('.rom-btn').forEach(b => b.classList.remove('active'));
-          document.getElementById('btn-custom').classList.add('active');
-          document.getElementById('info').textContent = input.files[0].name;
-          const data = new Uint8Array(await input.files[0].arrayBuffer());
-          await loadRomData(data, input.files[0].name);
+          btnCustom.classList.add('active');
+          document.getElementById('info').textContent = inp.files[0].name;
+          await loadRom(new Uint8Array(await inp.files[0].arrayBuffer()), inp.files[0].name);
         };
-        input.click();
+        inp.click();
       });
 
-      // Drag & drop (canvas)
+      // ドラッグ&ドロップ
       canvas.addEventListener('dragover', e => e.preventDefault());
       canvas.addEventListener('drop', async e => {
         e.preventDefault();
-        const file = e.dataTransfer.files[0];
-        if (!file) return;
-        document.querySelectorAll('.rom-btn').forEach(b => b.classList.remove('active'));
-        const data = new Uint8Array(await file.arrayBuffer());
-        await loadRomData(data, file.name);
+        const f = e.dataTransfer.files[0];
+        if (f) await loadRom(new Uint8Array(await f.arrayBuffer()), f.name);
       });
+
+      // D-pad タッチ操作
+      // key: [code, keydownイベント用コード]
+      const padMap = {
+        'btn-up':    'ArrowUp',
+        'btn-down':  'ArrowDown',
+        'btn-left':  'ArrowLeft',
+        'btn-right': 'ArrowRight',
+        'btn-space': 'Space',
+        'btn-enter': 'Enter',
+      };
+      for (const [id, code] of Object.entries(padMap)) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        const down = () => { ensureAudio(); wasm.key_down_msx(code); };
+        const up   = () => { wasm.key_up_msx(code); };
+        el.addEventListener('touchstart', e => { e.preventDefault(); down(); }, { passive: false });
+        el.addEventListener('touchend',   e => { e.preventDefault(); up();   }, { passive: false });
+        el.addEventListener('mousedown',  down);
+        el.addEventListener('mouseup',    up);
+        el.addEventListener('mouseleave', up);
+      }
+
+      // リセットボタン
+      document.getElementById('btn-reset').addEventListener('click', resetMsx);
+      document.getElementById('btn-reset').addEventListener('touchstart', e => { e.preventDefault(); resetMsx(); }, { passive: false });
     }
 
     main().catch(e => { status.textContent = `Error: ${e.message}`; console.error(e); });
