@@ -62,22 +62,21 @@
       max-width: 600px;
       display: flex;
       justify-content: space-between;
-      align-items: flex-end;
-      padding: 10px 20px 16px;
-      margin-top: auto;
+      align-items: center;
+      padding: 12px 16px 20px;
     }
     #dpad {
       display: grid;
-      grid-template-columns: repeat(3, 90px);
-      grid-template-rows: repeat(3, 90px);
-      gap: 5px;
+      grid-template-columns: repeat(3, 80px);
+      grid-template-rows: repeat(3, 80px);
+      gap: 4px;
     }
     .dpad-btn {
       background: #111;
       border: 2px solid #0f0;
       border-radius: 12px;
       color: #0f0;
-      font-size: 36px;
+      font-size: 34px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -88,6 +87,37 @@
     }
     .dpad-btn:active { background: #0f0; color: #000; }
     .dpad-empty { background: transparent; border: none; }
+    .dpad-center {
+      background: #222;
+      border-radius: 8px;
+    }
+    #center-btns {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+    .center-btn {
+      background: #111;
+      border: 2px solid #666;
+      border-radius: 20px;
+      color: #aaa;
+      font-family: monospace;
+      font-size: 12px;
+      font-weight: bold;
+      width: 76px;
+      height: 34px;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .center-btn:active { background: #666; color: #000; }
+    #btn-reset.center-btn { border-color: #f80; color: #f80; }
+    #btn-reset.center-btn:active { background: #f80; color: #000; }
     #action-btns {
       display: grid;
       grid-template-columns: repeat(2, 88px);
@@ -100,7 +130,7 @@
       background: #111;
       color: #0f0;
       font-family: monospace;
-      font-size: 15px;
+      font-size: 20px;
       font-weight: bold;
       cursor: pointer;
       touch-action: none;
@@ -111,8 +141,8 @@
       justify-content: center;
     }
     .action-btn:active { background: #0f0; color: #000; }
-    #btn-reset { border-color: #f80; color: #f80; }
-    #btn-reset:active { background: #f80; color: #000; }
+    #btn-b { border-color: #f55; color: #f55; }
+    #btn-b:active { background: #f55; color: #000; }
     .action-empty { background: transparent; border: none; }
     #debug-panel {
       width: 100%;
@@ -165,21 +195,30 @@
   <div id="debug-panel">デバッグ情報はここに表示されます...</div>
 
   <div id="gamepad">
+    <!-- 左：十字キー -->
     <div id="dpad">
       <div class="dpad-empty"></div>
       <div class="dpad-btn" id="btn-up">▲</div>
       <div class="dpad-empty"></div>
       <div class="dpad-btn" id="btn-left">◀</div>
-      <div class="dpad-empty"></div>
+      <div class="dpad-center"></div>
       <div class="dpad-btn" id="btn-right">▶</div>
       <div class="dpad-empty"></div>
       <div class="dpad-btn" id="btn-down">▼</div>
       <div class="dpad-empty"></div>
     </div>
+
+    <!-- 中央：START / RESET -->
+    <div id="center-btns">
+      <button class="center-btn" id="btn-enter">START</button>
+      <button class="center-btn" id="btn-reset">RESET</button>
+    </div>
+
+    <!-- 右：A / B ボタン（B=赤/上、A=緑/下） -->
     <div id="action-btns">
-      <button class="action-btn" id="btn-space">JUMP</button>
-      <button class="action-btn" id="btn-enter">START</button>
-      <button class="action-btn" id="btn-reset">RESET</button>
+      <div class="action-empty"></div>
+      <div class="action-btn" id="btn-b">B</div>
+      <div class="action-btn" id="btn-a">A</div>
       <div class="action-empty"></div>
     </div>
   </div>
@@ -387,8 +426,9 @@
         'btn-down':  'ArrowDown',
         'btn-left':  'ArrowLeft',
         'btn-right': 'ArrowRight',
-        'btn-space': 'Space',
-        'btn-enter': 'Enter',
+        'btn-a':     'Space',    // A = スペース（ジャンプ/決定）
+        'btn-b':     'KeyZ',     // B = Z（サブアクション）
+        'btn-enter': 'Return',   // START = Enter
       };
       for (const [id, code] of Object.entries(padMap)) {
         const el = document.getElementById(id);
