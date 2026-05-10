@@ -365,6 +365,31 @@ pub fn key_down_msx(code: &str) {
 }
 
 #[wasm_bindgen]
-pub fn key_up_msx(code: &str) {
-    MSX.with(|s| { if let Some(m) = s.borrow_mut().as_mut() { m.bus.keyboard.key_up(code); } });
+pub fn debug_info_msx() -> String {
+    MSX.with(|s| {
+        if let Some(m) = s.borrow().as_ref() {
+            let regs = &m.bus.vdp.regs;
+            let ss = m.bus.slot_select;
+            let pc = m.cpu.pc;
+            let sp = m.cpu.sp;
+            // Sample name table ($1800-$1808) and pattern for 'L' ($0260-$0267)
+            let nt: Vec<String> = (0..8).map(|i| format!("{:02X}", m.bus.vdp.vram[0x1800+i])).collect();
+            let pt_l: Vec<String> = (0..8).map(|i| format!("{:02X}", m.bus.vdp.vram[0x0260+i])).collect();
+            let vram_e000 = m.bus.ram[0xE000];
+            let vram_e001 = m.bus.ram[0xE001];
+            let vram_e050 = m.bus.ram[0xE050];
+            format!(
+                "R0={:02X} R1={:02X} R2={:02X} R3={:02X} R4={:02X} R5={:02X} R6={:02X} R7={:02X} | \
+                slot={:02X} PC={:04X} SP={:04X} | NT:{} | PAT-L:{} | PL=({},{}) GM={}",
+                regs[0], regs[1], regs[2], regs[3], regs[4], regs[5], regs[6], regs[7],
+                ss, pc, sp,
+                nt.join(""),
+                pt_l.join(""),
+                vram_e000, vram_e001, vram_e050
+            )
+        } else {
+            "no MSX state".to_string()
+        }
+    })
 }
+

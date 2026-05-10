@@ -149,6 +149,9 @@ WAIT_VBL:
 ; INIT_VDP — set Screen 1 (Graphic 1) mode
 ; =============================================================================
 INIT_VDP:
+        ; Reset VDP address latch (C-BIOS may leave it mid-sequence)
+        IN      A, ($99)
+
         LD      HL, VDPREGS
         LD      B, VDPREGS_END - VDPREGS
         LD      C, 0
@@ -178,26 +181,34 @@ IVDP_LP:
         ; Load sprite patterns into VRAM
         CALL    LOAD_SPRITES
 
+        ; Initialize sprite attribute table: write terminator ($D0) at $1B00
+        ; to prevent garbage sprites before first DRAW_FRAME
+        LD      HL, $1B00
+        CALL    SET_VRAM_ADDR
+        LD      A, $D0
+        OUT     (VDPDATA), A
+
         RET
 
 ; =============================================================================
 ; VRAM_CLEAR — fill all 16KB VRAM with $00
 ; =============================================================================
 VRAM_CLEAR:
-        ; set VRAM addr 0
+        ; set VRAM write addr to 0
         XOR     A
         OUT     (VDPCTL), A
         LD      A, $40
         OUT     (VDPCTL), A
-        ; write 16384 zeros
-        LD      BC, 16384
-        XOR     A
+        ; write 16384 zeros: 64 outer × 256 inner (DJNZ keeps A intact)
+        LD      D, 64
+VC_OUT:
+        LD      B, 0            ; 256 iterations
+        XOR     A               ; fill byte = 0
 VC_LP:
         OUT     (VDPDATA), A
-        DEC     BC
-        LD      A, B
-        OR      C
-        JR      NZ, VC_LP
+        DJNZ    VC_LP
+        DEC     D
+        JR      NZ, VC_OUT
         RET
 
 ; =============================================================================
@@ -225,14 +236,16 @@ SET_VRAM_READ_ADDR:
 CLEAR_NAMETABLE:
         LD      HL, $1800
         CALL    SET_VRAM_ADDR
-        LD      BC, 768         ; 32×24 chars
-        LD      A, $20
+        ; 768 = 3×256 bytes; DJNZ keeps A=$20 intact
+        LD      D, 3
+CNT_OUT:
+        LD      B, 0            ; 256 iterations
+        LD      A, $20          ; space char
 CNT_LP:
         OUT     (VDPDATA), A
-        DEC     BC
-        LD      A, B
-        OR      C
-        JR      NZ, CNT_LP
+        DJNZ    CNT_LP
+        DEC     D
+        JR      NZ, CNT_OUT
         RET
 
 ; =============================================================================

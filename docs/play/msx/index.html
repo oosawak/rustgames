@@ -315,6 +315,9 @@
           const a = analyzeFrame(fb);
           const pct = Math.round(a.nonBlack / a.total * 100);
           dbgLog(`frame=${frameCount} 非黒=${pct}% (${a.nonBlack}px) ${a.topColors || '全黒'}`);
+          if (typeof wasm.debug_info_msx === 'function') {
+            dbgLog(`VDP: ${wasm.debug_info_msx()}`);
+          }
         }
 
         if (audioCtx) {
