@@ -72,16 +72,16 @@
     }
     #dpad {
       display: grid;
-      grid-template-columns: repeat(3, 80px);
-      grid-template-rows: repeat(3, 80px);
+      grid-template-columns: repeat(3, 100px);
+      grid-template-rows: repeat(3, 100px);
       gap: 4px;
     }
     .dpad-btn {
       background: #111;
       border: 2px solid #0f0;
-      border-radius: 12px;
+      border-radius: 14px;
       color: #0f0;
-      font-size: 34px;
+      font-size: 42px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -94,7 +94,7 @@
     .dpad-empty { background: transparent; border: none; }
     .dpad-center {
       background: #222;
-      border-radius: 8px;
+      border-radius: 10px;
     }
     /* 中央：START / RESET を横並び */
     #center-btns {
@@ -102,18 +102,18 @@
       flex-direction: row;
       align-items: center;
       gap: 12px;
-      padding-bottom: 28px;
+      padding-bottom: 36px;
     }
     .center-btn {
       background: #111;
       border: 2px solid #666;
-      border-radius: 20px;
+      border-radius: 22px;
       color: #aaa;
       font-family: monospace;
-      font-size: 12px;
+      font-size: 13px;
       font-weight: bold;
-      width: 76px;
-      height: 34px;
+      width: 88px;
+      height: 40px;
       cursor: pointer;
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
@@ -128,8 +128,8 @@
     /* 右：A / B ボタン（対角配置） */
     #action-btns {
       display: grid;
-      grid-template-columns: repeat(2, 88px);
-      grid-template-rows: repeat(2, 88px);
+      grid-template-columns: repeat(2, 108px);
+      grid-template-rows: repeat(2, 108px);
       gap: 10px;
     }
     .action-btn {
@@ -138,7 +138,7 @@
       background: #111;
       color: #0f0;
       font-family: monospace;
-      font-size: 20px;
+      font-size: 26px;
       font-weight: bold;
       cursor: pointer;
       touch-action: none;
