@@ -35,7 +35,12 @@ impl Bus {
     }
 
     pub fn load_bios(&mut self, data: &[u8]) {
-        self.bios = data.to_vec();
+        let mut bios = data.to_vec();
+        // BIOS boot: $0DD3=LD B,$78 (120フレームHALT待機) → $01 (1フレームに短縮)
+        if bios.len() > 0x0DD4 && bios[0x0DD3] == 0x06 && bios[0x0DD4] == 0x78 {
+            bios[0x0DD4] = 0x01;
+        }
+        self.bios = bios;
     }
 
     pub fn load_sub_rom(&mut self, data: &[u8]) {
