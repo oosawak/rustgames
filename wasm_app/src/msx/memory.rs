@@ -88,12 +88,6 @@ impl BusAccess for Bus {
         let page = (addr >> 14) as usize;
         let slot = (self.slot_select >> (page * 2)) & 3;
 
-        // Special: 0xFFFF reads sub-slot register of the selected slot for page 3
-        if addr == 0xFFFF && slot == 3 {
-            // Return inverted sub-slot select for slot 3
-            return !self.sub_slot_select[3];
-        }
-
         self.read_slot(slot, addr)
     }
 
@@ -101,12 +95,7 @@ impl BusAccess for Bus {
         let page = (addr >> 14) as usize;
         let slot = (self.slot_select >> (page * 2)) & 3;
 
-        if addr == 0xFFFF {
-            // Sub-slot select for the slot mapped to page 3
-            self.sub_slot_select[slot as usize] = val;
-            return;
-        }
-
+        // Only RAM (slot 3) is writable
         if slot == 3 {
             self.ram[addr as usize] = val;
         }

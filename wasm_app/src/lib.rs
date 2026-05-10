@@ -375,17 +375,23 @@ pub fn debug_info_msx() -> String {
             // Sample name table ($1800-$1808) and pattern for 'L' ($0260-$0267)
             let nt: Vec<String> = (0..8).map(|i| format!("{:02X}", m.bus.vdp.vram[0x1800+i])).collect();
             let pt_l: Vec<String> = (0..8).map(|i| format!("{:02X}", m.bus.vdp.vram[0x0260+i])).collect();
-            let vram_e000 = m.bus.ram[0xE000];
-            let vram_e001 = m.bus.ram[0xE001];
-            let vram_e050 = m.bus.ram[0xE050];
+            // $FCC1-$FCC4: sub-slot info table filled by C-BIOS $1043
+            let fcc1 = m.bus.ram[0xFCC1];
+            let fcc2 = m.bus.ram[0xFCC2];
+            let fcc3 = m.bus.ram[0xFCC3];
+            let fcc4 = m.bus.ram[0xFCC4];
+            // $F380: RDSLT hook (set by C-BIOS init)
+            let f380 = m.bus.ram[0xF380];
             format!(
                 "R0={:02X} R1={:02X} R2={:02X} R3={:02X} R4={:02X} R5={:02X} R6={:02X} R7={:02X} | \
-                slot={:02X} PC={:04X} SP={:04X} | NT:{} | PAT-L:{} | PL=({},{}) GM={}",
+                slot={:02X} PC={:04X} SP={:04X} | NT:{} | PAT-L:{} | PL=({},{}) GM={} | \
+                FCC1={:02X}{:02X}{:02X}{:02X} F380={:02X}",
                 regs[0], regs[1], regs[2], regs[3], regs[4], regs[5], regs[6], regs[7],
                 ss, pc, sp,
                 nt.join(""),
                 pt_l.join(""),
-                vram_e000, vram_e001, vram_e050
+                m.bus.ram[0xE000], m.bus.ram[0xE001], m.bus.ram[0xE050],
+                fcc1, fcc2, fcc3, fcc4, f380
             )
         } else {
             "no MSX state".to_string()
