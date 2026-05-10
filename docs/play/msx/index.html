@@ -268,27 +268,46 @@
       if (audioCtx.state === 'suspended') audioCtx.resume();
     }
 
-    async function loadBios() {
+    let isResetting = false;
+
+    async function fetchBiosData() {
       const [r1, r2] = await Promise.all([
         fetch('./cbios/cbios_main_msx1.rom'),
         fetch('./cbios/cbios_sub.rom'),
       ]);
-      if (r1.ok) wasm.load_bios_msx(new Uint8Array(await r1.arrayBuffer()));
-      if (r2.ok) wasm.load_sub_rom_msx(new Uint8Array(await r2.arrayBuffer()));
-      dbgLog(`BIOS loaded: main=${r1.ok} sub=${r2.ok}`);
+      return {
+        main:   r1.ok ? new Uint8Array(await r1.arrayBuffer()) : null,
+        sub:    r2.ok ? new Uint8Array(await r2.arrayBuffer()) : null,
+        mainOk: r1.ok, subOk: r2.ok,
+      };
+    }
+
+    function applyBios(bios) {
+      if (bios.main) wasm.load_bios_msx(bios.main);
+      if (bios.sub)  wasm.load_sub_rom_msx(bios.sub);
+      dbgLog(`BIOS loaded: main=${bios.mainOk} sub=${bios.subOk}`);
     }
 
     async function resetMsx() {
-      ensureAudio();
-      wasm.init_msx();
-      await loadBios();
-      if (currentRomData) {
-        wasm.load_rom_msx(currentRomData);
-        dbgLog(`RESET with ROM: ${currentRomName}`);
-        status.textContent = '🔄 RESET — ▶ ' + currentRomName;
-      } else {
-        dbgLog('RESET (no ROM)');
-        status.textContent = '🔄 RESET';
+      if (isResetting) return;
+      isResetting = true;
+      try {
+        ensureAudio();
+        // BIOSを先にfetch（旧ゲームはそのまま動き続けてOK）
+        const bios = await fetchBiosData();
+        // fetch完了後に同期的に初期化（ゲームループと競合しない）
+        wasm.init_msx();
+        applyBios(bios);
+        if (currentRomData) {
+          wasm.load_rom_msx(currentRomData);
+          dbgLog(`RESET with ROM: ▶ ${currentRomName}`);
+          status.textContent = '🔄 RESET — ▶ ' + currentRomName;
+        } else {
+          dbgLog('RESET (no ROM)');
+          status.textContent = '🔄 RESET';
+        }
+      } finally {
+        isResetting = false;
       }
     }
 
@@ -296,30 +315,41 @@
       currentRomData = null;
       currentRomName = '';
       document.querySelectorAll('.rom-btn').forEach(b => b.classList.remove('active'));
-      wasm.init_msx();
-      loadBios().then(() => { status.textContent = '⏏ EJECT — ゲームを選んでください'; });
+      fetchBiosData().then(bios => {
+        wasm.init_msx();
+        applyBios(bios);
+        status.textContent = '⏏ EJECT — ゲームを選んでください';
+      });
       infoEl.textContent = 'ゲームを選んでください';
     }
 
     async function loadRom(data, name) {
-      ensureAudio();
-      currentRomData = data;
-      currentRomName = name;
-      // ROM ロード後に必ず CPU リセット → C-BIOS がカートリッジを再スキャンする
-      wasm.init_msx();
-      await loadBios();
-      wasm.load_rom_msx(data);
-      status.textContent = '▶ ' + name + ' 実行中';
-      console.log('[MSX] ROM loaded & reset:', name, 'size=', data.length, 'bytes',
-                  'magic=', data[0].toString(16), data[1].toString(16));
-      dbgLog(`ROM load: ${name} size=${data.length} magic=${data[0].toString(16)}${data[1].toString(16)}`);
+      if (isResetting) return;
+      isResetting = true;
+      try {
+        ensureAudio();
+        currentRomData = data;
+        currentRomName = name;
+        // ROM ロード後に必ず CPU リセット → C-BIOS がカートリッジを再スキャンする
+        const bios = await fetchBiosData();
+        wasm.init_msx();
+        applyBios(bios);
+        wasm.load_rom_msx(data);
+        status.textContent = '▶ ' + name + ' 実行中';
+        console.log('[MSX] ROM loaded & reset:', name, 'size=', data.length, 'bytes',
+                    'magic=', data[0].toString(16), data[1].toString(16));
+        dbgLog(`ROM load: ▶ ${name} size=${data.length} magic=${data[0].toString(16)}${data[1].toString(16)}`);
+      } finally {
+        isResetting = false;
+      }
     }
 
     async function main() {
       await init();
-      wasm.init_msx();
       try {
-        await loadBios();
+        const bios = await fetchBiosData();
+        wasm.init_msx();
+        applyBios(bios);
         status.textContent = 'Ready — ゲームを選んでください';
       } catch (e) {
         status.textContent = 'BIOS error: ' + e.message;
@@ -439,7 +469,7 @@
         'btn-right': 'ArrowRight',
         'btn-a':     'Space',    // A = スペース（ジャンプ/決定）
         'btn-b':     'KeyZ',     // B = Z（サブアクション）
-        'btn-enter': 'Return',   // START = Enter
+        'btn-enter': 'Enter',     // START = Enter
       };
       for (const [id, code] of Object.entries(padMap)) {
         const el = document.getElementById(id);
@@ -453,8 +483,9 @@
         el.addEventListener('mouseleave', up);
       }
 
-      document.getElementById('btn-reset').addEventListener('click', resetMsx);
+      // touchstart で e.preventDefault() → click イベントが二重発火しない
       document.getElementById('btn-reset').addEventListener('touchstart', e => { e.preventDefault(); resetMsx(); }, { passive: false });
+      document.getElementById('btn-reset').addEventListener('click', resetMsx);
     }
 
     main().catch(e => { status.textContent = 'Error: ' + e.message; console.error(e); });
