@@ -250,6 +250,19 @@
     let currentRomName = '';
     let audioCtx = null, audioQueue = 0;
 
+    // デバッグログ（モジュールスコープで定義し全関数から参照可能にする）
+    const debugEl = document.getElementById('debug-panel');
+    const logLines = [];
+    function dbgLog(msg) {
+      const ts = new Date().toISOString().slice(11,23);
+      const line = `[${ts}] ${msg}`;
+      logLines.push(line);
+      if (logLines.length > 50) logLines.shift();
+      debugEl.textContent = logLines.join('\n');
+      debugEl.scrollTop = debugEl.scrollHeight;
+      console.log('[MSX]', msg);
+    }
+
     function ensureAudio() {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
       if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -315,18 +328,6 @@
       const canvas    = document.getElementById('msx-canvas');
       const ctx       = canvas.getContext('2d');
       const imageData = ctx.createImageData(256, 192);
-      const debugEl   = document.getElementById('debug-panel');
-      const logLines  = [];
-
-      function dbgLog(msg) {
-        const ts = new Date().toISOString().slice(11,23);
-        const line = `[${ts}] ${msg}`;
-        logLines.push(line);
-        if (logLines.length > 50) logLines.shift();
-        debugEl.textContent = logLines.join('\n');
-        debugEl.scrollTop = debugEl.scrollHeight;
-        console.log('[MSX]', msg);
-      }
 
       document.getElementById('btn-copy-log').addEventListener('click', () => {
         navigator.clipboard.writeText(logLines.join('\n')).then(() => {
