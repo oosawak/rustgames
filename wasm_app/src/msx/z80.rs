@@ -401,7 +401,7 @@ impl Z80 {
         if !self.iff1 { return; }
         self.halted = false;
         self.iff1 = false;
-        self.iff2 = false;
+        // IFF2 は変更しない（Z80仕様: INT受信時にIFF2は保持、RETIで iff1=iff2 復元）
         match self.im {
             0 => {
                 // Execute data byte as instruction (usually RST or FF)

@@ -329,6 +329,15 @@ export function key_down_msx(code) {
 }
 
 /**
+ * @param {string} code
+ */
+export function key_up_msx(code) {
+    const ptr0 = passStringToWasm0(code, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    wasm.key_up_msx(ptr0, len0);
+}
+
+/**
  * @returns {number}
  */
 export function laser_type_earthdef() {
