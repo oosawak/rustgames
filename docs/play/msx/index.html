@@ -57,13 +57,18 @@
       border-top: 1px solid #0f0;
       border-bottom: 1px solid #0f0;
     }
+    /* ゲームパッド：画面最下部に固定 */
     #gamepad {
-      width: 100vw;
-      max-width: 600px;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      padding: 12px 16px 20px;
+      align-items: flex-end;
+      padding: 8px 12px env(safe-area-inset-bottom, 12px);
+      background: rgba(0,0,0,0.85);
+      border-top: 1px solid #030;
     }
     #dpad {
       display: grid;
@@ -91,11 +96,13 @@
       background: #222;
       border-radius: 8px;
     }
+    /* 中央：START / RESET を横並び */
     #center-btns {
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
+      padding-bottom: 28px;
     }
     .center-btn {
       background: #111;
@@ -118,6 +125,7 @@
     .center-btn:active { background: #666; color: #000; }
     #btn-reset.center-btn { border-color: #f80; color: #f80; }
     #btn-reset.center-btn:active { background: #f80; color: #000; }
+    /* 右：A / B ボタン（対角配置） */
     #action-btns {
       display: grid;
       grid-template-columns: repeat(2, 88px);
@@ -156,6 +164,8 @@
       max-height: 120px;
       min-height: 1em;
       overflow-y: auto;
+      /* ゲームパッド固定バー分の余白 */
+      margin-bottom: 300px;
     }
     #debug-bar {
       width: 100%;
