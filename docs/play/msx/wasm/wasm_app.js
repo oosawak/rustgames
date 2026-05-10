@@ -229,6 +229,13 @@ export function engine_font_regular() {
 }
 
 /**
+ * @param {number} frames
+ */
+export function fast_boot_msx(frames) {
+    wasm.fast_boot_msx(frames);
+}
+
+/**
  * @param {number} nx
  * @param {number} ny
  */

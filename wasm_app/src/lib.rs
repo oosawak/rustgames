@@ -345,6 +345,17 @@ pub fn load_rom_msx(data: &[u8]) {
 }
 
 #[wasm_bindgen]
+pub fn fast_boot_msx(frames: u32) {
+    MSX.with(|s| {
+        if let Some(m) = s.borrow_mut().as_mut() {
+            for _ in 0..frames {
+                m.tick_frame();
+            }
+        }
+    });
+}
+
+#[wasm_bindgen]
 pub fn tick_msx() {
     MSX.with(|s| { if let Some(m) = s.borrow_mut().as_mut() { m.tick_frame(); } });
 }
@@ -362,6 +373,11 @@ pub fn audio_samples_msx() -> Vec<f32> {
 #[wasm_bindgen]
 pub fn key_down_msx(code: &str) {
     MSX.with(|s| { if let Some(m) = s.borrow_mut().as_mut() { m.bus.keyboard.key_down(code); } });
+}
+
+#[wasm_bindgen]
+pub fn key_up_msx(code: &str) {
+    MSX.with(|s| { if let Some(m) = s.borrow_mut().as_mut() { m.bus.keyboard.key_up(code); } });
 }
 
 #[wasm_bindgen]

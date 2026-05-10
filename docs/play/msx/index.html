@@ -269,6 +269,7 @@
     }
 
     let isResetting = false;
+    let lastResetTime = 0;
 
     async function fetchBiosData() {
       const [r1, r2] = await Promise.all([
@@ -288,9 +289,16 @@
       dbgLog(`BIOS loaded: main=${bios.mainOk} sub=${bios.subOk}`);
     }
 
+    // BIOSブートの120フレームHALT待機をスキップして即座にゲームを起動
+    function bootMsx() {
+      wasm.fast_boot_msx(300);  // 300フレーム高速実行 (WASM内で数十ms)
+    }
+
     async function resetMsx() {
-      if (isResetting) return;
+      const now = Date.now();
+      if (isResetting || now - lastResetTime < 500) return;
       isResetting = true;
+      lastResetTime = now;
       try {
         ensureAudio();
         // BIOSを先にfetch（旧ゲームはそのまま動き続けてOK）
@@ -306,6 +314,7 @@
           dbgLog('RESET (no ROM)');
           status.textContent = '🔄 RESET';
         }
+        bootMsx();
       } finally {
         isResetting = false;
       }
@@ -318,6 +327,7 @@
       fetchBiosData().then(bios => {
         wasm.init_msx();
         applyBios(bios);
+        bootMsx();
         status.textContent = '⏏ EJECT — ゲームを選んでください';
       });
       infoEl.textContent = 'ゲームを選んでください';
@@ -335,6 +345,7 @@
         wasm.init_msx();
         applyBios(bios);
         wasm.load_rom_msx(data);
+        bootMsx();
         status.textContent = '▶ ' + name + ' 実行中';
         console.log('[MSX] ROM loaded & reset:', name, 'size=', data.length, 'bytes',
                     'magic=', data[0].toString(16), data[1].toString(16));
