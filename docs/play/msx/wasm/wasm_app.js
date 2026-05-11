@@ -260,6 +260,13 @@ export function flash_charges_earthdef() {
 }
 
 /**
+ * @param {number} val
+ */
+export function force_slot_select(val) {
+    wasm.force_slot_select(val);
+}
+
+/**
  * @returns {Uint8Array}
  */
 export function frame_buffer_msx() {

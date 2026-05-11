@@ -419,3 +419,13 @@ pub fn debug_info_msx() -> String {
     })
 }
 
+#[wasm_bindgen]
+pub fn force_slot_select(val: u8) {
+    MSX.with(|s| {
+        if let Some(m) = s.borrow_mut().as_mut() {
+            m.bus.slot_select = val;
+            m.bus.ppi.port_a = val;
+        }
+    });
+}
+
