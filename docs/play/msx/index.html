@@ -291,7 +291,8 @@
 
     // BIOSブートの120フレームHALT待機をスキップして即座にゲームを起動
     function bootMsx() {
-      wasm.fast_boot_msx(300);  // 300フレーム高速実行 (WASM内で数十ms)
+      // Use a longer fast-boot to allow C-BIOS to complete cartridge scan on slow devices
+      wasm.fast_boot_msx(1200);  // 1200フレーム高速実行
     }
 
     async function resetMsx() {
