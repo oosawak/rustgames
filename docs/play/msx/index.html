@@ -346,6 +346,17 @@
         wasm.init_msx();
         applyBios(bios);
         wasm.load_rom_msx(data);
+        // フォールバック：一部環境でC-BIOSがカートリッジ検出に失敗するため
+        // ROMロード直後に強制的に slot_select を設定してマッピングを行う
+        try {
+          if (typeof wasm.force_slot_select === 'function') {
+            // 0xC4 = page3=RAM, page2=BIOS, page1=cart, page0=BIOS (common mapping)
+            wasm.force_slot_select(0xC4);
+            dbgLog('force_slot_select(0xC4) called');
+          }
+        } catch (e) {
+          console.warn('force_slot_select failed', e);
+        }
         bootMsx();
         status.textContent = '▶ ' + name + ' 実行中';
         console.log('[MSX] ROM loaded & reset:', name, 'size=', data.length, 'bytes',
