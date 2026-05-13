@@ -350,11 +350,9 @@ pub fn fast_boot_msx(frames: u32) {
         if let Some(m) = s.borrow_mut().as_mut() {
             for _ in 0..frames {
                 m.tick_frame();
-                // BIOS HALT loop ($108A-$108D): B countdown
-                // When in the DEC B/JR NZ loop and B != 0, decrement B to speed up
-                if m.cpu.pc >= 0x108A && m.cpu.pc <= 0x108B {
-                    m.cpu.b = 0;  // Skip countdown entirely
-                }
+                // BIOS HALT loop at $108A: DEC B / JR NZ, $108A / HALT
+                // BIOS patch sets B=1 at $0DD4, so DEC B→B=0→JR NZ skips→HALT executes
+                // No manual intervention needed — BIOS patch handles it
             }
         }
     });
@@ -388,11 +386,15 @@ pub fn key_up_msx(code: &str) {
 #[wasm_bindgen]
 pub fn debug_info_msx() -> String {
     MSX.with(|s| {
-        if let Some(m) = s.borrow().as_ref() {
+                if let Some(m) = s.borrow().as_ref() {
             let regs = &m.bus.vdp.regs;
             let ss = m.bus.slot_select;
             let pc = m.cpu.pc;
             let sp = m.cpu.sp;
+            // CPU registers
+            let a = m.cpu.a; let b = m.cpu.b; let c = m.cpu.c; let d = m.cpu.d;
+            let e = m.cpu.e; let h = m.cpu.h; let l = m.cpu.l; let f = m.cpu.f;
+            let halted = m.cpu.halted;
             // Sample name table ($1800-$1808) and pattern for 'L' ($0260-$0267)
             let nt: Vec<String> = (0..8).map(|i| format!("{:02X}", m.bus.vdp.vram[0x1800+i])).collect();
             let pt_l: Vec<String> = (0..8).map(|i| format!("{:02X}", m.bus.vdp.vram[0x0260+i])).collect();
@@ -404,11 +406,12 @@ pub fn debug_info_msx() -> String {
             // $F380: RDSLT hook (set by C-BIOS init)
             let f380 = m.bus.ram[0xF380];
             format!(
-                "R0={:02X} R1={:02X} R2={:02X} R3={:02X} R4={:02X} R5={:02X} R6={:02X} R7={:02X} | \
-                slot={:02X} PC={:04X} SP={:04X} | NT:{} | PAT-L:{} | PL=({},{}) GM={} | \
-                FCC1={:02X}{:02X}{:02X}{:02X} F380={:02X}",
+                "VDP R0={:02X} R1={:02X} R2={:02X} R3={:02X} R4={:02X} R5={:02X} R6={:02X} R7={:02X} | \
+                slot={:02X} PC={:04X} SP={:04X} | CPU A={:02X} B={:02X} C={:02X} D={:02X} E={:02X} H={:02X} L={:02X} F={:02X} halted={} |\
+                NT:{} | PAT-L:{} | PL=({},{}) GM={} | FCC1={:02X}{:02X}{:02X}{:02X} F380={:02X}",
                 regs[0], regs[1], regs[2], regs[3], regs[4], regs[5], regs[6], regs[7],
                 ss, pc, sp,
+                a, b, c, d, e, h, l, f, halted,
                 nt.join(""),
                 pt_l.join(""),
                 m.bus.ram[0xE000], m.bus.ram[0xE001], m.bus.ram[0xE050],
