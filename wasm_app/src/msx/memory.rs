@@ -69,21 +69,33 @@ impl Bus {
                 }
             }
             1 => {
-                // Cartridge: mapped to $4000-$7FFF (16KB) or $4000-$BFFF (32KB)
-                if !self.cart.is_empty() && addr >= 0x4000 {
+                // Cartridge slot — has sub-slots when cart is loaded
+                if self.cart.is_empty() {
+                    return 0xFF;
+                }
+                // Sub-slot select is per-page (same format as main slot select)
+                let page = (addr >> 14) as usize;
+                let sub_slot = (self.sub_slot_select[1] >> (page * 2)) & 3;
+                // Cart ROM is in sub-slot 0 at $4000-$7FFF of its 64KB space
+                if sub_slot == 0 && addr >= 0x4000 {
                     let off = (addr - 0x4000) as usize;
                     if off < self.cart.len() {
-                        self.cart[off]
-                    } else {
-                        0xFF
+                        return self.cart[off];
                     }
-                } else {
-                    0xFF
                 }
+                0xFF
             }
             2 => 0xFF,
             3 => self.ram[addr as usize],
             _ => 0xFF,
+        }
+    }
+
+    /// Check if a main slot has sub-slots (expandable)
+    fn slot_has_sub_slots(&self, slot: u8) -> bool {
+        match slot {
+            1 => !self.cart.is_empty(), // Cartridge slot always has sub-slots
+            _ => false,
         }
     }
 }
@@ -93,12 +105,23 @@ impl BusAccess for Bus {
         let page = (addr >> 14) as usize;
         let slot = (self.slot_select >> (page * 2)) & 3;
 
+        // $FFFF: sub-slot select register for the slot mapped to page 3
+        if addr == 0xFFFF && self.slot_has_sub_slots(slot) {
+            return !self.sub_slot_select[slot as usize];
+        }
+
         self.read_slot(slot, addr)
     }
 
     fn mem_write(&mut self, addr: u16, val: u8) {
         let page = (addr >> 14) as usize;
         let slot = (self.slot_select >> (page * 2)) & 3;
+
+        // $FFFF: write sub-slot select register
+        if addr == 0xFFFF {
+            self.sub_slot_select[slot as usize] = val;
+            return;
+        }
 
         // Only RAM (slot 3) is writable
         if slot == 3 {

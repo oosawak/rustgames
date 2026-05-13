@@ -40,6 +40,8 @@ export function camera_mode_blaster3d(): number;
 
 export function camera_name_blaster3d(): string;
 
+export function debug_info_msx(): string;
+
 export function draw_pacman(): void;
 
 export function earth_hp_earthdef(): number;
@@ -69,6 +71,8 @@ export function engine_font_embedded(): boolean;
  */
 export function engine_font_regular(): Uint8Array;
 
+export function fast_boot_msx(frames: number): void;
+
 export function fire_at_screen_earthdef(nx: number, ny: number): void;
 
 export function fire_earthdef(): void;
@@ -76,6 +80,8 @@ export function fire_earthdef(): void;
 export function flash_bomb_earthdef(): void;
 
 export function flash_charges_earthdef(): number;
+
+export function force_slot_select(val: number): void;
 
 export function frame_buffer_msx(): Uint8Array;
 
@@ -235,6 +241,7 @@ export interface InitOutput {
     readonly bullet_count_blaster3d: () => number;
     readonly camera_mode_blaster3d: () => number;
     readonly camera_name_blaster3d: () => [number, number];
+    readonly debug_info_msx: () => [number, number];
     readonly draw_pacman: () => void;
     readonly earth_hp_earthdef: () => number;
     readonly earth_max_hp_earthdef: () => number;
@@ -242,10 +249,12 @@ export interface InitOutput {
     readonly enemy_z_maze3d: () => number;
     readonly engine_font_bold: () => [number, number];
     readonly engine_font_embedded: () => number;
+    readonly fast_boot_msx: (a: number) => void;
     readonly fire_at_screen_earthdef: (a: number, b: number) => void;
     readonly fire_earthdef: () => void;
     readonly flash_bomb_earthdef: () => void;
     readonly flash_charges_earthdef: () => number;
+    readonly force_slot_select: (a: number) => void;
     readonly frame_buffer_msx: () => [number, number];
     readonly game_over_maze3d: () => number;
     readonly init_blaster3d: (a: number, b: number) => any;
@@ -360,8 +369,8 @@ export interface InitOutput {
     readonly wgpu_render_bundle_set_index_buffer: (a: number, b: bigint, c: number, d: bigint, e: bigint) => void;
     readonly wgpu_render_bundle_push_debug_group: (a: number, b: number) => void;
     readonly wgpu_render_pass_set_index_buffer: (a: number, b: bigint, c: number, d: bigint, e: bigint) => void;
-    readonly wasm_bindgen__convert__closures_____invoke__h337539ba828a8639: (a: number, b: number, c: any) => [number, number];
-    readonly wasm_bindgen__convert__closures_____invoke__h4c4817024f9b650e: (a: number, b: number, c: any, d: any) => void;
+    readonly wasm_bindgen_7a19de62c8672ebe___convert__closures_____invoke___wasm_bindgen_7a19de62c8672ebe___JsValue__core_e1dd1f5b63695bbf___result__Result_____wasm_bindgen_7a19de62c8672ebe___JsError___true_: (a: number, b: number, c: any) => [number, number];
+    readonly wasm_bindgen_7a19de62c8672ebe___convert__closures_____invoke___js_sys_2bf081240e491622___Function_fn_wasm_bindgen_7a19de62c8672ebe___JsValue_____wasm_bindgen_7a19de62c8672ebe___sys__Undefined___js_sys_2bf081240e491622___Function_fn_wasm_bindgen_7a19de62c8672ebe___JsValue_____wasm_bindgen_7a19de62c8672ebe___sys__Undefined_______true_: (a: number, b: number, c: any, d: any) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_exn_store: (a: number) => void;

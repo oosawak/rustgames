@@ -425,6 +425,8 @@ pub fn force_slot_select(val: u8) {
         if let Some(m) = s.borrow_mut().as_mut() {
             m.bus.slot_select = val;
             m.bus.ppi.port_a = val;
+            // Reset sub-slot selects for all pages (0 = sub-slot 0 on all pages)
+            m.bus.sub_slot_select = [0; 4];
         }
     });
 }
