@@ -33,16 +33,9 @@ impl MsxState {
         const CYCLES_PER_FRAME: u32 = 59667;
         let mut cycles_run: u32 = 0;
 
-        // Set VBLANK pending and trigger INT if enabled
+        // VBLANK status at start of frame
         self.bus.vdp.int_pending = true;
         self.bus.vdp.status |= 0x80;  // VBLANK flag (bit 7)
-        if self.bus.vdp.take_interrupt() {
-            let data = match self.cpu.im {
-                2 => 0xFF,
-                _ => 0xFF,
-            };
-            self.cpu.int(&mut self.bus, data);
-        }
 
         while cycles_run < CYCLES_PER_FRAME {
             let c = self.cpu.step(&mut self.bus);
@@ -50,6 +43,16 @@ impl MsxState {
             self.bus.psg.tick(c);
             // Update keyboard state in PPI
             self.bus.ppi.update_keyboard(&self.bus.keyboard);
+        }
+
+        // Trigger VBL interrupt at END of frame (real MSX timing: VBL occurs at frame end)
+        // This ensures HALT (which waits for INT) is properly woken up
+        if self.bus.vdp.take_interrupt() {
+            let data = match self.cpu.im {
+                2 => 0xFF,
+                _ => 0xFF,
+            };
+            self.cpu.int(&mut self.bus, data);
         }
 
         self.bus.vdp.render_frame(&mut self.frame_buffer);

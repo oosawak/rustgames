@@ -350,9 +350,10 @@ pub fn fast_boot_msx(frames: u32) {
         if let Some(m) = s.borrow_mut().as_mut() {
             for _ in 0..frames {
                 m.tick_frame();
-                // BIOSのHALTループ($108A-$108D)を検出したらBレジスタを0に強制セット
-                if m.cpu.pc >= 0x108A && m.cpu.pc <= 0x108D {
-                    m.cpu.b = 0;
+                // BIOS HALT loop ($108A-$108D): B countdown
+                // When in the DEC B/JR NZ loop and B != 0, decrement B to speed up
+                if m.cpu.pc >= 0x108A && m.cpu.pc <= 0x108B {
+                    m.cpu.b = 0;  // Skip countdown entirely
                 }
             }
         }
