@@ -1,0 +1,8 @@
+INCLUDES:=
+INCBINS:=
+.SECONDARY: vdep/video.asm
+vdep/video.asm: src/video.asm
+vdep/video.asm: $(INCLUDES:%=vdep/%) $(INCBINS:%=src/%)
+ifneq ($(INCLUDES),)
+-include $(INCLUDES:%.asm=derived/dep/%.dep)
+endif

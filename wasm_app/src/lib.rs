@@ -465,7 +465,8 @@ pub fn boot_cartridge_msx() {
 
             // Jump to INIT address
             m.cpu.pc = init_addr;
-            m.bus.add_log(format!("[BOOT] Jumped to ${:04X}", init_addr));
+            m.cpu.halted = false;  // Clear HALT state so CPU can execute
+            m.bus.add_log(format!("[BOOT] Jumped to ${:04X}, halted=false", init_addr));
         }
     });
 }

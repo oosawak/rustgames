@@ -1,0 +1,8 @@
+INCLUDES:=
+INCBINS:=
+.SECONDARY: vdep/version.asm
+vdep/version.asm: derived/asm/version.asm
+vdep/version.asm: $(INCLUDES:%=vdep/%) $(INCBINS:%=src/%)
+ifneq ($(INCLUDES),)
+-include $(INCLUDES:%.asm=derived/dep/%.dep)
+endif

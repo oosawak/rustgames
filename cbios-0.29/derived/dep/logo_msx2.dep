@@ -1,0 +1,10 @@
+INCLUDES:=
+INCLUDES+=hardware.asm
+INCLUDES+=logo.asm
+INCBINS:=
+.SECONDARY: vdep/logo_msx2.asm
+vdep/logo_msx2.asm: src/logo_msx2.asm
+vdep/logo_msx2.asm: $(INCLUDES:%=vdep/%) $(INCBINS:%=src/%)
+ifneq ($(INCLUDES),)
+-include $(INCLUDES:%.asm=derived/dep/%.dep)
+endif

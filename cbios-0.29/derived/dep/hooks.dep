@@ -1,0 +1,8 @@
+INCLUDES:=
+INCBINS:=
+.SECONDARY: vdep/hooks.asm
+vdep/hooks.asm: src/hooks.asm
+vdep/hooks.asm: $(INCLUDES:%=vdep/%) $(INCBINS:%=src/%)
+ifneq ($(INCLUDES),)
+-include $(INCLUDES:%.asm=derived/dep/%.dep)
+endif

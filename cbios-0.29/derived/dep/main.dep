@@ -1,0 +1,25 @@
+INCLUDES:=
+INCLUDES+=systemvars.asm
+INCLUDES+=hooks.asm
+INCLUDES+=util.asm
+INCLUDES+=video.asm
+INCLUDES+=debug.asm
+INCLUDES+=chput.asm
+INCLUDES+=inlin.asm
+INCLUDES+=font.asm
+INCLUDES+=slot.asm
+INCLUDES+=version.asm
+INCLUDES+=locale.asm
+INCLUDES+=scancodes_us.asm
+INCLUDES+=scancodes_uk.asm
+INCLUDES+=scancodes_fr.asm
+INCLUDES+=scancodes_de.asm
+INCLUDES+=scancodes_jp.asm
+INCLUDES+=statements.asm
+INCBINS:=
+.SECONDARY: vdep/main.asm
+vdep/main.asm: src/main.asm
+vdep/main.asm: $(INCLUDES:%=vdep/%) $(INCBINS:%=src/%)
+ifneq ($(INCLUDES),)
+-include $(INCLUDES:%.asm=derived/dep/%.dep)
+endif

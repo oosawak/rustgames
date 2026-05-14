@@ -1,0 +1,11 @@
+INCLUDES:=
+INCLUDES+=font_jp.asm
+INCLUDES+=font_br.asm
+INCLUDES+=font_us.asm
+INCBINS:=
+.SECONDARY: vdep/font.asm
+vdep/font.asm: src/font.asm
+vdep/font.asm: $(INCLUDES:%=vdep/%) $(INCBINS:%=src/%)
+ifneq ($(INCLUDES),)
+-include $(INCLUDES:%.asm=derived/dep/%.dep)
+endif

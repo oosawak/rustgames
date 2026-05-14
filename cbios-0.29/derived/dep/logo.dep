@@ -1,0 +1,12 @@
+INCLUDES:=
+INCLUDES+=systemvars.asm
+INCBINS:=
+INCBINS+=../version.txt
+INCBINS+=../version.txt
+INCBINS+=../version.txt
+.SECONDARY: vdep/logo.asm
+vdep/logo.asm: src/logo.asm
+vdep/logo.asm: $(INCLUDES:%=vdep/%) $(INCBINS:%=src/%)
+ifneq ($(INCLUDES),)
+-include $(INCLUDES:%.asm=derived/dep/%.dep)
+endif

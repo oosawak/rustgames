@@ -460,10 +460,12 @@
       document.addEventListener('keyup',   e => { e.preventDefault(); wasm.key_up_msx(e.code); });
 
       // 組み込みROMボタン（JSのみで生成して重複防止）
+      let firstRomBtn = null;
       for (const rom of BUILTIN_ROMS) {
         const btn = document.createElement('button');
         btn.className = 'rom-btn';
         btn.textContent = rom.label;
+        if (!firstRomBtn) firstRomBtn = btn;
         btn.addEventListener('click', async () => {
           ensureAudio();
           document.querySelectorAll('.rom-btn').forEach(b => b.classList.remove('active'));
@@ -475,6 +477,22 @@
           await loadRom(new Uint8Array(await resp.arrayBuffer()), rom.label);
         });
         btnRow.insertBefore(btn, btnEject);
+      }
+
+      // Auto-load first ROM (LINEBOY) on page init
+      if (firstRomBtn && BUILTIN_ROMS.length > 0) {
+        (async () => {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          const rom = BUILTIN_ROMS[0];
+          ensureAudio();
+          firstRomBtn.classList.add('active');
+          infoEl.textContent = rom.info;
+          status.textContent = '読み込み中...';
+          const resp = await fetch(rom.file);
+          if (resp.ok) {
+            await loadRom(new Uint8Array(await resp.arrayBuffer()), rom.label);
+          }
+        })();
       }
 
       btnEject.addEventListener('click', ejectRom);

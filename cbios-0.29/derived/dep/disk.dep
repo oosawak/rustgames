@@ -1,0 +1,12 @@
+INCLUDES:=
+INCLUDES+=hooks.asm
+INCLUDES+=systemvars.asm
+INCLUDES+=hardware.asm
+INCLUDES+=debug.asm
+INCBINS:=
+.SECONDARY: vdep/disk.asm
+vdep/disk.asm: src/disk.asm
+vdep/disk.asm: $(INCLUDES:%=vdep/%) $(INCBINS:%=src/%)
+ifneq ($(INCLUDES),)
+-include $(INCLUDES:%.asm=derived/dep/%.dep)
+endif

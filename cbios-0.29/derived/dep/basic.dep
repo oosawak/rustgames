@@ -1,0 +1,10 @@
+INCLUDES:=
+INCLUDES+=basic_tables.asm
+INCBINS:=
+INCBINS+=test.bas
+.SECONDARY: vdep/basic.asm
+vdep/basic.asm: src/basic.asm
+vdep/basic.asm: $(INCLUDES:%=vdep/%) $(INCBINS:%=src/%)
+ifneq ($(INCLUDES),)
+-include $(INCLUDES:%.asm=derived/dep/%.dep)
+endif

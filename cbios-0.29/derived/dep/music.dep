@@ -1,0 +1,10 @@
+INCLUDES:=
+INCLUDES+=hardware.asm
+INCLUDES+=debug.asm
+INCBINS:=
+.SECONDARY: vdep/music.asm
+vdep/music.asm: src/music.asm
+vdep/music.asm: $(INCLUDES:%=vdep/%) $(INCBINS:%=src/%)
+ifneq ($(INCLUDES),)
+-include $(INCLUDES:%.asm=derived/dep/%.dep)
+endif
