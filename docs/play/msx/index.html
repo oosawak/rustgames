@@ -236,6 +236,9 @@
   <script type="module">
     import init, * as wasm from './wasm/wasm_app.js';
 
+    // Make wasm globally accessible for console debugging
+    window.wasm = wasm;
+
     const status    = document.getElementById('status');
     const infoEl    = document.getElementById('info');
     const btnRow    = document.getElementById('btn-row');
