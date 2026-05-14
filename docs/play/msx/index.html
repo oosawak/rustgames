@@ -427,6 +427,15 @@
             dbgLog(`VDP: ${wasm.debug_info_msx()}`);
           }
         }
+        if (frameCount % 300 === 0) {
+          if (typeof wasm.debug_log_msx === 'function') {
+            const wasmLog = wasm.debug_log_msx();
+            if (wasmLog && wasmLog.trim().length > 0) {
+              dbgLog('[WASM DEBUG LOG]');
+              wasmLog.split('\n').slice(-10).forEach(line => { if (line.trim()) dbgLog(line); });
+            }
+          }
+        }
 
         if (audioCtx) {
           const samples = wasm.audio_samples_msx();
