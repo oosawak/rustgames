@@ -296,6 +296,8 @@
     function bootMsx() {
       // Use a longer fast-boot to allow C-BIOS to complete cartridge scan on slow devices
       wasm.fast_boot_msx(1200);  // 1200フレーム高速実行
+      // Force cartridge boot: jump directly to INIT if a cartridge is present
+      wasm.boot_cartridge_msx();
     }
 
     async function resetMsx() {
