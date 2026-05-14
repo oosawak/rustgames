@@ -298,14 +298,16 @@
       wasm.fast_boot_msx(1200);  // 1200フレーム高速実行
       // Force cartridge boot: jump directly to INIT if a cartridge is present
       try {
+        console.log('[BOOT] typeof wasm.boot_cartridge_msx:', typeof wasm.boot_cartridge_msx);
         if (typeof wasm.boot_cartridge_msx === 'function') {
+          console.log('[BOOT] Calling boot_cartridge_msx()');
           wasm.boot_cartridge_msx();
-          dbgLog('boot_cartridge_msx() called');
+          console.log('[BOOT] boot_cartridge_msx() completed');
         } else {
-          dbgLog('boot_cartridge_msx not available');
+          console.log('[BOOT] boot_cartridge_msx not available (type: ' + typeof wasm.boot_cartridge_msx + ')');
         }
       } catch (e) {
-        dbgLog('boot_cartridge_msx error: ' + e.message);
+        console.log('[BOOT] Error:', e.message, e.stack);
       }
     }
 
