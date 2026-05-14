@@ -372,6 +372,8 @@
 
     async function main() {
       await init();
+      // Make wasm globally accessible for console debugging
+      window.wasm = wasm;
       try {
         const bios = await fetchBiosData();
         wasm.init_msx();
