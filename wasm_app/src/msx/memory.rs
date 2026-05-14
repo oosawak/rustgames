@@ -54,18 +54,21 @@ impl Bus {
     fn read_slot(&self, slot: u8, addr: u16) -> u8 {
         match slot {
             0 => {
-                // BIOS / sub ROM
+                // Sub ROM at 0x4000 - 0x7FFF takes priority over main BIOS
+                // (C-BIOS main ROM is 32KB with $4000-$7FFF zero-filled;
+                //  sub ROM must fill that gap for cartridge detection to work)
+                if addr >= 0x4000 && !self.sub_rom.is_empty() {
+                    let sub_off = (addr - 0x4000) as usize;
+                    if sub_off < self.sub_rom.len() {
+                        return self.sub_rom[sub_off];
+                    }
+                }
+                // Main BIOS at 0x0000 - 0x3FFF (or full 32KB if no sub ROM)
                 let off = addr as usize;
                 if off < self.bios.len() {
                     self.bios[off]
                 } else {
-                    // sub ROM at 0x4000 - 0x7FFF
-                    let sub_off = addr.wrapping_sub(0x4000) as usize;
-                    if addr >= 0x4000 && sub_off < self.sub_rom.len() {
-                        self.sub_rom[sub_off]
-                    } else {
-                        0xFF
-                    }
+                    0xFF
                 }
             }
             1 => {
