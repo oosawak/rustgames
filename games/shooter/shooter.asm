@@ -1,9 +1,10 @@
 ; =============================================================================
-; SHOOTER for MSX1 — Vertical Scrolling Shooter Game (Z80 Assembly)
-; pasmo --msx shooter.asm shooter.rom
+; SHOOTER for MSX1 — Vertical Scrolling Shooter (Z80 Assembly)
+; Based on LINEBOY, modified for falling enemies
+; pasmo shooter.asm shooter.rom
 ;
-; Controls: Left/Right arrows = move, Space = fire
-; Goal: Destroy 100 enemies to clear the game
+; Controls: Left/Right arrows = move, Enter = start/skip title
+; Goal: Avoid 3 falling enemies
 ; =============================================================================
 
         ORG     $4000           ; MSX cartridge slot 1, page 1
@@ -43,23 +44,24 @@ BDRCLR  EQU     $F3EB           ; border color
 ; =============================================================================
 ; RAM layout (using $E000-$EFFF area)
 ; =============================================================================
-        ; Player (triangle at bottom)
+        ; Player
 PL_X    EQU     $E000           ; player X (0-240, pixel)
-PL_Y    EQU     $E001           ; player Y (fixed at 176)
+PL_Y    EQU     $E001           ; player Y (0-176, pixel)
+PL_VY   EQU     $E002           ; vertical velocity (signed, Q4)
+PL_GNDQ EQU     $E003           ; grounded flag (0/1)
+PL_DIR  EQU     $E004           ; facing dir (0=right,1=left)
 
-        ; Bullets: max 4, each = (X, Y, active)
-BUL_TBL EQU     $E010           ; 12 bytes (4 × 3)
+        ; Enemy table: 3 enemies × 3 bytes (X, Y, dir)
+EN_TBL  EQU     $E010           ; $E010,$E011,$E012 = enemy0; +3=enemy1, +6=enemy2
 
-        ; Enemies: max 16, each = (X, Y, type, active)
-EN_TBL  EQU     $E040           ; 64 bytes (16 × 4)
+        ; Item table: 10 items × 2 bytes (X, Y), 0xFF=collected
+IT_TBL  EQU     $E030           ; 20 bytes
 
         ; Game state
-GM_ST   EQU     $E100           ; 0=title,1=play,2=gameover,3=clear
-SCORE   EQU     $E101           ; enemies killed (8-bit, 0-100)
-FRAME   EQU     $E102           ; frame counter (8-bit)
-PREV_K  EQU     $E103           ; previous keyboard state for edge detect
-SPAWN_T EQU     $E104           ; enemy spawn timer
-DIFF    EQU     $E105           ; difficulty level (speed)
+GM_ST   EQU     $E050           ; 0=title,1=play,2=gameover,3=clear
+SCORE   EQU     $E051           ; items collected
+FRAME   EQU     $E052           ; frame counter (8-bit)
+PREV_K  EQU     $E053           ; previous keyboard state for edge detect
 
 ; =============================================================================
 ; VDP register initialisation table (Screen 1 / Graphic 1)
@@ -83,83 +85,79 @@ VDPREGS:
         DB      $F1
 VDPREGS_END:
 
-; Palette colors
+; =============================================================================
+; Palette: TMS9918A 15 colors (index 1–15)
+; We map our 4 game colors to these indices
+; 0=transparent,1=black,2=green,3=light green,
+; 4=blue,5=light blue,6=red,7=cyan,
+; 8=orange,9=light orange,10=yellow,11=light yellow,
+; 12=dark green,13=purple,14=gray,15=white
+; =============================================================================
 COL_BG      EQU 1   ; black background
+COL_GROUND  EQU 2   ; green ground
 COL_PLAYER  EQU 15  ; white player
-COL_BULLET  EQU 10  ; yellow bullet
 COL_ENEMY   EQU 8   ; orange enemy
+COL_ITEM    EQU 10  ; yellow star
 COL_TEXT    EQU 15  ; white text
 
 ; =============================================================================
-; SPRITE DATA (8×8×1 patterns in VRAM pattern table)
-; Pattern 0: Player (triangle ▲)
-; Pattern 1: Bullet (small square ■)
-; Pattern 2-3: Enemy (falling square ◼)
-; =============================================================================
-SPRITE_PATTERNS:
-        ; Pattern 0: Player triangle (▲)
-        DB      $18, $3C, $7E, $FF, $FF, $7E, $3C, $18
-        ; Pattern 1: Bullet (small yellow square)
-        DB      $00, $00, $18, $18, $18, $18, $00, $00
-        ; Pattern 2: Enemy type A (orange square)
-        DB      $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
-        ; Pattern 3: Enemy type B (lighter orange)
-        DB      $C3, $C3, $C3, $C3, $C3, $C3, $C3, $C3
-SPRITE_PATTERNS_END:
-
-; =============================================================================
-; START: Main entry point
+; START
 ; =============================================================================
 START:
         DI
-        LD      SP, $F380         ; safe stack in RAM
+        LD      SP, $F380       ; safe stack in RAM
+        EI                      ; enable interrupts (needed for BIOS)
 
-        ; Initialize VDP
+        ; Init VDP
         CALL    INIT_VDP
-        CALL    CLEAR_VRAM
-        CALL    LOAD_SPRITES
-        CALL    CLEAR_NAMETABLE
-        CALL    SET_COLORS
+
+        ; Init game state
         CALL    INIT_GAME
 
-        EI
+        ; Title screen
+        CALL    SHOW_TITLE
+        CALL    WAIT_SPACE
 
         ; Main game loop
-MAIN_LP:
-        ; Wait for VBLANK (read VDP status bit 7)
+MAIN_LOOP:
+        ; Wait for VSYNC by polling VDP status bit 7
 WAIT_VBL:
-        IN      A, ($99)          ; read VDP status register
-        AND     $80               ; check VBLANK flag (bit 7)
-        JR      Z, WAIT_VBL       ; wait until VBLANK
+        IN      A, ($99)        ; read VDP status register
+        AND     $80             ; check VBLANK flag (bit 7)
+        JR      Z, WAIT_VBL    ; wait until VBLANK
+
+        LD      A, (FRAME)
+        INC     A
+        LD      (FRAME), A
 
         CALL    READ_INPUT
         CALL    UPDATE_PLAYER
-        CALL    UPDATE_BULLETS
         CALL    UPDATE_ENEMIES
-        CALL    SPAWN_ENEMY
-        CALL    CHECK_COLLISIONS
-        CALL    UPDATE_SPRITES
-        CALL    DRAW_SCORE
+        CALL    CHECK_ITEMS
+        CALL    CHECK_ENEMY_COLL
+        CALL    DRAW_FRAME
+        CALL    DRAW_HUD
 
         LD      A, (GM_ST)
-        CP      3                 ; 3 = clear
-        JR      NZ, MAIN_LP
+        CP      2
+        JP      Z, GAME_OVER_SCR
+        CP      3
+        JP      Z, CLEAR_SCR
 
-        ; Game clear — hold for 2 seconds
-        LD      B, 120            ; 120 frames = 2 seconds
-CLEAR_LOOP:
-        HALT
-        DJNZ    CLEAR_LOOP
-        JR      MAIN_LP
+        JP      MAIN_LOOP
 
 ; =============================================================================
-; INIT_VDP
+; INIT_VDP — set Screen 1 (Graphic 1) mode
 ; =============================================================================
 INIT_VDP:
+        ; Reset VDP address latch (C-BIOS may leave it mid-sequence)
+        IN      A, ($99)
+
         LD      HL, VDPREGS
-        LD      B, 8
-        XOR     C
-INIT_VDP_LP:
+        LD      B, VDPREGS_END - VDPREGS
+        LD      C, 0
+IVDP_LP:
+        ; write register: first data, then $80|reg
         LD      A, (HL)
         OUT     (VDPCTL), A
         LD      A, $80
@@ -167,44 +165,51 @@ INIT_VDP_LP:
         OUT     (VDPCTL), A
         INC     HL
         INC     C
-        DJNZ    INIT_VDP_LP
+        DJNZ    IVDP_LP
+
+        ; Clear VRAM
+        CALL    VRAM_CLEAR
+
+        ; Load font into pattern gen ($0000)
+        CALL    LOAD_FONT
+
+        ; Fill name table with spaces ($1800)
+        CALL    CLEAR_NAMETABLE
+
+        ; Set color table: all chars = COL_TEXT on COL_BG ($2000)
+        CALL    SET_COLORS
+
+        ; Load sprite patterns into VRAM
+        CALL    LOAD_SPRITES
+
+        ; Initialize sprite attribute table: write terminator ($D0) at $1B00
+        ; to prevent garbage sprites before first DRAW_FRAME
+        LD      HL, $1B00
+        CALL    SET_VRAM_ADDR
+        LD      A, $D0
+        OUT     (VDPDATA), A
+
         RET
 
 ; =============================================================================
-; CLEAR_VRAM — zero out all 16KB VRAM
+; VRAM_CLEAR — fill all 16KB VRAM with $00
 ; =============================================================================
-CLEAR_VRAM:
+VRAM_CLEAR:
+        ; set VRAM write addr to 0
         XOR     A
         OUT     (VDPCTL), A
         LD      A, $40
         OUT     (VDPCTL), A
+        ; write 16384 zeros: 64 outer × 256 inner (DJNZ keeps A intact)
         LD      D, 64
-CV_OUT:
-        LD      B, 0
-        XOR     A
-CV_LP:
+VC_OUT:
+        LD      B, 0            ; 256 iterations
+        XOR     A               ; fill byte = 0
+VC_LP:
         OUT     (VDPDATA), A
-        DJNZ    CV_LP
+        DJNZ    VC_LP
         DEC     D
-        JR      NZ, CV_OUT
-        RET
-
-; =============================================================================
-; LOAD_SPRITES — copy sprite patterns to VRAM ($3800)
-; =============================================================================
-LOAD_SPRITES:
-        LD      HL, $3800
-        CALL    SET_VRAM_ADDR
-        LD      HL, SPRITE_PATTERNS
-        LD      BC, SPRITE_PATTERNS_END - SPRITE_PATTERNS
-LS_LP:
-        LD      A, (HL)
-        OUT     (VDPDATA), A
-        INC     HL
-        DEC     BC
-        LD      A, B
-        OR      C
-        JR      NZ, LS_LP
+        JR      NZ, VC_OUT
         RET
 
 ; =============================================================================
@@ -218,16 +223,25 @@ SET_VRAM_ADDR:
         OUT     (VDPCTL), A
         RET
 
+SET_VRAM_READ_ADDR:
+        LD      A, L
+        OUT     (VDPCTL), A
+        LD      A, H
+        AND     $3F
+        OUT     (VDPCTL), A
+        RET
+
 ; =============================================================================
-; CLEAR_NAMETABLE — fill $1800-$1AFF with space
+; CLEAR_NAMETABLE — fill $1800-$1AFF with space (char $20)
 ; =============================================================================
 CLEAR_NAMETABLE:
         LD      HL, $1800
         CALL    SET_VRAM_ADDR
+        ; 768 = 3×256 bytes; DJNZ keeps A=$20 intact
         LD      D, 3
 CNT_OUT:
-        LD      B, 0
-        LD      A, $20
+        LD      B, 0            ; 256 iterations
+        LD      A, $20          ; space char
 CNT_LP:
         OUT     (VDPDATA), A
         DJNZ    CNT_LP
@@ -236,510 +250,763 @@ CNT_LP:
         RET
 
 ; =============================================================================
-; SET_COLORS — initialize color table
+; SET_COLORS — color table at $2000: 32 entries, each = fg|bg<<4
 ; =============================================================================
 SET_COLORS:
         LD      HL, $2000
         CALL    SET_VRAM_ADDR
         LD      B, 32
-        LD      A, $F1            ; white on black
+        LD      A, COL_TEXT
+        SLA     A
+        SLA     A
+        SLA     A
+        SLA     A
+        OR      COL_BG          ; $F1 (white on black)
 SC_LP:
         OUT     (VDPDATA), A
         DJNZ    SC_LP
         RET
 
 ; =============================================================================
-; INIT_GAME — reset game variables
+; LOAD_FONT — copy minimal ASCII font into pattern table at $0000
+; Each char is 8 bytes. We only need 0-9, A-Z, space, !, /
+; For simplicity we embed a tiny 1-bit font.
+; =============================================================================
+LOAD_FONT:
+        LD      HL, $0000
+        CALL    SET_VRAM_ADDR
+        LD      HL, FONT_DATA
+        LD      BC, FONT_DATA_END - FONT_DATA
+LF_LP:
+        LD      A, (HL)
+        OUT     (VDPDATA), A
+        INC     HL
+        DEC     BC
+        LD      A, B
+        OR      C
+        JR      NZ, LF_LP
+        RET
+
+; =============================================================================
+; INIT_GAME — reset all game variables
 ; =============================================================================
 INIT_GAME:
-        ; Player at center bottom
-        LD      A, 120            ; center X
+        ; Player at x=24, y=120 (ground is y=168)
+        LD      A, 24
         LD      (PL_X), A
-        LD      A, 176            ; near bottom
+        LD      A, 120
         LD      (PL_Y), A
-
-        ; Clear bullets
-        LD      HL, BUL_TBL
-        LD      B, 4
-IBG_BUL:
-        LD      (HL), 0
-        INC     HL
-        LD      (HL), 0
-        INC     HL
-        LD      (HL), 0            ; inactive
-        INC     HL
-        DJNZ    IBG_BUL
-
-        ; Clear enemies
-        LD      HL, EN_TBL
-        LD      B, 16
-IBG_EN:
-        LD      (HL), 0
-        INC     HL
-        LD      (HL), 0
-        INC     HL
-        LD      (HL), 0
-        INC     HL
-        LD      (HL), 0            ; inactive
-        INC     HL
-        DJNZ    IBG_EN
-
         XOR     A
-        LD      (GM_ST), A         ; title state
+        LD      (PL_VY), A
+        LD      (PL_GNDQ), A
+        LD      (PL_DIR), A
+        LD      (GM_ST), A
         LD      (SCORE), A
         LD      (FRAME), A
         LD      (PREV_K), A
-        LD      (SPAWN_T), A
-        LD      (DIFF), A
 
-        LD      (GM_ST), A         ; 1 = play state
-        INC     A
-        LD      (GM_ST), A
+        ; Enemies: x=60,y=0  x=120,y=0  x=180,y=0 (fall from top)
+        LD      HL, EN_TBL
+        LD      (HL), 60        ; X position
+        INC     HL
+        LD      (HL), 0         ; Y position (top)
+        INC     HL
+        LD      (HL), 1         ; speed=1 pixel/frame
+        INC     HL
+        LD      (HL), 120       ; X position
+        INC     HL
+        LD      (HL), 20        ; Y position (offset)
+        INC     HL
+        LD      (HL), 2         ; speed=2 pixels/frame
+        INC     HL
+        LD      (HL), 180       ; X position
+        INC     HL
+        LD      (HL), 40        ; Y position (offset)
+        INC     HL
+        LD      (HL), 1         ; speed=1 pixel/frame
+
+        ; Items: 10 stars spread across the screen
+        LD      HL, IT_TBL
+        ; (x, y) pairs
+        LD      A, 30
+        LD      (HL), A
+        INC     HL
+        LD      A, 130
+        LD      (HL), A
+        INC     HL
+        LD      A, 55
+        LD      (HL), A
+        INC     HL
+        LD      A, 100
+        LD      (HL), A
+        INC     HL
+        LD      A, 80
+        LD      (HL), A
+        INC     HL
+        LD      A, 145
+        LD      (HL), A
+        INC     HL
+        LD      A, 105
+        LD      (HL), A
+        INC     HL
+        LD      A, 115
+        LD      (HL), A
+        INC     HL
+        LD      A, 130
+        LD      (HL), A
+        INC     HL
+        LD      A, 130
+        LD      (HL), A
+        INC     HL
+        LD      A, 155
+        LD      (HL), A
+        INC     HL
+        LD      A, 100
+        LD      (HL), A
+        INC     HL
+        LD      A, 175
+        LD      (HL), A
+        INC     HL
+        LD      A, 140
+        LD      (HL), A
+        INC     HL
+        LD      A, 200
+        LD      (HL), A
+        INC     HL
+        LD      A, 115
+        LD      (HL), A
+        INC     HL
+        LD      A, 220
+        LD      (HL), A
+        INC     HL
+        LD      A, 130
+        LD      (HL), A
+        INC     HL
+        LD      A, 240
+        LD      (HL), A
+        INC     HL
+        LD      A, 110
+        LD      (HL), A
 
         RET
 
 ; =============================================================================
-; READ_INPUT — read keyboard row 8 (cursor keys + space)
+; READ_INPUT — read keyboard matrix
+; Row 8: space=0, cursor keys in row 8
+; MSX keyboard matrix:
+;   Row 8: right,down,up,left,del,ins,home,space  (bit 0=right ... bit 7=space)
+; SNSMAT: call with A=row, returns bits (0=pressed)
 ; =============================================================================
 ROW_CURSOR EQU 8
 BIT_RIGHT  EQU 0
 BIT_LEFT   EQU 2
 BIT_SPACE  EQU 7
 
-INP_CUR    EQU $E060
+        ; We'll store: bit0=right, bit1=left, bit2=space (1=pressed this frame)
+INP_CUR EQU $E060               ; current keys pressed
 
 READ_INPUT:
         LD      A, ROW_CURSOR
         CALL    SNSMAT
-        CPL                        ; invert (SNSMAT returns 0 for pressed)
+        ; SNSMAT returns 0 for pressed — invert
+        CPL
         LD      (INP_CUR), A
         RET
 
-; =============================================================================
-; UPDATE_PLAYER — move player left/right
-; =============================================================================
-UPDATE_PLAYER:
-        LD      A, (GM_ST)
-        CP      1                  ; 1 = play
-        RET     NZ
-
+; helper: test if key bit B is pressed in INP_CUR
+; returns Z set if NOT pressed
+KEY_PRESSED:   ; B = bit number
         LD      A, (INP_CUR)
+        AND     A               ; check bit B
+        ; caller must do BIT instruction
+        RET
 
-        ; Check left
-        BIT     BIT_LEFT, A
-        JR      Z, UPL_NL
-        LD      A, (PL_X)
-        SUB     2                  ; move left by 2 pixels
-        CP      0
-        JR      NC, UPL_LX
-        LD      A, 0
-UPL_LX:
-        LD      (PL_X), A
+; =============================================================================
+; UPDATE_PLAYER
+; =============================================================================
+GRAV_NUM EQU    2               ; fixed-point: velocity in 1/4 pixels
+GRAV_MAX EQU    20
+JUMP_V   EQU    $F4             ; -12 in signed byte (Q2 → -3 pixels/frame)
+GROUND_Y EQU    168             ; ground y pixel
 
-UPL_NL:
+UPDATE_PLAYER:
+        ; Gravity: vy += 1 (Q2: add 1 = 0.25 px/frame²), cap at GRAV_MAX
+        LD      A, (PL_VY)
+        ADD     A, GRAV_NUM
+        CP      GRAV_MAX
+        JR      C, UP_NOGRAVCLIP
+        LD      A, GRAV_MAX
+UP_NOGRAVCLIP:
+        LD      (PL_VY), A
+
+        ; Jump: if space pressed AND grounded
+        LD      A, (INP_CUR)
+        BIT     BIT_SPACE, A
+        JR      Z, UP_NOJUMP
+        LD      A, (PL_GNDQ)
+        OR      A
+        JR      Z, UP_NOJUMP
+        ; jump!
+        LD      A, JUMP_V       ; negative velocity
+        LD      (PL_VY), A
+        XOR     A
+        LD      (PL_GNDQ), A
+UP_NOJUMP:
+
+        ; Horizontal movement
         LD      A, (INP_CUR)
         BIT     BIT_RIGHT, A
-        JR      Z, UPL_NR
+        JR      Z, UP_CHK_LEFT
+        ; move right
         LD      A, (PL_X)
-        ADD     A, 2               ; move right by 2 pixels
-        CP      248                ; 248 = 256 - 8
-        JR      C, UPL_RX
+        ADD     A, 2
+        CP      249             ; max x = 255-8+1
+        JR      C, UP_SET_X_R
         LD      A, 248
-UPL_RX:
+UP_SET_X_R:
         LD      (PL_X), A
+        LD      A, 0
+        LD      (PL_DIR), A
+        JR      UP_MOVE_Y
+UP_CHK_LEFT:
+        BIT     BIT_LEFT, A
+        JR      Z, UP_MOVE_Y
+        ; move left
+        LD      A, (PL_X)
+        SUB     2
+        JR      NC, UP_SET_X_L
+        XOR     A
+UP_SET_X_L:
+        LD      (PL_X), A
+        LD      A, 1
+        LD      (PL_DIR), A
 
-UPL_NR:
+UP_MOVE_Y:
+        ; Apply vertical velocity (VY is Q2: divide by 4 for pixels)
+        LD      A, (PL_VY)
+        ; Check sign
+        BIT     7, A
+        JR      NZ, UP_VY_NEG
+        ; positive: move down by A/4
+        SRA     A
+        SRA     A
+        LD      B, A
+        LD      A, (PL_Y)
+        ADD     A, B
+        JR      UP_CLAMP_Y
+UP_VY_NEG:
+        ; negative: treat as signed
+        ; A is negative, SRA keeps sign
+        SRA     A
+        SRA     A
+        ; A is now negative delta
+        LD      B, A
+        LD      A, (PL_Y)
+        ADD     A, B            ; A = PL_Y + negative = move up
+        JR      NC, UP_FLOOR   ; if overflow/underflow
+        CP      0
+        JR      NC, UP_CLAMP_Y
+        XOR     A               ; clamp to 0
+UP_CLAMP_Y:
+UP_FLOOR:
+        ; check ground collision
+        CP      GROUND_Y
+        JR      C, UP_AIRBORNE
+        ; landed
+        LD      A, GROUND_Y
+        LD      (PL_Y), A
+        XOR     A
+        LD      (PL_VY), A
+        LD      A, 1
+        LD      (PL_GNDQ), A
+        RET
+UP_AIRBORNE:
+        LD      (PL_Y), A
+        XOR     A
+        LD      (PL_GNDQ), A
         RET
 
 ; =============================================================================
-; UPDATE_BULLETS — move active bullets upward
-; =============================================================================
-UPDATE_BULLETS:
-        LD      HL, BUL_TBL
-        LD      B, 4               ; 4 bullets
-
-UB_LOOP:
-        LD      A, (HL)            ; X
-        PUSH    HL
-        INC     HL
-        LD      C, (HL)            ; Y
-        INC     HL
-        LD      D, (HL)            ; active flag
-        POP     HL
-
-        OR      A
-        JR      Z, UB_NEXT         ; skip if X=0 (inactive)
-
-        LD      A, C
-        SUB     4                  ; move up by 4 pixels
-        LD      C, A
-
-        CP      0                  ; check if off-screen
-        JR      NC, UB_ALIVE
-        ; bullet off-screen: deactivate
-        LD      (HL), 0            ; X = 0 (inactive)
-        JR      UB_NEXT
-UB_ALIVE:
-        LD      (HL), 0            ; X = 0 (temp clear)
-        INC     HL
-        LD      (HL), C            ; update Y
-        DEC     HL
-
-UB_NEXT:
-        INC     HL
-        INC     HL
-        INC     HL
-        DJNZ    UB_LOOP
-        RET
-
-; =============================================================================
-; UPDATE_ENEMIES — move active enemies downward
+; UPDATE_ENEMIES — 3 enemies fall from top to bottom
 ; =============================================================================
 UPDATE_ENEMIES:
         LD      HL, EN_TBL
-        LD      B, 16              ; 16 enemies
-
-UEN_LOOP:
-        PUSH    HL
-        INC     HL
-        LD      A, (HL)            ; Y
-        INC     HL
-        INC     HL
-        LD      C, (HL)            ; active flag
-        POP     HL
-
-        OR      A
-        JR      Z, UEN_NEXT        ; skip if X=0 (inactive)
-
-        LD      A, (HL)            ; get type byte
-        PUSH    HL
-        INC     HL
-        LD      A, (HL)            ; Y
-        INC     HL
-
-        ; difficulty: 1 + (DIFF >> 5) pixels per frame
-        LD      C, A
-        LD      A, (DIFF)
-        SRL     A
-        SRL     A
-        SRL     A
-        SRL     A
-        SRL     A
-        INC     A
-
-        ADD     A, C               ; move down
-        LD      C, A
-
-        CP      192                ; check if off-screen
-        JR      C, UEN_ALIVE
-        ; enemy off-screen: deactivate
-        POP     HL
-        LD      (HL), 0            ; X = 0 (inactive)
-        JR      UEN_NEXT
-UEN_ALIVE:
-        POP     HL
-        INC     HL
-        LD      (HL), C            ; update Y
-        DEC     HL
-
-UEN_NEXT:
-        INC     HL
-        INC     HL
-        INC     HL
-        INC     HL
-        DJNZ    UEN_LOOP
-        RET
-
-; =============================================================================
-; SPAWN_ENEMY — periodically spawn new enemies
-; =============================================================================
-SPAWN_ENEMY:
-        LD      A, (GM_ST)
-        CP      1                  ; 1 = play
-        RET     NZ
-
-        LD      A, (SCORE)
-        CP      100                ; check if cleared
-        RET     Z
-
-        ; increment spawn timer
-        LD      A, (SPAWN_T)
-        INC     A
-        LD      (SPAWN_T), A
-
-        CP      30                 ; spawn every 30 frames
-        RET     NZ
-
-        XOR     A
-        LD      (SPAWN_T), A
-
-        ; find first inactive enemy slot
-        LD      HL, EN_TBL
-        LD      B, 16
-
-SE_SEARCH:
-        PUSH    HL
+        LD      B, 3
+UE_LOOP:
         PUSH    BC
-        LD      A, (HL)
-        POP     BC
+        PUSH    HL
+        ; HL→X, HL+1→Y, HL+2→dir (dir used as speed)
+        LD      A, (HL)         ; X (fixed position)
+        INC     HL
+        LD      C, (HL)         ; Y (position falling)
+        INC     HL
+        LD      D, (HL)         ; dir (speed: 1 or 2 pixels/frame)
+        DEC     HL              ; back to Y
+
+        ; Move enemy down by speed amount
+        LD      A, C
+        ADD     A, D            ; Y += speed
+        CP      192             ; off-screen?
+        JR      C, UE_STORE_Y
+        ; reset to top
+        LD      A, 0
+
+UE_STORE_Y:
+        LD      (HL), A         ; store new Y
+UE_NEXT:
         POP     HL
-        OR      A
-        JR      Z, SE_FOUND        ; found inactive slot
-
-        INC     HL
-        INC     HL
-        INC     HL
-        INC     HL
-        DJNZ    SE_SEARCH
-        RET                        ; no free slot
-
-SE_FOUND:
-        ; generate random X (0-240)
-        LD      A, (FRAME)
-        RRCA
-        RRCA
-        AND     $F0
-        CP      248
-        JR      C, SE_XOK
-        LD      A, 240
-SE_XOK:
-        LD      (HL), A            ; X = random
-
-        INC     HL
-        LD      (HL), 0            ; Y = 0 (top)
-
-        INC     HL
-        LD      A, (DIFF)
-        AND     $01
-        LD      (HL), A            ; type = random (0 or 1)
-
-        INC     HL
-        LD      (HL), 1            ; active = 1
-
+        LD      DE, 3
+        ADD     HL, DE          ; next enemy
+        POP     BC
+        DJNZ    UE_LOOP
         RET
 
 ; =============================================================================
-; CHECK_COLLISIONS — check bullet-enemy hits and player-enemy collisions
+; CHECK_ITEMS — detect player touching stars
 ; =============================================================================
-CHECK_COLLISIONS:
-        LD      A, (GM_ST)
-        CP      1                  ; 1 = play
-        RET     NZ
-
-        ; Check each bullet against each enemy
-        LD      HL, BUL_TBL
-        LD      B, 4
-
-CC_BUL_LOOP:
+CHECK_ITEMS:
+        LD      HL, IT_TBL
+        LD      B, 10
+CI_LOOP:
+        PUSH    BC
         PUSH    HL
-        LD      A, (HL)            ; bullet X
-        PUSH    HL
-        INC     HL
-        LD      C, (HL)            ; bullet Y
-        INC     HL
-        LD      D, (HL)            ; bullet active
-        POP     HL
-
-        OR      A
-        JR      Z, CC_BUL_NEXT     ; skip inactive bullet
-
-        ; Check against enemies
-        LD      HL, EN_TBL
-        LD      D, 16
-
-CC_EN_LOOP:
-        PUSH    HL
-        LD      E, (HL)            ; enemy X
-        PUSH    HL
-        INC     HL
-        LD      H, (HL)            ; enemy Y
-        INC     HL
-        INC     HL
-        LD      B, (HL)            ; enemy active
-        POP     HL
-
-        OR      B
-        JR      Z, CC_EN_NEXT      ; skip inactive enemy
-
-        ; Simple collision: if (abs(ex-bx) < 8 && abs(ey-by) < 8)
-        LD      B, A               ; B = bullet X
-        LD      A, E               ; A = enemy X
-        SUB     B
-        JR      C, CC_XPOS
+        LD      A, (HL)
+        CP      $FF             ; already collected?
+        JR      Z, CI_NEXT
+        ; check distance: |PL_X - IX| < 8 && |PL_Y - IY| < 8
+        LD      C, A            ; C = item X
+        LD      A, (PL_X)
+        SUB     C
+        CALL    ABS_A
         CP      8
-        JR      NC, CC_EN_NEXT
-        JR      CC_XHIT
-
-CC_XPOS:
-        NEG
+        JR      NC, CI_NEXT     ; too far in X
+        INC     HL
+        LD      C, (HL)         ; C = item Y
+        DEC     HL
+        LD      A, (PL_Y)
+        SUB     C
+        CALL    ABS_A
         CP      8
-        JR      NC, CC_EN_NEXT
-
-CC_XHIT:
-        LD      B, C               ; B = bullet Y
-        LD      A, H               ; A = enemy Y
-        SUB     B
-        JR      C, CC_YPOS
-        CP      8
-        JR      NC, CC_EN_NEXT
-        JR      CC_HIT
-
-CC_YPOS:
-        NEG
-        CP      8
-        JR      NC, CC_EN_NEXT
-
-CC_HIT:
-        ; Hit! Deactivate bullet and enemy
-        POP     HL
-        LD      (HL), 0            ; enemy X = 0 (inactive)
-
+        JR      NC, CI_NEXT     ; too far in Y
+        ; collected!
+        LD      (HL), $FF       ; mark X as collected
+        INC     HL
+        LD      (HL), $FF       ; mark Y
+        DEC     HL
         LD      A, (SCORE)
         INC     A
         LD      (SCORE), A
-        CP      100
-        JR      NZ, CC_HIT_END
-        LD      A, 3               ; game clear
+        CP      10
+        JR      C, CI_NEXT
+        ; all collected → CLEAR
+        LD      A, 3
         LD      (GM_ST), A
-CC_HIT_END:
-
-        JR      CC_BUL_NEXT        ; bullet done
-
-CC_EN_NEXT:
+CI_NEXT:
         POP     HL
-        INC     HL
-        INC     HL
-        INC     HL
-        INC     HL
-        DEC     D
-        JR      NZ, CC_EN_LOOP
+        LD      DE, 2
+        ADD     HL, DE
+        POP     BC
+        DJNZ    CI_LOOP
+        RET
 
-CC_BUL_NEXT:
-        POP     HL
-        INC     HL
-        INC     HL
-        INC     HL
-        DJNZ    CC_BUL_LOOP
-
+; ABS_A: returns |A| in A (A is treated as signed)
+ABS_A:
+        OR      A
+        RET     P               ; positive → done
+        NEG
         RET
 
 ; =============================================================================
-; UPDATE_SPRITES — update sprite attribute table ($1B00)
+; CHECK_ENEMY_COLL — player vs enemies
 ; =============================================================================
-UPDATE_SPRITES:
+CHECK_ENEMY_COLL:
+        LD      HL, EN_TBL
+        LD      B, 3
+CEC_LOOP:
+        PUSH    BC
+        PUSH    HL
+        LD      A, (HL)         ; enemy X
+        LD      C, A
+        LD      A, (PL_X)
+        SUB     C
+        CALL    ABS_A
+        CP      8
+        JR      NC, CEC_NEXT
+        INC     HL
+        LD      A, (HL)         ; enemy Y
+        LD      C, A
+        LD      A, (PL_Y)
+        SUB     C
+        CALL    ABS_A
+        CP      8
+        JR      NC, CEC_NEXT
+        ; collision → gameover
+        LD      A, 2
+        LD      (GM_ST), A
+CEC_NEXT:
+        POP     HL
+        LD      DE, 3
+        ADD     HL, DE
+        POP     BC
+        DJNZ    CEC_LOOP
+        RET
+
+; =============================================================================
+; DRAW_FRAME — draw all sprites via sprite attribute table at $1B00
+; Sprite attr: Y, X, pattern, color (4 bytes each, max 32 sprites)
+; =============================================================================
+DRAW_FRAME:
+        ; Set sprite attr table addr ($1B00)
         LD      HL, $1B00
         CALL    SET_VRAM_ADDR
 
-        ; Player sprite at (PL_X, PL_Y)
+        ; Sprite 0: Player (color = COL_PLAYER, pattern 0)
         LD      A, (PL_Y)
-        OUT     (VDPDATA), A
+        OUT     (VDPDATA), A    ; Y
         LD      A, (PL_X)
-        OUT     (VDPDATA), A
-        LD      A, 0               ; pattern 0 (player triangle)
-        OUT     (VDPDATA), A
-        LD      A, $0F             ; white color
-        OUT     (VDPDATA), A
-
-        ; Bullets
-        LD      HL, BUL_TBL
-        LD      B, 4
-UB_SPR:
-        LD      A, (HL)            ; X
-        PUSH    HL
-        INC     HL
-        LD      C, (HL)            ; Y
-        INC     HL
-        LD      D, (HL)            ; active
-        INC     HL
-        POP     HL
-
-        OR      A
-        JR      Z, UB_SPR_HIDE
-
-        LD      A, C               ; Y
-        OUT     (VDPDATA), A
-        LD      A, (HL)            ; X
-        OUT     (VDPDATA), A
-        LD      A, 1               ; pattern 1 (bullet)
-        OUT     (VDPDATA), A
-        LD      A, $0A             ; yellow color
-        OUT     (VDPDATA), A
-        JR      UB_SPR_NEXT
-
-UB_SPR_HIDE:
-        LD      A, $D0             ; Y = 208 (off-screen)
-        OUT     (VDPDATA), A
+        OUT     (VDPDATA), A    ; X
         LD      A, 0
-        OUT     (VDPDATA), A
-        LD      A, 1
-        OUT     (VDPDATA), A
-        LD      A, 0
-        OUT     (VDPDATA), A
+        OUT     (VDPDATA), A    ; pattern
+        LD      A, COL_PLAYER
+        OUT     (VDPDATA), A    ; color
 
-UB_SPR_NEXT:
-        INC     HL
-        INC     HL
-        INC     HL
-        DJNZ    UB_SPR
-
-        ; Enemies
+        ; Sprites 1-3: Enemies
         LD      HL, EN_TBL
-        LD      B, 16
-UEN_SPR:
-        LD      A, (HL)            ; X
-        PUSH    HL
+        LD      B, 3
+DF_EN_LOOP:
+        PUSH    BC
+        LD      A, (HL)         ; X
+        LD      C, A
         INC     HL
-        LD      C, (HL)            ; Y
+        LD      A, (HL)         ; Y
         INC     HL
-        LD      D, (HL)            ; type
-        INC     HL
-        LD      E, (HL)            ; active
-        POP     HL
+        INC     HL              ; skip dir
+        ; write Y first then X
+        OUT     (VDPDATA), A    ; Y
+        LD      A, C
+        OUT     (VDPDATA), A    ; X
+        LD      A, 1            ; pattern 1 (enemy sprite)
+        OUT     (VDPDATA), A
+        LD      A, COL_ENEMY
+        OUT     (VDPDATA), A
+        POP     BC
+        DJNZ    DF_EN_LOOP
 
-        OR      E
-        JR      Z, UEN_SPR_HIDE
-
-        LD      A, C               ; Y
-        OUT     (VDPDATA), A
-        LD      A, (HL)            ; X
-        OUT     (VDPDATA), A
-        LD      A, D               ; pattern (2 or 3)
-        ADD     A, 2               ; offset from base 2
-        OUT     (VDPDATA), A
-        LD      A, $06             ; red color (test)
-        OUT     (VDPDATA), A
-        JR      UEN_SPR_NEXT
-
-UEN_SPR_HIDE:
-        LD      A, $D0             ; Y = 208 (off-screen)
-        OUT     (VDPDATA), A
-        LD      A, 0
-        OUT     (VDPDATA), A
-        LD      A, 2
-        OUT     (VDPDATA), A
-        LD      A, 0
-        OUT     (VDPDATA), A
-
-UEN_SPR_NEXT:
+        ; Sprites 4-13: Items (stars), skip collected ones
+        LD      HL, IT_TBL
+        LD      B, 10
+        LD      D, 4            ; sprite index (unused here, just sequential)
+DF_IT_LOOP:
+        PUSH    BC
+        LD      A, (HL)
+        CP      $FF
+        JR      Z, DF_IT_SKIP
+        ; visible item
+        LD      C, A            ; C = item X
         INC     HL
+        LD      A, (HL)         ; A = item Y
+        DEC     HL
+        OUT     (VDPDATA), A    ; Y
+        LD      A, C
+        OUT     (VDPDATA), A    ; X
+        LD      A, 2            ; pattern 2 (star sprite)
+        OUT     (VDPDATA), A
+        LD      A, COL_ITEM
+        OUT     (VDPDATA), A
+        JR      DF_IT_CONT
+DF_IT_SKIP:
+        ; invisible: put sprite off-screen (Y=$D0=208)
+        LD      A, $D0
+        OUT     (VDPDATA), A
+        XOR     A
+        OUT     (VDPDATA), A
+        OUT     (VDPDATA), A
+        OUT     (VDPDATA), A
         INC     HL
+DF_IT_CONT:
         INC     HL
-        INC     HL
-        DJNZ    UEN_SPR
+        POP     BC
+        DJNZ    DF_IT_LOOP
 
         ; Terminate sprite list
         LD      A, $D0
         OUT     (VDPDATA), A
 
+        ; Load sprite patterns (only first time, but harmless every frame for simplicity)
+        ; Actually we'll do it once in INIT_VDP via LOAD_SPRITES
         RET
 
 ; =============================================================================
-; DRAW_SCORE — draw score on screen at top-left
+; DRAW_HUD — print "STARS: N/10" at top of screen using name table
 ; =============================================================================
-DRAW_SCORE:
-        RET                        ; TODO: implement score display
+DRAW_HUD:
+        ; Position: row 0, col 0 → name table $1800
+        LD      HL, $1800
+        CALL    SET_VRAM_ADDR
+        ; Print "STARS:"
+        LD      HL, STR_STARS
+        CALL    PRINT_STR_VRAM
+        ; Print score digit
+        LD      A, (SCORE)
+        ADD     A, '0'
+        OUT     (VDPDATA), A
+        ; Print "/10"
+        LD      HL, STR_OF10
+        CALL    PRINT_STR_VRAM
 
-        ; Pad ROM to 16KB (ends at $8000, 16384 bytes from $4000)
-        DS      $8000 - $, 0
+        ; Draw ground line at row 21 (y=168 → char row = 168/8 = 21)
+        LD      HL, $1800 + 21*32
+        CALL    SET_VRAM_ADDR
+        LD      B, 32
+DH_GND:
+        LD      A, $DB          ; block char (or use $7E)
+        OUT     (VDPDATA), A
+        DJNZ    DH_GND
+        RET
 
-        END
+PRINT_STR_VRAM:
+        LD      A, (HL)
+        OR      A
+        RET     Z
+        OUT     (VDPDATA), A
+        INC     HL
+        JR      PRINT_STR_VRAM
+
+STR_STARS:  DB  "STARS:", 0
+STR_OF10:   DB  "/10", 0
+
+; =============================================================================
+; SHOW_TITLE
+; =============================================================================
+SHOW_TITLE:
+        CALL    CLEAR_NAMETABLE
+        ; Row 8, col 10 → offset = 8*32+10 = 266 = $010A
+        LD      HL, $1800 + 8*32 + 9
+        CALL    SET_VRAM_ADDR
+        LD      HL, STR_TITLE
+        CALL    PRINT_STR_VRAM
+        LD      HL, $1800 + 12*32 + 6
+        CALL    SET_VRAM_ADDR
+        LD      HL, STR_PRESS
+        CALL    PRINT_STR_VRAM
+        RET
+
+STR_TITLE:  DB  "LINEBOY MSX", 0
+STR_PRESS:  DB  "PRESS SPACE TO START", 0
+
+; =============================================================================
+; WAIT_SPACE — block until space pressed
+; =============================================================================
+WAIT_SPACE:
+        LD      A, ROW_CURSOR
+        CALL    SNSMAT
+        CPL
+        BIT     BIT_SPACE, A
+        JR      Z, WAIT_SPACE
+        ; debounce: wait until released
+WS_REL:
+        LD      A, ROW_CURSOR
+        CALL    SNSMAT
+        CPL
+        BIT     BIT_SPACE, A
+        JR      NZ, WS_REL
+        CALL    INIT_GAME
+        LD      A, 1
+        LD      (GM_ST), A
+        CALL    CLEAR_NAMETABLE
+        RET
+
+; =============================================================================
+; GAME_OVER_SCR
+; =============================================================================
+GAME_OVER_SCR:
+        CALL    CLEAR_NAMETABLE
+        LD      HL, $1800 + 10*32 + 9
+        CALL    SET_VRAM_ADDR
+        LD      HL, STR_GAMEOVER
+        CALL    PRINT_STR_VRAM
+        LD      HL, $1800 + 13*32 + 6
+        CALL    SET_VRAM_ADDR
+        LD      HL, STR_PRESS
+        CALL    PRINT_STR_VRAM
+        CALL    WAIT_SPACE
+        JP      MAIN_LOOP
+
+STR_GAMEOVER: DB "GAME OVER", 0
+
+; =============================================================================
+; CLEAR_SCR
+; =============================================================================
+CLEAR_SCR:
+        CALL    CLEAR_NAMETABLE
+        LD      HL, $1800 + 10*32 + 10
+        CALL    SET_VRAM_ADDR
+        LD      HL, STR_CLEAR
+        CALL    PRINT_STR_VRAM
+        LD      HL, $1800 + 13*32 + 6
+        CALL    SET_VRAM_ADDR
+        LD      HL, STR_PRESS
+        CALL    PRINT_STR_VRAM
+        CALL    WAIT_SPACE
+        JP      MAIN_LOOP
+
+STR_CLEAR:  DB  "STAGE CLEAR!", 0
+
+; =============================================================================
+; LOAD_SPRITES — write sprite patterns into pattern gen at $3800
+; Sprite 0: Player (8×8 box)
+; Sprite 1: Enemy  (8×8 X shape)
+; Sprite 2: Item   (8×8 star)
+; =============================================================================
+LOAD_SPRITES:
+        LD      HL, $3800
+        CALL    SET_VRAM_ADDR
+        LD      HL, SPR_DATA
+        LD      BC, SPR_DATA_END - SPR_DATA
+LS_LP:
+        LD      A, (HL)
+        OUT     (VDPDATA), A
+        INC     HL
+        DEC     BC
+        LD      A, B
+        OR      C
+        JR      NZ, LS_LP
+        RET
+
+; Sprite 0: Player — solid box
+SPR_DATA:
+        DB      %01111110
+        DB      %01111110
+        DB      %01111110
+        DB      %01111110
+        DB      %01111110
+        DB      %01111110
+        DB      %01111110
+        DB      %01111110
+
+; Sprite 1: Enemy — X shape
+        DB      %11000011
+        DB      %01100110
+        DB      %00111100
+        DB      %00011000
+        DB      %00011000
+        DB      %00111100
+        DB      %01100110
+        DB      %11000011
+
+; Sprite 2: Item — star shape
+        DB      %00011000
+        DB      %00111100
+        DB      %11111111
+        DB      %00111100
+        DB      %00111100
+        DB      %11111111
+        DB      %00111100
+        DB      %00011000
+SPR_DATA_END:
+
+; =============================================================================
+; FONT_DATA — minimal 5×7 font packed as 8 bytes/char for chars $20-$5A
+; (space + uppercase + digits + some punctuation)
+; We use a compact hand-coded font.
+; =============================================================================
+FONT_DATA:
+; $00-$1F: control chars (all zeros, 32 chars × 8 bytes = 256 bytes)
+        DS      256, 0
+
+; $20 space
+        DB      0,0,0,0,0,0,0,0
+; $21 !
+        DB      $18,$18,$18,$18,$18,$00,$18,$00
+; $22 "
+        DB      $66,$66,$66,$00,$00,$00,$00,$00
+; $23 #
+        DB      $66,$FF,$66,$66,$FF,$66,$00,$00
+; $24-$2E misc (use simple patterns)
+        DS      11*8, 0
+; $2F /
+        DB      $01,$02,$04,$08,$10,$20,$40,$00
+; $30 0
+        DB      $3C,$66,$6E,$76,$66,$66,$3C,$00
+; $31 1
+        DB      $18,$38,$18,$18,$18,$18,$7E,$00
+; $32 2
+        DB      $3C,$66,$06,$1C,$30,$60,$7E,$00
+; $33 3
+        DB      $3C,$66,$06,$1C,$06,$66,$3C,$00
+; $34 4
+        DB      $06,$1E,$36,$66,$7F,$06,$06,$00
+; $35 5
+        DB      $7E,$60,$7C,$06,$06,$66,$3C,$00
+; $36 6
+        DB      $3C,$66,$60,$7C,$66,$66,$3C,$00
+; $37 7
+        DB      $7E,$06,$0C,$18,$30,$30,$30,$00
+; $38 8
+        DB      $3C,$66,$66,$3C,$66,$66,$3C,$00
+; $39 9
+        DB      $3C,$66,$66,$3E,$06,$66,$3C,$00
+; $3A :
+        DB      0,$18,$18,0,$18,$18,0,0
+; $3B-$3F misc
+        DS      5*8, 0
+; $40 @
+        DS      8, 0
+; $41 A
+        DB      $18,$3C,$66,$66,$7E,$66,$66,$00
+; $42 B
+        DB      $7C,$66,$66,$7C,$66,$66,$7C,$00
+; $43 C
+        DB      $3C,$66,$60,$60,$60,$66,$3C,$00
+; $44 D
+        DB      $7C,$66,$66,$66,$66,$66,$7C,$00
+; $45 E
+        DB      $7E,$60,$60,$7C,$60,$60,$7E,$00
+; $46 F
+        DB      $7E,$60,$60,$7C,$60,$60,$60,$00
+; $47 G
+        DB      $3C,$66,$60,$6E,$66,$66,$3C,$00
+; $48 H
+        DB      $66,$66,$66,$7E,$66,$66,$66,$00
+; $49 I
+        DB      $7E,$18,$18,$18,$18,$18,$7E,$00
+; $4A J
+        DB      $06,$06,$06,$06,$06,$66,$3C,$00
+; $4B K
+        DB      $66,$6C,$78,$70,$78,$6C,$66,$00
+; $4C L
+        DB      $60,$60,$60,$60,$60,$60,$7E,$00
+; $4D M
+        DB      $63,$77,$7F,$6B,$63,$63,$63,$00
+; $4E N
+        DB      $66,$76,$7E,$7E,$6E,$66,$66,$00
+; $4F O
+        DB      $3C,$66,$66,$66,$66,$66,$3C,$00
+; $50 P
+        DB      $7C,$66,$66,$7C,$60,$60,$60,$00
+; $51 Q
+        DB      $3C,$66,$66,$66,$6E,$3C,$06,$00
+; $52 R
+        DB      $7C,$66,$66,$7C,$6C,$66,$66,$00
+; $53 S
+        DB      $3C,$66,$60,$3C,$06,$66,$3C,$00
+; $54 T
+        DB      $7E,$18,$18,$18,$18,$18,$18,$00
+; $55 U
+        DB      $66,$66,$66,$66,$66,$66,$3C,$00
+; $56 V
+        DB      $66,$66,$66,$66,$66,$3C,$18,$00
+; $57 W
+        DB      $63,$63,$63,$6B,$7F,$77,$63,$00
+; $58 X
+        DB      $66,$66,$3C,$18,$3C,$66,$66,$00
+; $59 Y
+        DB      $66,$66,$66,$3C,$18,$18,$18,$00
+; $5A Z
+        DB      $7E,$06,$0C,$18,$30,$60,$7E,$00
+FONT_DATA_END:
+
+; =============================================================================
+; Pad to 16KB ROM size
+; =============================================================================
+        DS      16384 - ($ - $4000), $FF
