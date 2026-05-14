@@ -112,7 +112,7 @@ SPRITE_PATTERNS_END:
 ; =============================================================================
 START:
         DI
-        LD      SP, $DFFF
+        LD      SP, $F380         ; safe stack in RAM
 
         ; Initialize VDP
         CALL    INIT_VDP
@@ -126,9 +126,11 @@ START:
 
         ; Main game loop
 MAIN_LP:
-        ; Wait for VBLANK
-        LD      A, ($FFFF)        ; dummy read to prevent optimization
-        HALT
+        ; Wait for VBLANK (read VDP status bit 7)
+WAIT_VBL:
+        IN      A, ($99)          ; read VDP status register
+        AND     $80               ; check VBLANK flag (bit 7)
+        JR      Z, WAIT_VBL       ; wait until VBLANK
 
         CALL    READ_INPUT
         CALL    UPDATE_PLAYER
