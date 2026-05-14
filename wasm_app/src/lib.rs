@@ -439,6 +439,8 @@ pub fn force_slot_select(val: u8) {
 pub fn boot_cartridge_msx() {
     MSX.with(|s| {
         if let Some(m) = s.borrow_mut().as_mut() {
+            m.bus.add_log("[BOOT] boot_cartridge_msx() called".to_string());
+
             // Check if cartridge exists in slot 1 at $4000
             if m.bus.cart.is_empty() {
                 m.bus.add_log("[BOOT] No cartridge loaded".to_string());
