@@ -234,7 +234,19 @@
   </div>
 
   <script type="module">
-    import init, * as wasm from './wasm/wasm_app.js';
+    console.log('[INIT] Module script started');
+
+    let init, wasm;
+    try {
+      const wasmModule = await import('./wasm/wasm_app.js');
+      init = wasmModule.default || wasmModule.init;
+      wasm = wasmModule;
+      console.log('[INIT] WASM module imported successfully');
+    } catch (e) {
+      console.error('[INIT] Failed to import WASM module:', e);
+      document.getElementById('status').textContent = 'WASM Import Error: ' + e.message;
+      throw e;
+    }
 
     // Make wasm globally accessible for console debugging (both window and globalThis)
     globalThis.wasm = wasm;
@@ -401,10 +413,20 @@
     }
 
     async function main() {
-      await init();
+      console.log('[MAIN] main() started');
+      try {
+        console.log('[MAIN] Calling init()');
+        await init();
+        console.log('[MAIN] init() completed');
+      } catch (e) {
+        console.error('[MAIN] init() failed:', e);
+        throw e;
+      }
+
       // Make wasm globally accessible for console debugging
       window.wasm = wasm;
       try {
+        console.log('[MAIN] Fetching BIOS data');
         const bios = await fetchBiosData();
         wasm.init_msx();
         applyBios(bios);
