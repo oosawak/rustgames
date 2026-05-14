@@ -74,7 +74,9 @@ impl Bus {
             }
             1 => {
                 if self.cart.is_empty() {
-                    self.add_log(format!("[CART] EMPTY read at ${:04X}", addr));
+                    if addr >= 0x4000 && addr <= 0x4020 {
+                        self.add_log(format!("[CART] EMPTY! read at ${:04X}", addr));
+                    }
                     return 0xFF;
                 }
                 let page = (addr >> 14) as usize;
@@ -83,7 +85,7 @@ impl Bus {
                     let off = (addr - 0x4000) as usize;
                     if off < self.cart.len() {
                         let val = self.cart[off];
-                        if addr < 0x4020 || (addr & 0xFF) == 0 {
+                        if addr <= 0x4020 {
                             self.add_log(format!("[CART] READ ${:04X} (off=${:04X}) = ${:02X}", addr, off, val));
                         }
                         return val;
@@ -91,7 +93,7 @@ impl Bus {
                         self.add_log(format!("[CART] OOB READ ${:04X} (off=${:04X} >= ${:04X})", addr, off, self.cart.len()));
                     }
                 } else {
-                    if addr >= 0x4000 && addr < 0x5000 {
+                    if addr >= 0x4000 && addr <= 0x4020 {
                         self.add_log(format!("[CART] SUBSLOT MISMATCH ${:04X} page={} sub_slot={}", addr, page, sub_slot));
                     }
                 }
