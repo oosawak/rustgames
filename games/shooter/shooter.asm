@@ -704,7 +704,7 @@ UEN_SPR:
         LD      A, D               ; pattern (2 or 3)
         ADD     A, 2               ; offset from base 2
         OUT     (VDPDATA), A
-        LD      A, $08             ; orange color
+        LD      A, $06             ; red color (test)
         OUT     (VDPDATA), A
         JR      UEN_SPR_NEXT
 
