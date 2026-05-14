@@ -310,34 +310,13 @@
 
     // BIOSブートの120フレームHALT待機をスキップして即座にゲームを起動
     function bootMsx() {
-      console.log('[BOOT] bootMsx() started');
       // Use a longer fast-boot to allow C-BIOS to complete cartridge scan on slow devices
-      try {
-        console.log('[BOOT] Calling fast_boot_msx(1200)');
-        wasm.fast_boot_msx(1200);  // 1200フレーム高速実行
-        console.log('[BOOT] fast_boot_msx completed');
-      } catch (e) {
-        console.log('[BOOT] fast_boot_msx error:', e.message);
-      }
+      wasm.fast_boot_msx(1200);  // 1200フレーム高速実行
 
       // Force cartridge boot: jump directly to INIT if a cartridge is present
-      try {
-        console.log('[BOOT] Checking boot_cartridge_msx availability');
-        console.log('[BOOT] typeof wasm:', typeof wasm);
-        console.log('[BOOT] typeof wasm.boot_cartridge_msx:', typeof wasm.boot_cartridge_msx);
-        console.log('[BOOT] wasm.boot_cartridge_msx:', wasm.boot_cartridge_msx);
-
-        if (typeof wasm.boot_cartridge_msx === 'function') {
-          console.log('[BOOT] Calling boot_cartridge_msx()');
-          wasm.boot_cartridge_msx();
-          console.log('[BOOT] boot_cartridge_msx() completed');
-        } else {
-          console.log('[BOOT] boot_cartridge_msx not available (type: ' + typeof wasm.boot_cartridge_msx + ')');
-        }
-      } catch (e) {
-        console.log('[BOOT] boot_cartridge_msx error:', e.message, e);
+      if (typeof wasm.boot_cartridge_msx === 'function') {
+        wasm.boot_cartridge_msx();
       }
-      console.log('[BOOT] bootMsx() finished');
     }
 
     async function resetMsx() {
@@ -446,48 +425,11 @@
         });
       });
 
-      let frameCount = 0;
-      function analyzeFrame(buf) {
-        let black = 0, nonBlack = 0;
-        const colorMap = {};
-        for (let i = 0; i < buf.length; i += 4) {
-          const r = buf[i], g = buf[i+1], b = buf[i+2];
-          if (r === 0 && g === 0 && b === 0) { black++; continue; }
-          nonBlack++;
-          const key = `rgb(${r},${g},${b})`;
-          colorMap[key] = (colorMap[key] || 0) + 1;
-        }
-        const total = black + nonBlack;
-        const topColors = Object.entries(colorMap)
-          .sort((a,b) => b[1]-a[1]).slice(0,3)
-          .map(([k,v]) => `${k}×${v}`).join(' | ');
-        return { black, nonBlack, total, topColors };
-      }
-
       function loop() {
         wasm.tick_msx();
         const fb = wasm.frame_buffer_msx();
         imageData.data.set(fb);
         ctx.putImageData(imageData, 0, 0);
-
-        frameCount++;
-        if (frameCount % 60 === 0) {
-          const a = analyzeFrame(fb);
-          const pct = Math.round(a.nonBlack / a.total * 100);
-          dbgLog(`frame=${frameCount} 非黒=${pct}% (${a.nonBlack}px) ${a.topColors || '全黒'}`);
-          if (typeof wasm.debug_info_msx === 'function') {
-            dbgLog(`VDP: ${wasm.debug_info_msx()}`);
-          }
-        }
-        if (frameCount % 300 === 0) {
-          if (typeof wasm.debug_log_msx === 'function') {
-            const wasmLog = wasm.debug_log_msx();
-            if (wasmLog && wasmLog.trim().length > 0) {
-              dbgLog('[WASM DEBUG LOG]');
-              wasmLog.split('\n').slice(-10).forEach(line => { if (line.trim()) dbgLog(line); });
-            }
-          }
-        }
 
         if (audioCtx) {
           const samples = wasm.audio_samples_msx();
