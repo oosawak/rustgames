@@ -30,6 +30,8 @@ export function best_level_maze3d(): number;
 
 export function best_steps_maze3d(): number;
 
+export function boot_cartridge_msx(): void;
+
 export function boss_hp_blaster3d(): number;
 
 export function boss_max_hp_blaster3d(): number;
@@ -240,6 +242,7 @@ export interface InitOutput {
     readonly auto_fire_blaster3d: () => number;
     readonly best_level_maze3d: () => number;
     readonly best_steps_maze3d: () => number;
+    readonly boot_cartridge_msx: () => void;
     readonly boss_hp_blaster3d: () => number;
     readonly boss_max_hp_blaster3d: () => number;
     readonly bullet_count_blaster3d: () => number;
@@ -255,7 +258,6 @@ export interface InitOutput {
     readonly enemy_z_maze3d: () => number;
     readonly engine_font_bold: () => [number, number];
     readonly engine_font_embedded: () => number;
-    readonly engine_font_regular: () => [number, number];
     readonly fast_boot_msx: (a: number) => void;
     readonly fire_at_screen_earthdef: (a: number, b: number) => void;
     readonly fire_earthdef: () => void;
@@ -326,6 +328,7 @@ export interface InitOutput {
     readonly warp_maze3d: () => number;
     readonly wave_blaster3d: () => number;
     readonly wave_earthdef: () => number;
+    readonly engine_font_regular: () => [number, number];
     readonly wgpu_render_pass_draw: (a: number, b: number, c: number, d: number, e: number) => void;
     readonly wgpu_render_pass_draw_indexed: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
     readonly wgpu_render_pass_set_pipeline: (a: number, b: bigint) => void;
@@ -372,12 +375,11 @@ export interface InitOutput {
     readonly wgpu_render_pass_multi_draw_indexed_indirect_count: (a: number, b: bigint, c: bigint, d: bigint, e: bigint, f: number) => void;
     readonly wgpu_render_bundle_insert_debug_marker: (a: number, b: number) => void;
     readonly wgpu_render_bundle_pop_debug_group: (a: number) => void;
-    readonly wgpu_render_bundle_push_debug_group: (a: number, b: number) => void;
     readonly wgpu_render_bundle_set_index_buffer: (a: number, b: bigint, c: number, d: bigint, e: bigint) => void;
+    readonly wgpu_render_bundle_push_debug_group: (a: number, b: number) => void;
     readonly wgpu_render_pass_set_index_buffer: (a: number, b: bigint, c: number, d: bigint, e: bigint) => void;
-    readonly wasm_bindgen_e745e58ac7f4491a___convert__closures_____invoke___wasm_bindgen_e745e58ac7f4491a___JsValue__core_e1dd1f5b63695bbf___result__Result_____wasm_bindgen_e745e58ac7f4491a___JsError___true_: (a: number, b: number, c: any) => [number, number];
-    readonly wasm_bindgen_e745e58ac7f4491a___convert__closures_____invoke___js_sys_47ca64550ee0d7f9___Function_fn_wasm_bindgen_e745e58ac7f4491a___JsValue_____wasm_bindgen_e745e58ac7f4491a___sys__Undefined___js_sys_47ca64550ee0d7f9___Function_fn_wasm_bindgen_e745e58ac7f4491a___JsValue_____wasm_bindgen_e745e58ac7f4491a___sys__Undefined_______true_: (a: number, b: number, c: any, d: any) => void;
-    readonly wasm_bindgen_e745e58ac7f4491a___convert__closures_____invoke___bool__true_: (a: number, b: number) => number;
+    readonly wasm_bindgen_7a19de62c8672ebe___convert__closures_____invoke___wasm_bindgen_7a19de62c8672ebe___JsValue__core_e1dd1f5b63695bbf___result__Result_____wasm_bindgen_7a19de62c8672ebe___JsError___true_: (a: number, b: number, c: any) => [number, number];
+    readonly wasm_bindgen_7a19de62c8672ebe___convert__closures_____invoke___js_sys_2bf081240e491622___Function_fn_wasm_bindgen_7a19de62c8672ebe___JsValue_____wasm_bindgen_7a19de62c8672ebe___sys__Undefined___js_sys_2bf081240e491622___Function_fn_wasm_bindgen_7a19de62c8672ebe___JsValue_____wasm_bindgen_7a19de62c8672ebe___sys__Undefined_______true_: (a: number, b: number, c: any, d: any) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_exn_store: (a: number) => void;
