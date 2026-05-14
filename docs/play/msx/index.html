@@ -236,8 +236,12 @@
   <script type="module">
     import init, * as wasm from './wasm/wasm_app.js';
 
-    // Make wasm globally accessible for console debugging
+    // Make wasm globally accessible for console debugging (both window and globalThis)
+    globalThis.wasm = wasm;
     window.wasm = wasm;
+    console.log('[INIT] WASM module loaded and exposed to global scope');
+    console.log('[INIT] typeof globalThis.wasm:', typeof globalThis.wasm);
+    console.log('[INIT] typeof window.wasm:', typeof window.wasm);
 
     const status    = document.getElementById('status');
     const infoEl    = document.getElementById('info');
@@ -294,11 +298,23 @@
 
     // BIOSブートの120フレームHALT待機をスキップして即座にゲームを起動
     function bootMsx() {
+      console.log('[BOOT] bootMsx() started');
       // Use a longer fast-boot to allow C-BIOS to complete cartridge scan on slow devices
-      wasm.fast_boot_msx(1200);  // 1200フレーム高速実行
+      try {
+        console.log('[BOOT] Calling fast_boot_msx(1200)');
+        wasm.fast_boot_msx(1200);  // 1200フレーム高速実行
+        console.log('[BOOT] fast_boot_msx completed');
+      } catch (e) {
+        console.log('[BOOT] fast_boot_msx error:', e.message);
+      }
+
       // Force cartridge boot: jump directly to INIT if a cartridge is present
       try {
+        console.log('[BOOT] Checking boot_cartridge_msx availability');
+        console.log('[BOOT] typeof wasm:', typeof wasm);
         console.log('[BOOT] typeof wasm.boot_cartridge_msx:', typeof wasm.boot_cartridge_msx);
+        console.log('[BOOT] wasm.boot_cartridge_msx:', wasm.boot_cartridge_msx);
+
         if (typeof wasm.boot_cartridge_msx === 'function') {
           console.log('[BOOT] Calling boot_cartridge_msx()');
           wasm.boot_cartridge_msx();
@@ -307,8 +323,9 @@
           console.log('[BOOT] boot_cartridge_msx not available (type: ' + typeof wasm.boot_cartridge_msx + ')');
         }
       } catch (e) {
-        console.log('[BOOT] Error:', e.message, e.stack);
+        console.log('[BOOT] boot_cartridge_msx error:', e.message, e);
       }
+      console.log('[BOOT] bootMsx() finished');
     }
 
     async function resetMsx() {
