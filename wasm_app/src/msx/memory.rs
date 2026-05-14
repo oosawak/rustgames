@@ -16,6 +16,8 @@ pub struct Bus {
     pub psg: Psg,
     pub ppi: Ppi,
     pub keyboard: Keyboard,
+    pub debug_log: Vec<String>,
+    last_slot_select: u8,
 }
 
 impl Bus {
@@ -31,6 +33,8 @@ impl Bus {
             psg: Psg::new(),
             ppi: Ppi::new(),
             keyboard: Keyboard::new(),
+            debug_log: Vec::new(),
+            last_slot_select: 0,
         }
     }
 
@@ -51,19 +55,16 @@ impl Bus {
         self.cart = data.to_vec();
     }
 
-    fn read_slot(&self, slot: u8, addr: u16) -> u8 {
+    fn read_slot(&mut self, slot: u8, addr: u16) -> u8 {
         match slot {
             0 => {
                 // Sub ROM at 0x4000 - 0x7FFF takes priority over main BIOS
-                // (C-BIOS main ROM is 32KB with $4000-$7FFF zero-filled;
-                //  sub ROM must fill that gap for cartridge detection to work)
                 if addr >= 0x4000 && !self.sub_rom.is_empty() {
                     let sub_off = (addr - 0x4000) as usize;
                     if sub_off < self.sub_rom.len() {
                         return self.sub_rom[sub_off];
                     }
                 }
-                // Main BIOS at 0x0000 - 0x3FFF (or full 32KB if no sub ROM)
                 let off = addr as usize;
                 if off < self.bios.len() {
                     self.bios[off]
@@ -72,18 +73,29 @@ impl Bus {
                 }
             }
             1 => {
-                // Cartridge slot — has sub-slots when cart is loaded
                 if self.cart.is_empty() {
+                    if addr >= 0x4000 && addr < 0x5000 {
+                        self.add_log(format!("[CART] EMPTY at ${:04X}", addr));
+                    }
                     return 0xFF;
                 }
-                // Sub-slot select is per-page (same format as main slot select)
                 let page = (addr >> 14) as usize;
                 let sub_slot = (self.sub_slot_select[1] >> (page * 2)) & 3;
-                // Cart ROM is in sub-slot 0 at $4000-$7FFF of its 64KB space
                 if sub_slot == 0 && addr >= 0x4000 {
                     let off = (addr - 0x4000) as usize;
                     if off < self.cart.len() {
+                        if addr >= 0x4000 && addr < 0x4010 {
+                            self.add_log(format!("[CART] READ ${:04X} (off=${:04X}) = ${:02X}", addr, off, self.cart[off]));
+                        }
                         return self.cart[off];
+                    } else {
+                        if addr >= 0x4000 && addr < 0x4010 {
+                            self.add_log(format!("[CART] OOB READ ${:04X} (off=${:04X} >= ${:04X})", addr, off, self.cart.len()));
+                        }
+                    }
+                } else {
+                    if addr >= 0x4000 && addr < 0x4010 {
+                        self.add_log(format!("[CART] SUBSLOT MISMATCH ${:04X} page={} sub_slot={}", addr, page, sub_slot));
                     }
                 }
                 0xFF
@@ -97,9 +109,16 @@ impl Bus {
     /// Check if a main slot has sub-slots (expandable)
     fn slot_has_sub_slots(&self, slot: u8) -> bool {
         match slot {
-            1 => !self.cart.is_empty(), // Cartridge slot always has sub-slots
+            1 => !self.cart.is_empty(),
             _ => false,
         }
+    }
+
+    pub fn add_log(&mut self, msg: String) {
+        if self.debug_log.len() >= 1000 {
+            self.debug_log.remove(0);
+        }
+        self.debug_log.push(msg);
     }
 }
 
@@ -107,6 +126,12 @@ impl BusAccess for Bus {
     fn mem_read(&mut self, addr: u16) -> u8 {
         let page = (addr >> 14) as usize;
         let slot = (self.slot_select >> (page * 2)) & 3;
+
+        // Log slot select changes
+        if slot == 1 && addr >= 0x4000 && addr < 0x5000 && self.slot_select != self.last_slot_select {
+            self.add_log(format!("[READ] addr=${:04X} page={} slot={} slot_select=${:02X}", addr, page, slot, self.slot_select));
+            self.last_slot_select = self.slot_select;
+        }
 
         // $FFFF: sub-slot select register for the slot mapped to page 3
         if addr == 0xFFFF && self.slot_has_sub_slots(slot) {
@@ -156,6 +181,9 @@ impl BusAccess for Bus {
             0xA0 => self.psg.write_addr(val),
             0xA1 => self.psg.write_data(val),
             0xA8 => {
+                if val != self.slot_select {
+                    self.add_log(format!("[SLOT] $A8 write: ${:02X} → ${:02X}", self.slot_select, val));
+                }
                 self.slot_select = val;
                 self.ppi.port_a = val;
             }

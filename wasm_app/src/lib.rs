@@ -429,8 +429,28 @@ pub fn force_slot_select(val: u8) {
         if let Some(m) = s.borrow_mut().as_mut() {
             m.bus.slot_select = val;
             m.bus.ppi.port_a = val;
-            // Reset sub-slot selects for all pages (0 = sub-slot 0 on all pages)
             m.bus.sub_slot_select = [0; 4];
+            m.bus.add_log(format!("[FORCE] slot_select=${:02X}", val));
+        }
+    });
+}
+
+#[wasm_bindgen]
+pub fn debug_log_msx() -> String {
+    MSX.with(|s| {
+        if let Some(m) = s.borrow().as_ref() {
+            m.bus.debug_log.join("\n")
+        } else {
+            "no MSX state".to_string()
+        }
+    })
+}
+
+#[wasm_bindgen]
+pub fn debug_log_clear_msx() {
+    MSX.with(|s| {
+        if let Some(m) = s.borrow_mut().as_mut() {
+            m.bus.debug_log.clear();
         }
     });
 }
