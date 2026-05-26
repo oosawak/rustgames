@@ -63,6 +63,8 @@ pub struct PenPenGame {
     // 入力
     pub input_dx:       f32,  // 左右入力 (-1.0 ~ 1.0)
     pub input_jump:     bool, // ジャンプ中か
+    pub input_accel:    bool, // 加速中か
+    pub input_dodge:    bool, // 回避中か
 
     // ゲームワールド
     pub obstacles:      Vec<Obstacle>,
@@ -105,7 +107,7 @@ impl PenPenGame {
             player_vx: 0.0, player_vy: 0.0, player_speed: 10.0,
             player_hp: 5, player_max_hp: 5,
             score: 0, fish_collected: 0, invincible: 0.0,
-            input_dx: 0.0, input_jump: false,
+            input_dx: 0.0, input_jump: false, input_accel: false, input_dodge: false,
             obstacles: Vec::new(),
             collectibles: Vec::new(),
             particles: Vec::new(),
@@ -134,7 +136,7 @@ impl PenPenGame {
             player_vx: 0.0, player_vy: 0.0, player_speed: 10.0,
             player_hp: 5, player_max_hp: 5,
             score: 0, fish_collected: 0, invincible: 0.0,
-            input_dx: 0.0, input_jump: false,
+            input_dx: 0.0, input_jump: false, input_accel: false, input_dodge: false,
             obstacles: Vec::new(),
             collectibles: Vec::new(),
             particles: Vec::new(),
@@ -280,9 +282,10 @@ impl PenPenGame {
         }
 
         // 1. 前進速度の加速 (滑走抵抗を考慮しつつ自動加速)
-        let target_base_speed = 18.0 + (self.level as f32 * 1.5);
+        let accel_factor = if self.input_accel { 2.5 } else { 1.0 };
+        let target_base_speed = (18.0 + (self.level as f32 * 1.5)) * accel_factor;
         if self.player_speed < target_base_speed {
-            self.player_speed += 2.0 * dt;
+            self.player_speed += (2.0 * accel_factor) * dt;
         } else {
             self.player_speed -= 0.5 * dt;
         }
@@ -293,10 +296,16 @@ impl PenPenGame {
         let rel_x = self.player_x - center_x;
 
         // ハーフパイプの斜面重力 (中心に向かう力: f = -k * x)
-        let slope_gravity = -rel_x * 8.0;
+        let mut gravity_k = 8.0;
+        if self.input_dodge {
+            gravity_k = 16.0; // 回避中はターン性能向上
+            self.invincible = 0.1; // 回避中無敵維持
+        }
+
+        let slope_gravity = -rel_x * gravity_k;
 
         // キー入力フォース
-        let input_force = self.input_dx * 35.0;
+        let input_force = self.input_dx * (35.0 * (if self.input_dodge { 1.5 } else { 1.0 }));
 
         // 摩擦（速度に比例する減衰）
         let friction = -self.player_vx * 1.6;
@@ -489,13 +498,15 @@ impl PenPenGame {
 
     pub fn act(&mut self, key: i32) {
         // キーアクション: JS側から呼び出される
-        // key: 0=なし, 1=左移動開始, 2=右移動開始, 3=移動停止, 4=ジャンプ
+        // key: 0=なし, 1=左移動開始, 2=右移動開始, 3=移動停止, 4=ジャンプ開始, 5=ジャンプ停止, 6=加速開始/停止, 7=回避開始/停止
         match key {
-            1 => self.input_dx = 1.0,  // 左で右へ (逆)
-            2 => self.input_dx = -1.0, // 右で左へ (逆)
+            1 => self.input_dx = 1.0,  // 左で右へ (逆設定)
+            2 => self.input_dx = -1.0, // 右で左へ (逆設定)
             3 => self.input_dx = 0.0,
             4 => self.input_jump = true,
             5 => self.input_jump = false,
+            6 => self.input_accel = !self.input_accel,
+            7 => self.input_dodge = !self.input_dodge,
             _ => {}
         }
     }
@@ -624,69 +635,40 @@ fn draw_crystal(verts: &mut Vec<Vertex>, idxs: &mut Vec<u32>, cx: f32, cy: f32, 
 }
 
 // ペンギンモデル描画
-fn draw_penguin(verts: &mut Vec<Vertex>, idxs: &mut Vec<u32>, cx: f32, cy: f32, cz: f32, yaw: f32, roll: f32, time: f32) {
+fn draw_penguin(verts: &mut Vec<Vertex>, idxs: &mut Vec<u32>, cx: f32, cy: f32, cz: f32, yaw: f32, roll: f32, pitch: f32, time: f32) {
     let black_col = [0.08, 0.09, 0.14, 1.0];
     let white_col = [0.94, 0.94, 0.94, 1.0];
     let orange_col = [1.0, 0.45, 0.0, 1.0];
     let scarf_col = [1.0, 0.05, 0.3, 3.0]; // ネオンピンクマフラー (マテリアル3: エミッシブ)
 
-    // 体
-    push_oriented_box(verts, idxs, cx, cy, cz, 0.0, 0.42, 0.0, 0.24, 0.34, 0.20, yaw, roll, black_col);
+    // 体 (Pitch適用)
+    push_oriented_box(verts, idxs, cx, cy, cz, 0.0, 0.42, 0.0, 0.24, 0.34, 0.20, yaw, roll + pitch, black_col);
     // お腹
-    push_oriented_box(verts, idxs, cx, cy, cz, 0.0, 0.36, 0.19, 0.17, 0.24, 0.03, yaw, roll, white_col);
+    push_oriented_box(verts, idxs, cx, cy, cz, 0.0, 0.36, 0.19, 0.17, 0.24, 0.03, yaw, roll + pitch, white_col);
     // クチバシ
-    push_oriented_box(verts, idxs, cx, cy, cz, 0.0, 0.62, 0.22, 0.07, 0.04, 0.08, yaw, roll, orange_col);
+    push_oriented_box(verts, idxs, cx, cy, cz, 0.0, 0.62, 0.22, 0.07, 0.04, 0.08, yaw, roll + pitch, orange_col);
 
     let flap = (time * 15.0).sin() * 0.5;
-    // 羽（左）: 回転中心を肩(0.38)にし、ボックス中心を下にずらす(0.38 - 0.11)
-    push_oriented_box(verts, idxs, cx, cy, cz, -0.26, 0.38, -0.04, 0.03, 0.11, 0.08, yaw, 0.0, black_col);
-    // 回転を適用するために、描画時にオフセットを考慮した工夫が必要ですが、
-    // 現在のpush_oriented_boxの仕様(中心回転)に合わせるため、
-    // 中心を肩から羽の長さの半分(0.11)下に配置します。
-    // その上で、回転を適用したボックスを再計算します。
     
-    // 正しい実装:
-    // 肩の位置で回転させるため、回転中心(oy)を 0.38 にし、
-    // ボックスの中心(oy_box)を 0.38 - 0.11 = 0.27 にします。
-    // 現在の関数は回転中心とボックス中心が同一(oy)である必要があるため、
-    // 描画ロジックを肩基準で回転するように修正します。
-
-    // 左羽：回転中心を肩(0.38)に配置し、ボックスの中心を下にオフセット
-    // 頂点オフセット ly を肩に対して調整します。
-    // push_oriented_box(verts, idxs, cx, cy, cz, -0.26, 0.27, -0.04, 0.03, 0.11, 0.08, yaw, roll + flap, black_col);
-    // 上記だと中心回転になるため、以下のように「肩で回転した位置」にボックスを配置します。
-
-    let flap_l = flap;
-    let flap_r = -flap;
-
-    // 左羽の描画
-    // 肩を中心に回転行列を計算して配置する（手動回転）
+    // 左羽：回転中心を肩(0.38)に配置
     let x_off = -0.26;
     let y_off = 0.38;
     let z_off = -0.04;
+    push_oriented_box(verts, idxs, cx, cy, cz, x_off, y_off - 0.11, z_off, 0.03, 0.11, 0.08, yaw, roll + pitch + flap, black_col);
     
-    // 肩を基準点とした回転後のローカル位置
-    let rot_x = 0.0;
-    let rot_y = -0.11;
-    let rot_z = 0.0;
-    
-    // 簡易的に肩を中心に回転したボックスを描画
-    // push_oriented_box の仕様に合わせ、回転中心を肩(0.38)に設定
-    push_oriented_box(verts, idxs, cx, cy, cz, x_off, y_off + rot_y, z_off, 0.03, 0.11, 0.08, yaw, roll + flap_l, black_col);
-    
-    // 右羽の描画
+    // 右羽：回転中心を肩(0.38)に配置
     let x_off_r = 0.26;
-    push_oriented_box(verts, idxs, cx, cy, cz, x_off_r, y_off + rot_y, z_off, 0.03, 0.11, 0.08, yaw, roll + flap_r, black_col);
+    push_oriented_box(verts, idxs, cx, cy, cz, x_off_r, y_off - 0.11, z_off, 0.03, 0.11, 0.08, yaw, roll + pitch - flap, black_col);
 
     // 足（左）
     push_oriented_box(verts, idxs, cx, cy, cz, -0.11, 0.05, 0.08, 0.08, 0.04, 0.14, yaw, roll, orange_col);
     // 足（右）
     push_oriented_box(verts, idxs, cx, cy, cz, 0.11, 0.05, 0.08, 0.08, 0.04, 0.14, yaw, roll, orange_col);
 
-    // ネオンマフラー (首周りに巻く)
-    push_oriented_box(verts, idxs, cx, cy, cz, 0.0, 0.54, 0.0, 0.25, 0.04, 0.21, yaw, roll, scarf_col);
-    // マフラーのタレ (左後ろになびく)
-    push_oriented_box(verts, idxs, cx, cy, cz, -0.16, 0.44, -0.21, 0.04, 0.12, 0.04, yaw + 0.3, roll + 0.1, scarf_col);
+    // ネオンマフラー
+    push_oriented_box(verts, idxs, cx, cy, cz, 0.0, 0.54, 0.0, 0.25, 0.04, 0.21, yaw, roll + pitch, scarf_col);
+    // マフラーのタレ
+    push_oriented_box(verts, idxs, cx, cy, cz, -0.16, 0.44, -0.21, 0.04, 0.12, 0.04, yaw + 0.3, roll + pitch + 0.1, scarf_col);
 }
 
 // ── 描画シーンのビルド ──────────────────────────────────────────────────────
@@ -804,7 +786,8 @@ pub fn build_penpen_scene(g: &PenPenGame) -> (Vec<Vertex>, Vec<u32>) {
             let roll = -g.player_vx * 0.08;
             // 進行方向への向き (Yaw)
             let yaw = (g.player_vx / g.player_speed).atan();
-            draw_penguin(&mut verts, &mut idxs, g.player_x, g.player_y, g.player_z, yaw, roll, g.time as f32);
+            let pitch = if g.input_accel { -0.3 } else { 0.0 };
+            draw_penguin(&mut verts, &mut idxs, g.player_x, g.player_y, g.player_z, yaw, roll, pitch, g.time as f32);
         }
     }
 
