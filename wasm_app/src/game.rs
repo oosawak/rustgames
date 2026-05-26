@@ -47,7 +47,7 @@ impl GameState {
         let light_pos = find_lights(&maze, &mut seed);
         Ok(GameState{
             scene: SceneManager::new(),
-            gpu: GpuState::new(canvas).await?,
+            gpu: GpuState::new(canvas, true).await?,
             maze, light_pos,
             px:0, pz:0, facing:S,
             vis_x: 0.5, vis_z: 0.5, vis_angle: FRAC_PI_2, is_moving: false,

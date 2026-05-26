@@ -121,7 +121,7 @@ impl Psg {
     }
 
     fn tick_generators(&mut self, cycles: u32) {
-        let enable = self.regs[7];
+        let _enable = self.regs[7];
         
         // Tone channels
         for ch in 0..3 {

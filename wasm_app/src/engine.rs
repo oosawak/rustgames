@@ -12,7 +12,7 @@
 //   - "vr"      : WebXR対応
 //   - "headless": テスト・Unity FFI用（画面なし）
 
-use wasm_bindgen::prelude::*;
+// use wasm_bindgen::prelude::*; // Removed unused import
 
 /// ゲームエンジンの動作モード
 #[derive(Debug, Clone, PartialEq)]

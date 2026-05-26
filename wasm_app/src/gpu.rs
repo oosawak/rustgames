@@ -1,8 +1,11 @@
 // GPUモジュール: WebGPUデバイス・パイプライン・バッファの初期化とレンダリングを担当する
 
 use crate::constants::*;
+#[cfg(target_arch = "wasm32")]
 use crate::shader::SHADER;
-use crate::geometry::{Vertex, Uni, STRIDE};
+use crate::geometry::{Vertex, Uni};
+#[cfg(target_arch = "wasm32")]
+use crate::geometry::STRIDE;
 
 pub struct GpuState {
     pub surface:    wgpu::Surface<'static>,
@@ -20,102 +23,125 @@ pub struct GpuState {
 }
 
 impl GpuState {
-    pub async fn new(canvas: web_sys::HtmlCanvasElement) -> Result<Self, String> {
-        let (w,h) = (canvas.width(), canvas.height());
-        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::GL, ..Default::default()
-        });
-        let surface = instance.create_surface(wgpu::SurfaceTarget::Canvas(canvas))
-            .map_err(|e| e.to_string())?;
-        let adapter = instance.request_adapter(&wgpu::RequestAdapterOptions {
-            compatible_surface:Some(&surface),
-            power_preference:wgpu::PowerPreference::None,
-            force_fallback_adapter:false,
-        }).await.ok_or("no adapter")?;
-        let (device,queue) = adapter.request_device(&wgpu::DeviceDescriptor{
-            label:None,
-            required_features:wgpu::Features::empty(),
-            required_limits:wgpu::Limits::downlevel_webgl2_defaults()
-                .using_resolution(adapter.limits()),
-        },None).await.map_err(|e| e.to_string())?;
+    pub async fn new(canvas: web_sys::HtmlCanvasElement, vsync: bool) -> Result<Self, String> {
+        #[cfg(target_arch = "wasm32")]
+        {
+            let (w,h) = (canvas.width(), canvas.height());
+            let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+                backends: wgpu::Backends::all(), ..Default::default()
+            });
+            let surface = instance.create_surface(wgpu::SurfaceTarget::Canvas(canvas))
+                .map_err(|e| e.to_string())?;
+            let adapter = instance.request_adapter(&wgpu::RequestAdapterOptions {
+                compatible_surface:Some(&surface),
+                power_preference:wgpu::PowerPreference::HighPerformance,
+                force_fallback_adapter:false,
+            }).await.ok_or("no adapter")?;
+            let (device,queue) = adapter.request_device(&wgpu::DeviceDescriptor{
+                label:None,
+                required_features:wgpu::Features::empty(),
+                required_limits:wgpu::Limits::downlevel_webgl2_defaults()
+                    .using_resolution(adapter.limits()),
+            },None).await.map_err(|e| e.to_string())?;
 
-        let caps = surface.get_capabilities(&adapter);
-        let fmt  = caps.formats.iter().find(|f| f.is_srgb()).copied().unwrap_or(caps.formats[0]);
-        let config = wgpu::SurfaceConfiguration{
-            usage:wgpu::TextureUsages::RENDER_ATTACHMENT,format:fmt,
-            width:w,height:h,present_mode:wgpu::PresentMode::Fifo,
-            alpha_mode:wgpu::CompositeAlphaMode::Opaque,
-            view_formats:vec![],desired_maximum_frame_latency:2,
-        };
-        surface.configure(&device,&config);
-        let depth_view = make_depth(&device,w,h);
+            let caps = surface.get_capabilities(&adapter);
+            let fmt  = caps.formats.iter().find(|f| f.is_srgb()).copied().unwrap_or(caps.formats[0]);
+            
+            let present_mode = if vsync {
+                wgpu::PresentMode::Fifo
+            } else {
+                // Try to use Immediate or Mailbox for high FPS
+                if caps.present_modes.contains(&wgpu::PresentMode::Mailbox) {
+                    wgpu::PresentMode::Mailbox
+                } else if caps.present_modes.contains(&wgpu::PresentMode::Immediate) {
+                    wgpu::PresentMode::Immediate
+                } else {
+                    wgpu::PresentMode::Fifo
+                }
+            };
 
-        let uni_buf = device.create_buffer(&wgpu::BufferDescriptor{
-            label:Some("uni"),size:std::mem::size_of::<Uni>() as u64,
-            usage:wgpu::BufferUsages::UNIFORM|wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation:false,
-        });
-        let bgl = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor{
-            label:None,entries:&[wgpu::BindGroupLayoutEntry{
-                binding:0,visibility:wgpu::ShaderStages::VERTEX_FRAGMENT,
-                ty:wgpu::BindingType::Buffer{
-                    ty:wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset:false,min_binding_size:None,
-                },count:None,
-            }],
-        });
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor{
-            label:None,layout:&bgl,
-            entries:&[wgpu::BindGroupEntry{binding:0,resource:uni_buf.as_entire_binding()}],
-        });
-        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor{
-            label:Some("maze3d"),source:wgpu::ShaderSource::Wgsl(SHADER.into()),
-        });
-        let pll = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor{
-            label:None,bind_group_layouts:&[&bgl],push_constant_ranges:&[],
-        });
-        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor{
-            label:Some("main"),layout:Some(&pll),
-            vertex:wgpu::VertexState{
-                module:&shader,entry_point:"vs_main",
-                buffers:&[wgpu::VertexBufferLayout{
-                    array_stride:STRIDE,step_mode:wgpu::VertexStepMode::Vertex,
-                    attributes:&[
-                        wgpu::VertexAttribute{offset:0, shader_location:0,format:wgpu::VertexFormat::Float32x3},
-                        wgpu::VertexAttribute{offset:16,shader_location:1,format:wgpu::VertexFormat::Float32x4},
-                    ],
+            let config = wgpu::SurfaceConfiguration{
+                usage:wgpu::TextureUsages::RENDER_ATTACHMENT,format:fmt,
+                width:w,height:h,present_mode,
+                alpha_mode:wgpu::CompositeAlphaMode::Opaque,
+                view_formats:vec![],desired_maximum_frame_latency:2,
+            };
+            surface.configure(&device,&config);
+            let depth_view = make_depth(&device,w,h);
+
+            let uni_buf = device.create_buffer(&wgpu::BufferDescriptor{
+                label:Some("uni"),size:std::mem::size_of::<Uni>() as u64,
+                usage:wgpu::BufferUsages::UNIFORM|wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation:false,
+            });
+            let bgl = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor{
+                label:None,entries:&[wgpu::BindGroupLayoutEntry{
+                    binding:0,visibility:wgpu::ShaderStages::VERTEX_FRAGMENT,
+                    ty:wgpu::BindingType::Buffer{
+                        ty:wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset:false,min_binding_size:None,
+                    },count:None,
                 }],
-            },
-            fragment:Some(wgpu::FragmentState{
-                module:&shader,entry_point:"fs_main",
-                targets:&[Some(wgpu::ColorTargetState{
-                    format:fmt,blend:None,write_mask:wgpu::ColorWrites::ALL,
-                })],
-            }),
-            primitive:wgpu::PrimitiveState{
-                topology:wgpu::PrimitiveTopology::TriangleList,
-                front_face:wgpu::FrontFace::Ccw,cull_mode:None,
-                ..Default::default()
-            },
-            depth_stencil:Some(wgpu::DepthStencilState{
-                format:wgpu::TextureFormat::Depth32Float,
-                depth_write_enabled:true,depth_compare:wgpu::CompareFunction::Less,
-                stencil:wgpu::StencilState::default(),bias:wgpu::DepthBiasState::default(),
-            }),
-            multisample:wgpu::MultisampleState::default(),multiview:None,
-        });
-        let vert_buf = device.create_buffer(&wgpu::BufferDescriptor{
-            label:Some("verts"),size:(MAX_VERTS*STRIDE as usize) as u64,
-            usage:wgpu::BufferUsages::VERTEX|wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation:false,
-        });
-        let idx_buf = device.create_buffer(&wgpu::BufferDescriptor{
-            label:Some("idxs"),size:(MAX_IDX*4) as u64,
-            usage:wgpu::BufferUsages::INDEX|wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation:false,
-        });
-        Ok(GpuState{surface,device,queue,pipeline,
-                    uni_buf,bind_group,vert_buf,idx_buf,depth_view,width:w,height:h,fmt})
+            });
+            let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor{
+                label:None,layout:&bgl,
+                entries:&[wgpu::BindGroupEntry{binding:0,resource:uni_buf.as_entire_binding()}],
+            });
+            let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor{
+                label:Some("maze3d"),source:wgpu::ShaderSource::Wgsl(SHADER.into()),
+            });
+            let pll = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor{
+                label:None,bind_group_layouts:&[&bgl],push_constant_ranges:&[],
+            });
+            let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor{
+                label:Some("main"),layout:Some(&pll),
+                vertex:wgpu::VertexState{
+                    module:&shader,entry_point:"vs_main",
+                    buffers:&[wgpu::VertexBufferLayout{
+                        array_stride:STRIDE,step_mode:wgpu::VertexStepMode::Vertex,
+                        attributes:&[
+                            wgpu::VertexAttribute{offset:0, shader_location:0,format:wgpu::VertexFormat::Float32x3},
+                            wgpu::VertexAttribute{offset:16,shader_location:1,format:wgpu::VertexFormat::Float32x4},
+                        ],
+                    }],
+                },
+                fragment:Some(wgpu::FragmentState{
+                    module:&shader,entry_point:"fs_main",
+                    targets:&[Some(wgpu::ColorTargetState{
+                        format:fmt,blend:None,write_mask:wgpu::ColorWrites::ALL,
+                    })],
+                }),
+                primitive:wgpu::PrimitiveState{
+                    topology:wgpu::PrimitiveTopology::TriangleList,
+                    front_face:wgpu::FrontFace::Ccw,cull_mode:None,
+                    ..Default::default()
+                },
+                depth_stencil:Some(wgpu::DepthStencilState{
+                    format:wgpu::TextureFormat::Depth32Float,
+                    depth_write_enabled:true,depth_compare:wgpu::CompareFunction::Less,
+                    stencil:wgpu::StencilState::default(),bias:wgpu::DepthBiasState::default(),
+                }),
+                multisample:wgpu::MultisampleState::default(),multiview:None,
+            });
+            let vert_buf = device.create_buffer(&wgpu::BufferDescriptor{
+                label:Some("verts"),size:(MAX_VERTS*STRIDE as usize) as u64,
+                usage:wgpu::BufferUsages::VERTEX|wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation:false,
+            });
+            let idx_buf = device.create_buffer(&wgpu::BufferDescriptor{
+                label:Some("idxs"),size:(MAX_IDX*4) as u64,
+                usage:wgpu::BufferUsages::INDEX|wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation:false,
+            });
+            Ok(GpuState{surface,device,queue,pipeline,
+                        uni_buf,bind_group,vert_buf,idx_buf,depth_view,width:w,height:h,fmt})
+        }
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let _ = canvas;
+            panic!("Surface creation only supported on wasm32");
+        }
     }
 
     pub fn resize(&mut self, w: u32, h: u32) {

@@ -323,7 +323,7 @@ impl Vdp {
         let size16    = self.regs[1] & 0x02 != 0;
         let magnify   = self.regs[1] & 0x01 != 0;
         let sprite_size = if size16 { 16 } else { 8 };
-        let display_size = if magnify { sprite_size * 2 } else { sprite_size };
+        let _display_size = if magnify { sprite_size * 2 } else { sprite_size };
 
         // Track sprites per line for 4-sprite limit
         let mut line_count = [0u8; 192];
