@@ -1,17 +1,17 @@
 #!/bin/bash
 
-# i9 マシンから SSH キーをコピーするスクリプト
+# SERVER マシンから SSH キーをコピーするスクリプト
 # expect コマンドを使ってパスワード認証を自動化
 
 set -e
 
-echo "🔑 SSH キーコピー（i9 → ローカル）"
+echo "🔑 SSH キーコピー（server → ローカル）"
 echo "====================================="
 echo ""
 
-# i9 の情報
-I9_HOST="i9"
-I9_USER="oosawak"
+# SERVER の情報
+SERVER_HOST="server"
+SERVER_USER="user"
 SSH_KEY_LOCAL="$HOME/.ssh/id_ed25519"
 SSH_KEY_PUB_LOCAL="$HOME/.ssh/id_ed25519.pub"
 
@@ -41,18 +41,18 @@ if [ -f "$SSH_KEY_LOCAL" ]; then
     fi
 fi
 
-echo "i9 マシンへ接続するパスワードを入力してください："
+echo "SERVER マシンへ接続するパスワードを入力してください："
 echo "(入力は画面に表示されません)"
-read -sp "Password: " I9_PASSWORD
+read -sp "Password: " SERVER_PASSWORD
 echo ""
 
 # expect スクリプトでパスワード認証を行い、秘密鍵をコピー
 expect -c "
 set timeout 10
-set password \"$I9_PASSWORD\"
+set password \"$SERVER_PASSWORD\"
 
 # 秘密鍵をコピー
-spawn scp -o StrictHostKeyChecking=no $I9_USER@$I9_HOST:~/.ssh/id_ed25519 $SSH_KEY_LOCAL
+spawn scp -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST:~/.ssh/id_ed25519 $SSH_KEY_LOCAL
 expect {
     \"password:\" { send \"\$password\r\"; exp_continue }
     \"yes/no\" { send \"yes\r\"; exp_continue }
@@ -61,7 +61,7 @@ expect {
 }
 " || {
     echo "❌ 秘密鍵のコピーに失敗しました"
-    unset I9_PASSWORD
+    unset SERVER_PASSWORD
     exit 1
 }
 
@@ -70,9 +70,9 @@ echo "✅ 秘密鍵をコピーしました"
 # expect スクリプトで公開鍵もコピー
 expect -c "
 set timeout 10
-set password \"$I9_PASSWORD\"
+set password \"$SERVER_PASSWORD\"
 
-spawn scp -o StrictHostKeyChecking=no $I9_USER@$I9_HOST:~/.ssh/id_ed25519.pub $SSH_KEY_PUB_LOCAL
+spawn scp -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST:~/.ssh/id_ed25519.pub $SSH_KEY_PUB_LOCAL
 expect {
     \"password:\" { send \"\$password\r\"; exp_continue }
     \"yes/no\" { send \"yes\r\"; exp_continue }
@@ -81,7 +81,7 @@ expect {
 }
 " || {
     echo "❌ 公開鍵のコピーに失敗しました"
-    unset I9_PASSWORD
+    unset SERVER_PASSWORD
     exit 1
 }
 
@@ -96,12 +96,12 @@ echo "✅ SSH キーのセットアップ完了！"
 echo ""
 echo "📚 次のステップ:"
 echo "1. リモート URL を SSH に変更"
-echo "   cd /home/oosawak/Workspace/rustgames"
-echo "   git remote set-url origin git@github.com:oosawak/rustgames.git"
+echo "   cd /home/user/Workspace/rustgames"
+echo "   git remote set-url origin git@github.com:user/rustgames.git"
 echo ""
 echo "2. GitHub へプッシュ"
 echo "   git push origin main"
 echo ""
 
 # パスワードをクリア
-unset I9_PASSWORD
+unset SERVER_PASSWORD
