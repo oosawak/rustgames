@@ -491,8 +491,8 @@ impl PenPenGame {
         // キーアクション: JS側から呼び出される
         // key: 0=なし, 1=左移動開始, 2=右移動開始, 3=移動停止, 4=ジャンプ
         match key {
-            1 => self.input_dx = -1.0,
-            2 => self.input_dx = 1.0,
+            1 => self.input_dx = 1.0,  // 左で右へ (逆)
+            2 => self.input_dx = -1.0, // 右で左へ (逆)
             3 => self.input_dx = 0.0,
             4 => self.input_jump = true,
             5 => self.input_jump = false,
@@ -624,7 +624,7 @@ fn draw_crystal(verts: &mut Vec<Vertex>, idxs: &mut Vec<u32>, cx: f32, cy: f32, 
 }
 
 // ペンギンモデル描画
-fn draw_penguin(verts: &mut Vec<Vertex>, idxs: &mut Vec<u32>, cx: f32, cy: f32, cz: f32, yaw: f32, roll: f32) {
+fn draw_penguin(verts: &mut Vec<Vertex>, idxs: &mut Vec<u32>, cx: f32, cy: f32, cz: f32, yaw: f32, roll: f32, time: f32) {
     let black_col = [0.08, 0.09, 0.14, 1.0];
     let white_col = [0.94, 0.94, 0.94, 1.0];
     let orange_col = [1.0, 0.45, 0.0, 1.0];
@@ -637,10 +637,46 @@ fn draw_penguin(verts: &mut Vec<Vertex>, idxs: &mut Vec<u32>, cx: f32, cy: f32, 
     // クチバシ
     push_oriented_box(verts, idxs, cx, cy, cz, 0.0, 0.62, 0.22, 0.07, 0.04, 0.08, yaw, roll, orange_col);
 
-    // 羽（左）
-    push_oriented_box(verts, idxs, cx, cy, cz, -0.26, 0.38, -0.04, 0.03, 0.22, 0.08, yaw, roll + 0.25, black_col);
-    // 羽（右）
-    push_oriented_box(verts, idxs, cx, cy, cz, 0.26, 0.38, -0.04, 0.03, 0.22, 0.08, yaw, roll - 0.25, black_col);
+    let flap = (time * 15.0).sin() * 0.5;
+    // 羽（左）: 回転中心を肩(0.38)にし、ボックス中心を下にずらす(0.38 - 0.11)
+    push_oriented_box(verts, idxs, cx, cy, cz, -0.26, 0.38, -0.04, 0.03, 0.11, 0.08, yaw, 0.0, black_col);
+    // 回転を適用するために、描画時にオフセットを考慮した工夫が必要ですが、
+    // 現在のpush_oriented_boxの仕様(中心回転)に合わせるため、
+    // 中心を肩から羽の長さの半分(0.11)下に配置します。
+    // その上で、回転を適用したボックスを再計算します。
+    
+    // 正しい実装:
+    // 肩の位置で回転させるため、回転中心(oy)を 0.38 にし、
+    // ボックスの中心(oy_box)を 0.38 - 0.11 = 0.27 にします。
+    // 現在の関数は回転中心とボックス中心が同一(oy)である必要があるため、
+    // 描画ロジックを肩基準で回転するように修正します。
+
+    // 左羽：回転中心を肩(0.38)に配置し、ボックスの中心を下にオフセット
+    // 頂点オフセット ly を肩に対して調整します。
+    // push_oriented_box(verts, idxs, cx, cy, cz, -0.26, 0.27, -0.04, 0.03, 0.11, 0.08, yaw, roll + flap, black_col);
+    // 上記だと中心回転になるため、以下のように「肩で回転した位置」にボックスを配置します。
+
+    let flap_l = flap;
+    let flap_r = -flap;
+
+    // 左羽の描画
+    // 肩を中心に回転行列を計算して配置する（手動回転）
+    let x_off = -0.26;
+    let y_off = 0.38;
+    let z_off = -0.04;
+    
+    // 肩を基準点とした回転後のローカル位置
+    let rot_x = 0.0;
+    let rot_y = -0.11;
+    let rot_z = 0.0;
+    
+    // 簡易的に肩を中心に回転したボックスを描画
+    // push_oriented_box の仕様に合わせ、回転中心を肩(0.38)に設定
+    push_oriented_box(verts, idxs, cx, cy, cz, x_off, y_off + rot_y, z_off, 0.03, 0.11, 0.08, yaw, roll + flap_l, black_col);
+    
+    // 右羽の描画
+    let x_off_r = 0.26;
+    push_oriented_box(verts, idxs, cx, cy, cz, x_off_r, y_off + rot_y, z_off, 0.03, 0.11, 0.08, yaw, roll + flap_r, black_col);
 
     // 足（左）
     push_oriented_box(verts, idxs, cx, cy, cz, -0.11, 0.05, 0.08, 0.08, 0.04, 0.14, yaw, roll, orange_col);
@@ -768,7 +804,7 @@ pub fn build_penpen_scene(g: &PenPenGame) -> (Vec<Vertex>, Vec<u32>) {
             let roll = -g.player_vx * 0.08;
             // 進行方向への向き (Yaw)
             let yaw = (g.player_vx / g.player_speed).atan();
-            draw_penguin(&mut verts, &mut idxs, g.player_x, g.player_y, g.player_z, yaw, roll);
+            draw_penguin(&mut verts, &mut idxs, g.player_x, g.player_y, g.player_z, yaw, roll, g.time as f32);
         }
     }
 
@@ -836,7 +872,22 @@ pub fn build_penpen_uni(g: &PenPenGame, aspect: f32) -> Uni {
     let proj = perspective(PI * 0.40, aspect, 0.05, 100.0);
     let vp   = mat_mul(proj, view);
 
-    // 4つのポイントライト（プレイヤーの首元マフラー光 ＋ ペンギン頭上白色光 ＋ 移動するオーロラ光）
+    // プレイヤーの前方で一番近い障害物を探す
+    let mut closest_obs_pos = [track_center(g.player_z + 40.0), 2.5, g.player_z + 40.0];
+    let mut min_dist = f32::MAX;
+    for obs in &g.obstacles {
+        if obs.active && obs.z > g.player_z && obs.z < g.player_z + 80.0 {
+            let abs_ox = track_center(obs.z) + obs.x;
+            let abs_oy = track_y(abs_ox, obs.z) + 0.8;
+            let dist = (abs_ox - g.player_x).powi(2) + (obs.z - g.player_z).powi(2);
+            if dist < min_dist {
+                min_dist = dist;
+                closest_obs_pos = [abs_ox, abs_oy, obs.z];
+            }
+        }
+    }
+
+    // 4つのポイントライト
     let lights = [
         Light {
             pos: [g.player_x, g.player_y + 0.5, g.player_z, 0.0],
@@ -847,12 +898,12 @@ pub fn build_penpen_uni(g: &PenPenGame, aspect: f32) -> Uni {
             col: [1.0, 1.0, 1.0, 3.0] // ペンギン頭上の白色ライト
         },
         Light {
-            pos: [track_center(g.player_z + 40.0) - 3.5, 2.5, g.player_z + 40.0, 2.0],
-            col: [0.3, 1.0, 0.4, 2.0] // 先行グリーンライト（左）
+            pos: [closest_obs_pos[0], closest_obs_pos[1], closest_obs_pos[2], 2.0],
+            col: [0.0, 0.8, 1.0, 2.5] // 障害物への青いスポットライト
         },
         Light {
-            pos: [track_center(g.player_z + 40.0) + 3.5, 2.5, g.player_z + 40.0, 3.0],
-            col: [0.8, 0.1, 1.0, 2.0] // 先行パープルライト（右）
+            pos: [closest_obs_pos[0], closest_obs_pos[1] + 0.5, closest_obs_pos[2], 1.5],
+            col: [1.0, 1.0, 0.0, 1.5] // 障害物への警告黄色ライト
         },
     ];
 
