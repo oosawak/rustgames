@@ -1,8 +1,0 @@
-INCLUDES:=
-INCBINS:=
-.SECONDARY: vdep/scancodes_jp.asm
-vdep/scancodes_jp.asm: src/scancodes_jp.asm
-vdep/scancodes_jp.asm: $(INCLUDES:%=vdep/%) $(INCBINS:%=src/%)
-ifneq ($(INCLUDES),)
--include $(INCLUDES:%.asm=derived/dep/%.dep)
-endif
