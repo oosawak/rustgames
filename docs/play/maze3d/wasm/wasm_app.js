@@ -18,6 +18,113 @@ export function all_sound_defs_maze3d() {
 }
 
 /**
+ * @returns {Uint8Array}
+ */
+export function animal_puzzle_animals() {
+    const ret = wasm.animal_puzzle_animals();
+    var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v1;
+}
+
+/**
+ * @returns {number}
+ */
+export function animal_puzzle_count() {
+    const ret = wasm.animal_puzzle_count();
+    return ret >>> 0;
+}
+
+/**
+ * @param {number} size
+ */
+export function animal_puzzle_init(size) {
+    wasm.animal_puzzle_init(size);
+}
+
+/**
+ * @param {number} row
+ * @param {number} col
+ * @returns {boolean}
+ */
+export function animal_puzzle_is_occupied(row, col) {
+    const ret = wasm.animal_puzzle_is_occupied(row, col);
+    return ret !== 0;
+}
+
+/**
+ * @returns {boolean}
+ */
+export function animal_puzzle_is_solved() {
+    const ret = wasm.animal_puzzle_is_solved();
+    return ret !== 0;
+}
+
+/**
+ * @param {number} row
+ * @param {number} col
+ * @returns {boolean}
+ */
+export function animal_puzzle_is_valid(row, col) {
+    const ret = wasm.animal_puzzle_is_valid(row, col);
+    return ret !== 0;
+}
+
+export function animal_puzzle_reset() {
+    wasm.animal_puzzle_reset();
+}
+
+/**
+ * @param {Uint8Array} solution
+ * @returns {boolean}
+ */
+export function animal_puzzle_set_solution(solution) {
+    const ptr0 = passArray8ToWasm0(solution, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.animal_puzzle_set_solution(ptr0, len0);
+    return ret !== 0;
+}
+
+/**
+ * @param {Uint8Array} zones
+ * @returns {boolean}
+ */
+export function animal_puzzle_set_zones(zones) {
+    const ptr0 = passArray8ToWasm0(zones, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.animal_puzzle_set_zones(ptr0, len0);
+    return ret !== 0;
+}
+
+/**
+ * @returns {number}
+ */
+export function animal_puzzle_size() {
+    const ret = wasm.animal_puzzle_size();
+    return ret >>> 0;
+}
+
+/**
+ * @param {number} row
+ * @param {number} col
+ * @returns {boolean}
+ */
+export function animal_puzzle_toggle(row, col) {
+    const ret = wasm.animal_puzzle_toggle(row, col);
+    return ret !== 0;
+}
+
+/**
+ * @returns {Uint8Array}
+ */
+export function animal_puzzle_zones() {
+    const ret = wasm.animal_puzzle_zones();
+    var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v1;
+}
+
+/**
  * @returns {number}
  */
 export function audio_event_blaster3d() {
@@ -40,6 +147,40 @@ export function audio_event_earthdef() {
 export function audio_event_maze3d() {
     const ret = wasm.audio_event_maze3d();
     return ret;
+}
+
+/**
+ * @returns {number}
+ */
+export function audio_event_pacman() {
+    const ret = wasm.audio_event_pacman();
+    return ret;
+}
+
+/**
+ * @returns {number}
+ */
+export function audio_event_penpen() {
+    const ret = wasm.audio_event_penpen();
+    return ret;
+}
+
+/**
+ * @returns {number}
+ */
+export function audio_event_penpen2() {
+    const ret = wasm.audio_event_penpen2();
+    return ret;
+}
+
+/**
+ * @returns {Float32Array}
+ */
+export function audio_samples_msx() {
+    const ret = wasm.audio_samples_msx();
+    var v1 = getArrayF32FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+    return v1;
 }
 
 /**
@@ -73,6 +214,10 @@ export function best_level_maze3d() {
 export function best_steps_maze3d() {
     const ret = wasm.best_steps_maze3d();
     return ret >>> 0;
+}
+
+export function boot_cartridge_msx() {
+    wasm.boot_cartridge_msx();
 }
 
 /**
@@ -121,6 +266,78 @@ export function camera_name_blaster3d() {
     } finally {
         wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
     }
+}
+
+/**
+ * @returns {string}
+ */
+export function camera_name_penpen() {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.camera_name_penpen();
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+
+/**
+ * @returns {string}
+ */
+export function camera_name_penpen2() {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.camera_name_penpen2();
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+
+/**
+ * @returns {string}
+ */
+export function debug_info_msx() {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.debug_info_msx();
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+
+export function debug_log_clear_msx() {
+    wasm.debug_log_clear_msx();
+}
+
+/**
+ * @returns {string}
+ */
+export function debug_log_msx() {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.debug_log_msx();
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+
+export function draw_pacman() {
+    wasm.draw_pacman();
 }
 
 /**
@@ -191,6 +408,13 @@ export function engine_font_regular() {
 }
 
 /**
+ * @param {number} frames
+ */
+export function fast_boot_msx(frames) {
+    wasm.fast_boot_msx(frames);
+}
+
+/**
  * @param {number} nx
  * @param {number} ny
  */
@@ -200,6 +424,22 @@ export function fire_at_screen_earthdef(nx, ny) {
 
 export function fire_earthdef() {
     wasm.fire_earthdef();
+}
+
+/**
+ * @returns {number}
+ */
+export function fish_count_penpen() {
+    const ret = wasm.fish_count_penpen();
+    return ret >>> 0;
+}
+
+/**
+ * @returns {number}
+ */
+export function fish_count_penpen2() {
+    const ret = wasm.fish_count_penpen2();
+    return ret >>> 0;
 }
 
 export function flash_bomb_earthdef() {
@@ -215,11 +455,44 @@ export function flash_charges_earthdef() {
 }
 
 /**
+ * @param {number} val
+ */
+export function force_slot_select(val) {
+    wasm.force_slot_select(val);
+}
+
+/**
+ * @returns {Uint8Array}
+ */
+export function frame_buffer_msx() {
+    const ret = wasm.frame_buffer_msx();
+    var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v1;
+}
+
+/**
  * @returns {boolean}
  */
 export function game_over_maze3d() {
     const ret = wasm.game_over_maze3d();
     return ret !== 0;
+}
+
+/**
+ * @returns {number}
+ */
+export function hp_penpen() {
+    const ret = wasm.hp_penpen();
+    return ret;
+}
+
+/**
+ * @returns {number}
+ */
+export function hp_penpen2() {
+    const ret = wasm.hp_penpen2();
+    return ret;
 }
 
 /**
@@ -255,12 +528,104 @@ export function init_maze3d(canvas_id) {
     return ret;
 }
 
+export function init_msx() {
+    wasm.init_msx();
+}
+
+export function init_pacman() {
+    wasm.init_pacman();
+}
+
+/**
+ * @param {string} canvas_id
+ * @returns {Promise<void>}
+ */
+export function init_penpen(canvas_id) {
+    const ptr0 = passStringToWasm0(canvas_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.init_penpen(ptr0, len0);
+    return ret;
+}
+
+/**
+ * @param {string} canvas_id
+ * @returns {Promise<void>}
+ */
+export function init_penpen2(canvas_id) {
+    const ptr0 = passStringToWasm0(canvas_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.init_penpen2(ptr0, len0);
+    return ret;
+}
+
+/**
+ * @param {string} canvas_id
+ * @returns {Promise<void>}
+ */
+export function init_penpen_demo(canvas_id) {
+    const ptr0 = passStringToWasm0(canvas_id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.init_penpen_demo(ptr0, len0);
+    return ret;
+}
+
+/**
+ * @param {Uint8Array} data
+ * @returns {string}
+ */
+export function inspect_vrm(data) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.inspect_vrm(ptr0, len0);
+        deferred2_0 = ret[0];
+        deferred2_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
 /**
  * @returns {boolean}
  */
 export function is_boss_wave_blaster3d() {
     const ret = wasm.is_boss_wave_blaster3d();
     return ret !== 0;
+}
+
+/**
+ * @param {boolean} on
+ */
+export function jump_penpen(on) {
+    wasm.jump_penpen(on);
+}
+
+/**
+ * @param {boolean} on
+ */
+export function jump_penpen2(on) {
+    wasm.jump_penpen2(on);
+}
+
+/**
+ * @param {string} code
+ */
+export function key_down_msx(code) {
+    const ptr0 = passStringToWasm0(code, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    wasm.key_down_msx(ptr0, len0);
+}
+
+/**
+ * @param {string} code
+ */
+export function key_up_msx(code) {
+    const ptr0 = passStringToWasm0(code, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+    const len0 = WASM_VECTOR_LEN;
+    wasm.key_up_msx(ptr0, len0);
 }
 
 /**
@@ -290,9 +655,51 @@ export function level_maze3d() {
 /**
  * @returns {number}
  */
+export function level_penpen() {
+    const ret = wasm.level_penpen();
+    return ret >>> 0;
+}
+
+/**
+ * @returns {number}
+ */
+export function level_penpen2() {
+    const ret = wasm.level_penpen2();
+    return ret >>> 0;
+}
+
+/**
+ * @returns {number}
+ */
+export function lives_pacman() {
+    const ret = wasm.lives_pacman();
+    return ret;
+}
+
+/**
+ * @returns {number}
+ */
 export function load_amb_vol_maze3d() {
     const ret = wasm.load_amb_vol_maze3d();
     return ret;
+}
+
+/**
+ * @param {Uint8Array} data
+ */
+export function load_bios_msx(data) {
+    const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    wasm.load_bios_msx(ptr0, len0);
+}
+
+/**
+ * @param {Uint8Array} data
+ */
+export function load_rom_msx(data) {
+    const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    wasm.load_rom_msx(ptr0, len0);
 }
 
 /**
@@ -300,6 +707,31 @@ export function load_amb_vol_maze3d() {
  */
 export function load_se_vol_maze3d() {
     const ret = wasm.load_se_vol_maze3d();
+    return ret;
+}
+
+/**
+ * @param {Uint8Array} data
+ */
+export function load_sub_rom_msx(data) {
+    const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    wasm.load_sub_rom_msx(ptr0, len0);
+}
+
+/**
+ * @returns {number}
+ */
+export function max_hp_penpen() {
+    const ret = wasm.max_hp_penpen();
+    return ret;
+}
+
+/**
+ * @returns {number}
+ */
+export function max_hp_penpen2() {
+    const ret = wasm.max_hp_penpen2();
     return ret;
 }
 
@@ -328,8 +760,39 @@ export function move_maze3d(a) {
     wasm.move_maze3d(a);
 }
 
+/**
+ * @param {number} dx
+ */
+export function move_penpen(dx) {
+    wasm.move_penpen(dx);
+}
+
+/**
+ * @param {number} dx
+ */
+export function move_penpen2(dx) {
+    wasm.move_penpen2(dx);
+}
+
 export function next_level_maze3d() {
     wasm.next_level_maze3d();
+}
+
+export function next_level_penpen() {
+    wasm.next_level_penpen();
+}
+
+export function next_level_penpen2() {
+    wasm.next_level_penpen2();
+}
+
+/**
+ * Returns game phase: 0=Playing, 1=Dying, 2=GameOver, 3=LevelClear
+ * @returns {number}
+ */
+export function phase_pacman() {
+    const ret = wasm.phase_pacman();
+    return ret;
 }
 
 /**
@@ -380,8 +843,63 @@ export function player_z_maze3d() {
     return ret >>> 0;
 }
 
+/**
+ * @returns {number}
+ */
+export function progress_penpen() {
+    const ret = wasm.progress_penpen();
+    return ret;
+}
+
+/**
+ * @returns {number}
+ */
+export function progress_penpen2() {
+    const ret = wasm.progress_penpen2();
+    return ret;
+}
+
+/**
+ * @returns {number}
+ */
+export function pull_dist_penpen2() {
+    const ret = wasm.pull_dist_penpen2();
+    return ret;
+}
+
+/**
+ * @param {boolean} on
+ */
+export function pull_penpen2(on) {
+    wasm.pull_penpen2(on);
+}
+
+export function reset_game_penpen() {
+    wasm.reset_game_penpen();
+}
+
+export function reset_game_penpen2() {
+    wasm.reset_game_penpen2();
+}
+
 export function reset_maze3d() {
     wasm.reset_maze3d();
+}
+
+/**
+ * @param {number} w
+ * @param {number} h
+ */
+export function resize_penpen(w, h) {
+    wasm.resize_penpen(w, h);
+}
+
+/**
+ * @param {number} w
+ * @param {number} h
+ */
+export function resize_penpen2(w, h) {
+    wasm.resize_penpen2(w, h);
 }
 
 /**
@@ -419,6 +937,22 @@ export function scene_maze3d() {
 /**
  * @returns {number}
  */
+export function scene_penpen() {
+    const ret = wasm.scene_penpen();
+    return ret;
+}
+
+/**
+ * @returns {number}
+ */
+export function scene_penpen2() {
+    const ret = wasm.scene_penpen2();
+    return ret;
+}
+
+/**
+ * @returns {number}
+ */
 export function score_blaster3d() {
     const ret = wasm.score_blaster3d();
     return ret >>> 0;
@@ -433,11 +967,49 @@ export function score_earthdef() {
 }
 
 /**
+ * @returns {number}
+ */
+export function score_pacman() {
+    const ret = wasm.score_pacman();
+    return ret >>> 0;
+}
+
+/**
+ * @returns {number}
+ */
+export function score_penpen() {
+    const ret = wasm.score_penpen();
+    return ret >>> 0;
+}
+
+/**
+ * @returns {number}
+ */
+export function score_penpen2() {
+    const ret = wasm.score_penpen2();
+    return ret >>> 0;
+}
+
+/**
+ * @param {boolean} on
+ */
+export function set_accel_input_penpen2(on) {
+    wasm.set_accel_input_penpen2(on);
+}
+
+/**
  * @param {number} x
  * @param {number} y
  */
 export function set_aim_input_earthdef(x, y) {
     wasm.set_aim_input_earthdef(x, y);
+}
+
+/**
+ * @param {boolean} on
+ */
+export function set_brake_input_penpen2(on) {
+    wasm.set_brake_input_penpen2(on);
 }
 
 /**
@@ -453,6 +1025,13 @@ export function set_cam_distance_earthdef(d) {
  */
 export function set_cam_input_earthdef(x, y) {
     wasm.set_cam_input_earthdef(x, y);
+}
+
+/**
+ * @param {number} dir
+ */
+export function set_input_pacman(dir) {
+    wasm.set_input_pacman(dir);
 }
 
 /**
@@ -508,105 +1087,53 @@ export function sound_def_maze3d(event) {
 }
 
 /**
- *  {number}
+ * @param {number} event
+ * @returns {string}
  */
-export function animal_puzzle_count() {
-    const ret = wasm.animal_puzzle_count();
-    return ret >>> 0;
+export function sound_def_penpen(event) {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.sound_def_penpen(event);
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
 }
 
 /**
- *  {Uint8Array}
+ * @param {number} event
+ * @returns {string}
  */
-export function animal_puzzle_animals() {
-    const ret = wasm.animal_puzzle_animals();
-    var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
-    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
-    return v1;
+export function sound_def_penpen2(event) {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.sound_def_penpen2(event);
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
 }
 
 /**
- *  {boolean}
+ * @returns {number}
  */
-export function animal_puzzle_is_solved() {
-    const ret = wasm.animal_puzzle_is_solved();
-    return ret !== 0;
+export function speed_penpen() {
+    const ret = wasm.speed_penpen();
+    return ret;
 }
 
 /**
- *  {number} row
- *  {number} col
- *  {boolean}
+ * @returns {number}
  */
-export function animal_puzzle_is_valid(row, col) {
-    const ret = wasm.animal_puzzle_is_valid(row, col);
-    return ret !== 0;
-}
-
-/**
- *  {number} row
- *  {number} col
- *  {boolean}
- */
-export function animal_puzzle_is_occupied(row, col) {
-    const ret = wasm.animal_puzzle_is_occupied(row, col);
-    return ret !== 0;
-}
-
-/**
- *  {Uint8Array} solution
- *  {boolean}
- */
-export function animal_puzzle_set_solution(solution) {
-    const ptr0 = passArray8ToWasm0(solution, wasm.__wbindgen_malloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ret = wasm.animal_puzzle_set_solution(ptr0, len0);
-    return ret !== 0;
-}
-
-/**
- *  {Uint8Array} zones
- *  {boolean}
- */
-export function animal_puzzle_set_zones(zones) {
-    const ptr0 = passArray8ToWasm0(zones, wasm.__wbindgen_malloc);
-    const len0 = WASM_VECTOR_LEN;
-    const ret = wasm.animal_puzzle_set_zones(ptr0, len0);
-    return ret !== 0;
-}
-
-/**
- *  {number} size
- */
-export function animal_puzzle_init(size) {
-    wasm.animal_puzzle_init(size);
-}
-
-/**
- * 
- */
-export function animal_puzzle_reset() {
-    wasm.animal_puzzle_reset();
-}
-
-/**
- *  {number} row
- *  {number} col
- *  {boolean}
- */
-export function animal_puzzle_toggle(row, col) {
-    const ret = wasm.animal_puzzle_toggle(row, col);
-    return ret !== 0;
-}
-
-/**
- *  {Uint8Array}
- */
-export function animal_puzzle_zones() {
-    const ret = wasm.animal_puzzle_zones();
-    var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
-    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
-    return v1;
+export function speed_penpen2() {
+    const ret = wasm.speed_penpen2();
+    return ret;
 }
 
 export function start_blaster3d() {
@@ -621,6 +1148,14 @@ export function start_game_maze3d() {
     wasm.start_game_maze3d();
 }
 
+export function start_penpen() {
+    wasm.start_penpen();
+}
+
+export function start_penpen2() {
+    wasm.start_penpen2();
+}
+
 /**
  * @returns {number}
  */
@@ -631,6 +1166,14 @@ export function steps_maze3d() {
 
 export function switch_camera_blaster3d() {
     wasm.switch_camera_blaster3d();
+}
+
+export function switch_camera_penpen() {
+    wasm.switch_camera_penpen();
+}
+
+export function switch_camera_penpen2() {
+    wasm.switch_camera_penpen2();
 }
 
 /**
@@ -668,6 +1211,31 @@ export function tick_earthdef(ts) {
  */
 export function tick_maze3d(ts) {
     wasm.tick_maze3d(ts);
+}
+
+export function tick_msx() {
+    wasm.tick_msx();
+}
+
+/**
+ * @param {number} dt
+ */
+export function tick_pacman(dt) {
+    wasm.tick_pacman(dt);
+}
+
+/**
+ * @param {number} ts
+ */
+export function tick_penpen(ts) {
+    wasm.tick_penpen(ts);
+}
+
+/**
+ * @param {number} ts
+ */
+export function tick_penpen2(ts) {
+    wasm.tick_penpen2(ts);
 }
 
 export function toggle_auto_fire_blaster3d() {
@@ -769,11 +1337,17 @@ function __wbg_get_imports() {
         __wbg_activeTexture_df98f0476a8d2771: function(arg0, arg1) {
             arg0.activeTexture(arg1 >>> 0);
         },
+        __wbg_arc_ebc74f7abf32eace: function() { return handleError(function (arg0, arg1, arg2, arg3, arg4, arg5) {
+            arg0.arc(arg1, arg2, arg3, arg4, arg5);
+        }, arguments); },
         __wbg_attachShader_18d37e6a1936237b: function(arg0, arg1, arg2) {
             arg0.attachShader(arg1, arg2);
         },
         __wbg_attachShader_ce0935c038866500: function(arg0, arg1, arg2) {
             arg0.attachShader(arg1, arg2);
+        },
+        __wbg_beginPath_d31f98e44cba3be0: function(arg0) {
+            arg0.beginPath();
         },
         __wbg_beginQuery_57423f952238d42b: function(arg0, arg1, arg2) {
             arg0.beginQuery(arg1 >>> 0, arg2);
@@ -908,6 +1482,9 @@ function __wbg_get_imports() {
         __wbg_clientWaitSync_5a73eb00e846b6e7: function(arg0, arg1, arg2, arg3) {
             const ret = arg0.clientWaitSync(arg1, arg2 >>> 0, arg3 >>> 0);
             return ret;
+        },
+        __wbg_closePath_b438c379d0897f55: function(arg0) {
+            arg0.closePath();
         },
         __wbg_colorMask_360d34a1b73138ff: function(arg0, arg1, arg2, arg3, arg4) {
             arg0.colorMask(arg1 !== 0, arg2 !== 0, arg3 !== 0, arg4 !== 0);
@@ -1160,6 +1737,15 @@ function __wbg_get_imports() {
             const ret = arg0.fenceSync(arg1 >>> 0, arg2 >>> 0);
             return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
         },
+        __wbg_fillRect_9219f775d7e8e73e: function(arg0, arg1, arg2, arg3, arg4) {
+            arg0.fillRect(arg1, arg2, arg3, arg4);
+        },
+        __wbg_fillText_9fbea3af94326c74: function() { return handleError(function (arg0, arg1, arg2, arg3, arg4) {
+            arg0.fillText(getStringFromWasm0(arg1, arg2), arg3, arg4);
+        }, arguments); },
+        __wbg_fill_eb2f573270ef9b6d: function(arg0) {
+            arg0.fill();
+        },
         __wbg_framebufferRenderbuffer_752640e03bd3d58a: function(arg0, arg1, arg2, arg3, arg4) {
             arg0.framebufferRenderbuffer(arg1 >>> 0, arg2 >>> 0, arg3 >>> 0, arg4);
         },
@@ -1193,6 +1779,10 @@ function __wbg_get_imports() {
         }, arguments); },
         __wbg_getContext_6ce4459fd5f498a9: function() { return handleError(function (arg0, arg1, arg2, arg3) {
             const ret = arg0.getContext(getStringFromWasm0(arg1, arg2), arg3);
+            return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
+        }, arguments); },
+        __wbg_getContext_f17252002286474d: function() { return handleError(function (arg0, arg1, arg2) {
+            const ret = arg0.getContext(getStringFromWasm0(arg1, arg2));
             return isLikeNone(ret) ? 0 : addToExternrefTable0(ret);
         }, arguments); },
         __wbg_getElementById_22becc83cca95cc2: function(arg0, arg1, arg2) {
@@ -1322,6 +1912,16 @@ function __wbg_get_imports() {
             const ret = arg0.innerWidth;
             return ret;
         }, arguments); },
+        __wbg_instanceof_CanvasRenderingContext2d_b433938013de3a1e: function(arg0) {
+            let result;
+            try {
+                result = arg0 instanceof CanvasRenderingContext2D;
+            } catch (_) {
+                result = false;
+            }
+            const ret = result;
+            return ret;
+        },
         __wbg_instanceof_HtmlCanvasElement_0ac74d5643067956: function(arg0) {
             let result;
             try {
@@ -1363,6 +1963,9 @@ function __wbg_get_imports() {
             const ret = arg0.length;
             return ret;
         },
+        __wbg_lineTo_fe5522fbbf79a59d: function(arg0, arg1, arg2) {
+            arg0.lineTo(arg1, arg2);
+        },
         __wbg_linkProgram_76940d17b54d375b: function(arg0, arg1) {
             arg0.linkProgram(arg1);
         },
@@ -1392,7 +1995,7 @@ function __wbg_get_imports() {
                     const a = state0.a;
                     state0.a = 0;
                     try {
-                        return wasm_bindgen__convert__closures_____invoke__h4c4817024f9b650e(a, state0.b, arg0, arg1);
+                        return wasm_bindgen_7a19de62c8672ebe___convert__closures_____invoke___js_sys_2bf081240e491622___Function_fn_wasm_bindgen_7a19de62c8672ebe___JsValue_____wasm_bindgen_7a19de62c8672ebe___sys__Undefined___js_sys_2bf081240e491622___Function_fn_wasm_bindgen_7a19de62c8672ebe___JsValue_____wasm_bindgen_7a19de62c8672ebe___sys__Undefined_______true_(a, state0.b, arg0, arg1);
                     } finally {
                         state0.a = a;
                     }
@@ -1482,6 +2085,12 @@ function __wbg_get_imports() {
             const ret = Reflect.set(arg0, arg1, arg2);
             return ret;
         }, arguments); },
+        __wbg_set_fillStyle_a3656c7c5d4ad803: function(arg0, arg1, arg2) {
+            arg0.fillStyle = getStringFromWasm0(arg1, arg2);
+        },
+        __wbg_set_font_5b1b8c76449f5864: function(arg0, arg1, arg2) {
+            arg0.font = getStringFromWasm0(arg1, arg2);
+        },
         __wbg_set_height_77937c921db92223: function(arg0, arg1) {
             arg0.height = arg1 >>> 0;
         },
@@ -1758,8 +2367,8 @@ function __wbg_get_imports() {
             return ret;
         },
         __wbindgen_cast_0000000000000001: function(arg0, arg1) {
-            // Cast intrinsic for `Closure(Closure { owned: true, function: Function { arguments: [Externref], shim_idx: 1930, ret: Result(Unit), inner_ret: Some(Result(Unit)) }, mutable: true }) -> Externref`.
-            const ret = makeMutClosure(arg0, arg1, wasm_bindgen__convert__closures_____invoke__h337539ba828a8639);
+            // Cast intrinsic for `Closure(Closure { owned: true, function: Function { arguments: [Externref], shim_idx: 1976, ret: Result(Unit), inner_ret: Some(Result(Unit)) }, mutable: true }) -> Externref`.
+            const ret = makeMutClosure(arg0, arg1, wasm_bindgen_7a19de62c8672ebe___convert__closures_____invoke___wasm_bindgen_7a19de62c8672ebe___JsValue__core_e1dd1f5b63695bbf___result__Result_____wasm_bindgen_7a19de62c8672ebe___JsError___true_);
             return ret;
         },
         __wbindgen_cast_0000000000000002: function(arg0) {
@@ -1823,15 +2432,15 @@ function __wbg_get_imports() {
     };
 }
 
-function wasm_bindgen__convert__closures_____invoke__h337539ba828a8639(arg0, arg1, arg2) {
-    const ret = wasm.wasm_bindgen__convert__closures_____invoke__h337539ba828a8639(arg0, arg1, arg2);
+function wasm_bindgen_7a19de62c8672ebe___convert__closures_____invoke___wasm_bindgen_7a19de62c8672ebe___JsValue__core_e1dd1f5b63695bbf___result__Result_____wasm_bindgen_7a19de62c8672ebe___JsError___true_(arg0, arg1, arg2) {
+    const ret = wasm.wasm_bindgen_7a19de62c8672ebe___convert__closures_____invoke___wasm_bindgen_7a19de62c8672ebe___JsValue__core_e1dd1f5b63695bbf___result__Result_____wasm_bindgen_7a19de62c8672ebe___JsError___true_(arg0, arg1, arg2);
     if (ret[1]) {
         throw takeFromExternrefTable0(ret[0]);
     }
 }
 
-function wasm_bindgen__convert__closures_____invoke__h4c4817024f9b650e(arg0, arg1, arg2, arg3) {
-    wasm.wasm_bindgen__convert__closures_____invoke__h4c4817024f9b650e(arg0, arg1, arg2, arg3);
+function wasm_bindgen_7a19de62c8672ebe___convert__closures_____invoke___js_sys_2bf081240e491622___Function_fn_wasm_bindgen_7a19de62c8672ebe___JsValue_____wasm_bindgen_7a19de62c8672ebe___sys__Undefined___js_sys_2bf081240e491622___Function_fn_wasm_bindgen_7a19de62c8672ebe___JsValue_____wasm_bindgen_7a19de62c8672ebe___sys__Undefined_______true_(arg0, arg1, arg2, arg3) {
+    wasm.wasm_bindgen_7a19de62c8672ebe___convert__closures_____invoke___js_sys_2bf081240e491622___Function_fn_wasm_bindgen_7a19de62c8672ebe___JsValue_____wasm_bindgen_7a19de62c8672ebe___sys__Undefined___js_sys_2bf081240e491622___Function_fn_wasm_bindgen_7a19de62c8672ebe___JsValue_____wasm_bindgen_7a19de62c8672ebe___sys__Undefined_______true_(arg0, arg1, arg2, arg3);
 }
 
 function addToExternrefTable0(obj) {
@@ -2051,6 +2660,13 @@ function makeMutClosure(arg0, arg1, f) {
     };
     CLOSURE_DTORS.register(real, state, state);
     return real;
+}
+
+function passArray8ToWasm0(arg, malloc) {
+    const ptr = malloc(arg.length * 1, 1) >>> 0;
+    getUint8ArrayMemory0().set(arg, ptr / 1);
+    WASM_VECTOR_LEN = arg.length;
+    return ptr;
 }
 
 function passStringToWasm0(arg, malloc, realloc) {
