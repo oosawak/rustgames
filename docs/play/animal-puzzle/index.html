@@ -226,7 +226,7 @@ canvas {
 </main>
 
 <script type="module">
-import init, * as wasm from '../maze3d/wasm/wasm_app.js';
+import init, * as wasm from '../maze3d/wasm/wasm_app.js?v=20260616';
 
 const SIZE = 6;
 const ANIMALS = ['🐱', '🐶', '🐰', '🦊', '🐼', '🐻'];
@@ -569,7 +569,7 @@ document.getElementById('btn-scramble').addEventListener('click', scrambleLayout
 
 async function start() {
   try {
-    await init('../maze3d/wasm/wasm_app_bg.wasm');
+    await init('../maze3d/wasm/wasm_app_bg.wasm?v=20260616');
     resizeCanvas();
     initPuzzle();
     running = true;
