@@ -53,6 +53,7 @@ export function animal_puzzle_is_solved(): boolean;
 export function animal_puzzle_is_valid(row: number, col: number): boolean;
 export function animal_puzzle_set_solution(solution: Uint8Array): boolean;
 export function animal_puzzle_set_zones(zones: Uint8Array): boolean;
+export function animal_puzzle_reset(): void;
 export function animal_puzzle_toggle(row: number, col: number): boolean;
 export function animal_puzzle_zones(): Uint8Array;
 export function init_maze3d(canvas_id: string): Promise<void>;
@@ -127,6 +128,7 @@ export interface InitOutput {
     readonly animal_puzzle_is_valid: (a: number, b: number) => number;
     readonly animal_puzzle_set_solution: (a: number, b: number) => number;
     readonly animal_puzzle_set_zones: (a: number, b: number) => number;
+    readonly animal_puzzle_reset: () => void;
     readonly animal_puzzle_toggle: (a: number, b: number) => number;
     readonly animal_puzzle_zones: () => [number, number];
     readonly init_maze3d: (a: number, b: number) => any;

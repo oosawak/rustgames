@@ -568,11 +568,19 @@ document.getElementById('btn-hint').addEventListener('click', hintMove);
 document.getElementById('btn-scramble').addEventListener('click', scrambleLayout);
 
 async function start() {
-  await init('../maze3d/wasm/wasm_app_bg.wasm');
-  resizeCanvas();
-  initPuzzle();
-  running = true;
-  requestAnimationFrame(loop);
+  try {
+    await init('../maze3d/wasm/wasm_app_bg.wasm');
+    resizeCanvas();
+    initPuzzle();
+    running = true;
+    requestAnimationFrame(loop);
+  } catch (err) {
+    console.error('Animal Zone Clash init failed:', err);
+    setStatus('Failed to load puzzle.', String(err?.message ?? err));
+    overlay.classList.add('show');
+    overlay.querySelector('h2').textContent = 'Load error';
+    overlay.querySelector('p').textContent = 'WASM 初期化に失敗しました。';
+  }
 }
 
 start();

@@ -583,6 +583,13 @@ export function animal_puzzle_init(size) {
 }
 
 /**
+ * 
+ */
+export function animal_puzzle_reset() {
+    wasm.animal_puzzle_reset();
+}
+
+/**
  *  {number} row
  *  {number} col
  *  {boolean}
