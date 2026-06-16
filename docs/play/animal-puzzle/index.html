@@ -106,14 +106,18 @@ main {
   font-size: 1.02rem;
 }
 .rules {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
-  flex-wrap: wrap;
-  justify-content: center;
   width: min(560px, calc(100vw - 28px));
   margin: 0 auto;
+  height: 44px;
+  overflow: hidden;
 }
 .rule {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 8px 12px;
   border-radius: 14px;
   background: rgba(255,255,255,0.88);
@@ -121,6 +125,9 @@ main {
   color: var(--muted);
   font-size: 0.8rem;
   box-shadow: 0 8px 18px rgba(130, 98, 90, 0.08);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .rule.active {
   color: var(--text);
@@ -268,6 +275,16 @@ button.control {
 @media (max-width: 640px) {
   body { overflow: auto; }
   main { min-height: 100vh; height: auto; }
+  .rules {
+    width: min(560px, calc(100vw - 28px));
+    height: 38px;
+    gap: 6px;
+  }
+  .rule {
+    padding: 6px 8px;
+    font-size: 0.72rem;
+    border-radius: 12px;
+  }
   .bottom-banner { min-height: 88px; padding-top: 24px; }
 }
 </style>
