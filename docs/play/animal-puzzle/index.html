@@ -139,7 +139,7 @@ main {
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 .board-shell {
   position: relative;
@@ -344,7 +344,7 @@ button.control {
 </main>
 
 <script type="module">
-import init, * as wasm from '../maze3d/wasm/wasm_app.js?v=20260616';
+import init, * as wasm from '../maze3d/wasm/wasm_app.js?v=20260616-3';
 
 const SIZE = 5;
 const BOARD_ZONES = new Uint8Array([
@@ -975,7 +975,7 @@ document.getElementById('btn-new').addEventListener('click', () => {
 
 async function start() {
   try {
-    await init('../maze3d/wasm/wasm_app_bg.wasm?v=20260616');
+    await init('../maze3d/wasm/wasm_app_bg.wasm?v=20260616-3');
     wasm.animal_puzzle_init(SIZE);
     wasm.animal_puzzle_set_zones(BOARD_ZONES);
     wasm.animal_puzzle_set_solution(solution);
