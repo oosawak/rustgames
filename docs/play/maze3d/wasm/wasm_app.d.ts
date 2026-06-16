@@ -45,6 +45,16 @@ export function engine_font_regular(): Uint8Array;
 
 export function game_over_maze3d(): boolean;
 
+export function animal_puzzle_animals(): Uint8Array;
+export function animal_puzzle_count(): number;
+export function animal_puzzle_init(size: number): void;
+export function animal_puzzle_is_occupied(row: number, col: number): boolean;
+export function animal_puzzle_is_solved(): boolean;
+export function animal_puzzle_is_valid(row: number, col: number): boolean;
+export function animal_puzzle_set_solution(solution: Uint8Array): boolean;
+export function animal_puzzle_set_zones(zones: Uint8Array): boolean;
+export function animal_puzzle_toggle(row: number, col: number): boolean;
+export function animal_puzzle_zones(): Uint8Array;
 export function init_maze3d(canvas_id: string): Promise<void>;
 
 export function level_clear_maze3d(): boolean;
@@ -109,6 +119,16 @@ export interface InitOutput {
     readonly engine_font_bold: () => [number, number];
     readonly engine_font_embedded: () => number;
     readonly game_over_maze3d: () => number;
+    readonly animal_puzzle_animals: () => [number, number];
+    readonly animal_puzzle_count: () => number;
+    readonly animal_puzzle_init: (a: number) => void;
+    readonly animal_puzzle_is_occupied: (a: number, b: number) => number;
+    readonly animal_puzzle_is_solved: () => number;
+    readonly animal_puzzle_is_valid: (a: number, b: number) => number;
+    readonly animal_puzzle_set_solution: (a: number, b: number) => number;
+    readonly animal_puzzle_set_zones: (a: number, b: number) => number;
+    readonly animal_puzzle_toggle: (a: number, b: number) => number;
+    readonly animal_puzzle_zones: () => [number, number];
     readonly init_maze3d: (a: number, b: number) => any;
     readonly level_clear_maze3d: () => number;
     readonly level_maze3d: () => number;

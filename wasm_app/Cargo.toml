@@ -19,6 +19,8 @@ wasm-bindgen-futures = "0.4"
 js-sys = "0.3"
 bytemuck = { version = "1", features = ["derive"] }
 console_error_panic_hook = "0.1"
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
 
 [dependencies.wgpu]
 version = "0.19"

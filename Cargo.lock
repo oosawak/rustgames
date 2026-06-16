@@ -1914,6 +1914,8 @@ dependencies = [
  "bytemuck",
  "console_error_panic_hook",
  "js-sys",
+ "serde",
+ "serde_json",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",

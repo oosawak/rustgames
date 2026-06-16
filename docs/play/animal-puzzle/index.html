@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Animal Zone Clash</title>
+<link rel="stylesheet" href="../../engine.css">
+<style>
+:root {
+  --bg0: #07111f;
+  --bg1: #0a1a2e;
+  --panel: rgba(8, 18, 34, 0.78);
+  --panel-border: rgba(106, 223, 255, 0.22);
+  --text: #d8f6ff;
+  --muted: rgba(216, 246, 255, 0.62);
+  --cyan: #69e7ff;
+  --pink: #ff77d4;
+  --good: #7dffb2;
+  --bad: #ff7a8a;
+}
+* { box-sizing: border-box; }
+html, body { width: 100%; min-height: 100%; margin: 0; }
+body {
+  font-family: var(--engine-font, system-ui, sans-serif);
+  color: var(--text);
+  background:
+    radial-gradient(circle at top, rgba(62, 118, 255, 0.22), transparent 30%),
+    radial-gradient(circle at 80% 20%, rgba(255, 119, 212, 0.14), transparent 25%),
+    linear-gradient(180deg, var(--bg0), var(--bg1));
+  overflow: hidden;
+}
+main {
+  width: 100%;
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  gap: 12px;
+  padding: 18px;
+}
+header, .toolbar, .footer {
+  max-width: 1080px;
+  width: min(1080px, calc(100vw - 36px));
+  margin: 0 auto;
+}
+header {
+  display: grid;
+  gap: 6px;
+  padding: 18px 20px 16px;
+  border: 1px solid var(--panel-border);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(9, 20, 40, 0.88), rgba(10, 26, 46, 0.72));
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(12px);
+}
+h1 {
+  margin: 0;
+  font-size: clamp(1.7rem, 4vw, 3rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.subtitle {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+  font-size: 0.96rem;
+}
+.badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.badge strong { color: var(--text); }
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+.controls, .status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+button {
+  appearance: none;
+  border: 1px solid rgba(105, 231, 255, 0.3);
+  background: linear-gradient(180deg, rgba(105, 231, 255, 0.17), rgba(105, 231, 255, 0.08));
+  color: var(--text);
+  border-radius: 14px;
+  padding: 10px 14px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+button:hover { transform: translateY(-1px); border-color: rgba(105, 231, 255, 0.52); }
+button:active { transform: translateY(1px); }
+button.secondary {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255,255,255,0.05);
+  font-weight: 600;
+}
+#status-text {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+#status-text strong { color: var(--cyan); }
+.stage {
+  position: relative;
+  width: min(1080px, calc(100vw - 36px));
+  margin: 0 auto;
+  border-radius: 28px;
+  border: 1px solid rgba(105, 231, 255, 0.12);
+  background:
+    linear-gradient(180deg, rgba(8, 18, 34, 0.48), rgba(6, 11, 19, 0.92)),
+    radial-gradient(circle at center, rgba(105, 231, 255, 0.08), transparent 55%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 40px 100px rgba(0,0,0,0.38);
+  overflow: hidden;
+}
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: manipulation;
+}
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(4, 8, 16, 0.72);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+}
+.overlay.show { opacity: 1; pointer-events: auto; }
+.overlay-card {
+  text-align: center;
+  padding: 24px 28px;
+  border-radius: 24px;
+  border: 1px solid rgba(125, 255, 178, 0.24);
+  background: linear-gradient(180deg, rgba(10, 26, 46, 0.9), rgba(6, 11, 19, 0.86));
+  box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+}
+.overlay-card h2 {
+  margin: 0 0 8px;
+  color: var(--good);
+  font-size: clamp(1.5rem, 4vw, 2.4rem);
+}
+.overlay-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  color: rgba(216, 246, 255, 0.45);
+  font-size: 0.8rem;
+}
+@media (max-width: 700px) {
+  body { overflow: auto; }
+  main { height: auto; min-height: 100vh; padding: 12px; }
+  .stage { height: min(72vh, 720px); }
+  .toolbar, .footer { width: min(1080px, calc(100vw - 24px)); }
+  .footer { flex-direction: column; align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Animal Zone Clash</h1>
+    <p class="subtitle">
+      各行・各列・各色エリアに1匹ずつ。さらに、上下左右と斜めの 8 マスに別の動物を置けません。
+      Rust/WASM が置けるかどうかを判定し、Canvas でアニメーション表示します。
+    </p>
+    <div class="badge-row">
+      <span class="badge"><strong>6×6</strong> prototype</span>
+      <span class="badge"><strong>Rust</strong> placement validator</span>
+      <span class="badge"><strong>Canvas</strong> animated animals</span>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <div class="controls">
+      <button id="btn-reset">Reset</button>
+      <button id="btn-check" class="secondary">Check</button>
+      <button id="btn-hint" class="secondary">Hint</button>
+      <button id="btn-scramble" class="secondary">New layout</button>
+    </div>
+    <div class="status" id="status-text">Loading puzzle…</div>
+  </div>
+
+  <section class="stage" id="stage">
+    <canvas id="board"></canvas>
+    <div class="overlay" id="clear-overlay">
+      <div class="overlay-card">
+        <h2>Clear</h2>
+        <p>すべての動物を正しい位置に配置しました。</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="footer">
+    <div>操作: クリック / タップで配置。右クリックや再クリックで削除。</div>
+    <div>ルール: 行, 列, 同色エリア, 隣接 8 マス</div>
+  </div>
+</main>
+
+<script type="module">
+import init, * as wasm from '../maze3d/wasm/wasm_app.js';
+
+const SIZE = 6;
+const ANIMALS = ['🐱', '🐶', '🐰', '🦊', '🐼', '🐻'];
+const SOLUTION_COLS = [0, 2, 4, 1, 3, 5];
+const ROW_COLORS = ['#26354f', '#2f4b68', '#355c73', '#3d6b79', '#4c5d86', '#5a4f7f'];
+
+const canvas = document.getElementById('board');
+const stage = document.getElementById('stage');
+const statusText = document.getElementById('status-text');
+const overlay = document.getElementById('clear-overlay');
+
+let boardSize = 0;
+let cellSize = 0;
+let originX = 0;
+let originY = 0;
+let zones = buildZones();
+let solution = buildSolutionMask();
+let animals = new Uint8Array(SIZE * SIZE);
+let hover = null;
+let animations = new Map();
+let solved = false;
+let lastStatus = '';
+let running = false;
+
+function buildZones() {
+  const result = new Uint8Array(SIZE * SIZE);
+  for (let r = 0; r < SIZE; r += 1) {
+    for (let c = 0; c < SIZE; c += 1) {
+      result[r * SIZE + c] = r;
+    }
+  }
+  return result;
+}
+
+function buildSolutionMask() {
+  const result = new Uint8Array(SIZE * SIZE);
+  for (let r = 0; r < SIZE; r += 1) {
+    result[r * SIZE + SOLUTION_COLS[r]] = 1;
+  }
+  return result;
+}
+
+function syncFromWasm() {
+  animals = wasm.animal_puzzle_animals();
+  solved = wasm.animal_puzzle_is_solved();
+  overlay.classList.toggle('show', solved);
+}
+
+function setStatus(text, accent = null) {
+  lastStatus = text;
+  statusText.innerHTML = accent ? `${text} <strong>${accent}</strong>` : text;
+}
+
+function initPuzzle() {
+  wasm.animal_puzzle_init(SIZE);
+  wasm.animal_puzzle_set_zones(zones);
+  wasm.animal_puzzle_set_solution(solution);
+  syncFromWasm();
+  setStatus('Puzzle ready. Place <strong>6</strong> animals.');
+}
+
+function resizeCanvas() {
+  const rect = stage.getBoundingClientRect();
+  const width = Math.max(320, Math.floor(rect.width));
+  const height = Math.max(320, Math.floor(rect.height));
+  canvas.width = width;
+  canvas.height = height;
+  const fit = Math.min(width, height) * 0.86;
+  boardSize = Math.floor(fit);
+  cellSize = boardSize / SIZE;
+  originX = Math.floor((width - boardSize) / 2);
+  originY = Math.floor((height - boardSize) / 2);
+}
+
+function cellAtPoint(x, y) {
+  const cx = x - originX;
+  const cy = y - originY;
+  if (cx < 0 || cy < 0 || cx >= boardSize || cy >= boardSize) return null;
+  return {
+    row: Math.floor(cy / cellSize),
+    col: Math.floor(cx / cellSize),
+  };
+}
+
+function setAnimation(row, col, kind) {
+  animations.set(row * SIZE + col, {
+    kind,
+    started: performance.now(),
+    duration: kind === 'error' ? 360 : 260,
+  });
+}
+
+function easeOutBack(t) {
+  const c1 = 1.70158;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+}
+
+function drawRoundedRect(ctx, x, y, w, h, r) {
+  const radius = Math.min(r, w * 0.5, h * 0.5);
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + w - radius, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+  ctx.lineTo(x + w, y + h - radius);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+  ctx.lineTo(x + radius, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+}
+
+function drawBoard(now) {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const w = canvas.width;
+  const h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, 'rgba(9, 19, 35, 0.95)');
+  bg.addColorStop(1, 'rgba(4, 8, 16, 1)');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+
+  const pulse = 0.5 + 0.5 * Math.sin(now * 0.0012);
+  ctx.save();
+  ctx.translate(originX, originY);
+  drawRoundedRect(ctx, -10, -10, boardSize + 20, boardSize + 20, 32);
+  ctx.fillStyle = 'rgba(255,255,255,0.02)';
+  ctx.fill();
+  ctx.restore();
+
+  for (let r = 0; r < SIZE; r += 1) {
+    for (let c = 0; c < SIZE; c += 1) {
+      const x = originX + c * cellSize;
+      const y = originY + r * cellSize;
+      const idx = r * SIZE + c;
+      const zone = zones[idx];
+      const isHover = hover && hover.row === r && hover.col === c;
+      const isPlaced = animals[idx] !== 0;
+      const cellAnim = animations.get(idx);
+      let animScale = 1;
+      let shakeX = 0;
+      let shakeY = 0;
+
+      if (cellAnim) {
+        const t = Math.min(1, (now - cellAnim.started) / cellAnim.duration);
+        if (cellAnim.kind === 'place') {
+          animScale = 0.72 + 0.28 * easeOutBack(t);
+          if (t >= 1) animations.delete(idx);
+        } else if (cellAnim.kind === 'error') {
+          const amp = (1 - t) * 5;
+          shakeX = Math.sin(t * 26) * amp;
+          shakeY = Math.cos(t * 18) * amp * 0.35;
+          if (t >= 1) animations.delete(idx);
+        }
+      }
+
+      const base = rowColor(zone);
+      const grad = ctx.createLinearGradient(x, y, x + cellSize, y + cellSize);
+      grad.addColorStop(0, shade(base, 0.18 + pulse * 0.08));
+      grad.addColorStop(1, shade(base, -0.12));
+
+      ctx.save();
+      ctx.translate(x + shakeX, y + shakeY);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, cellSize, cellSize);
+
+      ctx.strokeStyle = isHover ? 'rgba(255,255,255,0.48)' : 'rgba(255,255,255,0.10)';
+      ctx.lineWidth = isHover ? 2.4 : 1.2;
+      ctx.strokeRect(0.5, 0.5, cellSize - 1, cellSize - 1);
+
+      ctx.fillStyle = 'rgba(255,255,255,0.04)';
+      for (let n = 0; n < 3; n += 1) {
+        const xx = (n * cellSize) / 3;
+        ctx.fillRect(xx, 0, 1, cellSize);
+      }
+
+      if (isPlaced) {
+        const anim = rowAnimFactor(r, now) * animScale;
+        const fontSize = Math.floor(cellSize * 0.64 * anim);
+        const emoji = ANIMALS[(r + c) % ANIMALS.length];
+        ctx.save();
+        ctx.translate(cellSize / 2, cellSize / 2);
+        ctx.scale(anim, anim);
+        ctx.font = `${fontSize}px "Segoe UI Emoji", "Apple Color Emoji", sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = 'rgba(0,0,0,0.45)';
+        ctx.shadowBlur = 12;
+        ctx.fillText(emoji, 0, 0);
+        ctx.restore();
+      } else {
+        const hint = isHover && wasm.animal_puzzle_is_valid(r, c);
+        if (hint) {
+          ctx.strokeStyle = 'rgba(125, 255, 178, 0.62)';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(3, 3, cellSize - 6, cellSize - 6);
+        }
+      }
+
+      ctx.restore();
+    }
+  }
+
+  ctx.save();
+  ctx.strokeStyle = 'rgba(105, 231, 255, 0.8)';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(originX + 1.5, originY + 1.5, boardSize - 3, boardSize - 3);
+  ctx.restore();
+}
+
+function rowColor(zone) {
+  return ROW_COLORS[zone % ROW_COLORS.length];
+}
+
+function shade(hex, amount) {
+  const n = hex.replace('#', '');
+  const r = parseInt(n.slice(0, 2), 16);
+  const g = parseInt(n.slice(2, 4), 16);
+  const b = parseInt(n.slice(4, 6), 16);
+  const clamp = (v) => Math.max(0, Math.min(255, v));
+  return `rgb(${clamp(Math.round(r + 255 * amount))}, ${clamp(Math.round(g + 255 * amount))}, ${clamp(Math.round(b + 255 * amount))})`;
+}
+
+function rowAnimFactor(row, now) {
+  return 0.94 + 0.04 * Math.sin(now * 0.003 + row * 0.7);
+}
+
+function updateSolvedState() {
+  const nextSolved = wasm.animal_puzzle_is_solved();
+  if (nextSolved !== solved) {
+    solved = nextSolved;
+    overlay.classList.toggle('show', solved);
+    if (solved) setStatus('Solved!', 'Nice work');
+  }
+}
+
+function handleCell(row, col) {
+  const ok = wasm.animal_puzzle_toggle(row, col);
+  if (ok) {
+    syncFromWasm();
+    setAnimation(row, col, 'place');
+    setStatus(`Placed at R${row + 1} C${col + 1}.`, `${wasm.animal_puzzle_count()}/6`);
+    updateSolvedState();
+  } else {
+    setAnimation(row, col, 'error');
+    setStatus(`Cannot place at R${row + 1} C${col + 1}.`, 'Rule violation');
+  }
+}
+
+function hintMove() {
+  for (let r = 0; r < SIZE; r += 1) {
+    for (let c = 0; c < SIZE; c += 1) {
+      const idx = r * SIZE + c;
+      if (solution[idx] !== 1 || animals[idx] === 1) continue;
+      if (wasm.animal_puzzle_toggle(r, c)) {
+        syncFromWasm();
+        setAnimation(r, c, 'place');
+        setStatus(`Hint used at R${r + 1} C${c + 1}.`, `${wasm.animal_puzzle_count()}/6`);
+        updateSolvedState();
+        return;
+      }
+    }
+  }
+  setStatus('No hint available.', 'All correct cells are already filled.');
+}
+
+function resetPuzzle() {
+  wasm.animal_puzzle_reset();
+  syncFromWasm();
+  animations.clear();
+  setStatus('Puzzle reset.', 'Try again');
+}
+
+function scrambleLayout() {
+  // simple deterministic alternative layouts that still satisfy the rules
+  const layouts = [
+    [0, 2, 4, 1, 3, 5],
+    [1, 3, 5, 0, 2, 4],
+    [2, 4, 0, 3, 5, 1],
+  ];
+  const next = layouts[(Date.now() / 1000 | 0) % layouts.length];
+  const nextSolution = new Uint8Array(SIZE * SIZE);
+  for (let r = 0; r < SIZE; r += 1) {
+    nextSolution[r * SIZE + next[r]] = 1;
+  }
+  solution = nextSolution;
+  wasm.animal_puzzle_set_solution(solution);
+  resetPuzzle();
+  setStatus('Layout changed.', 'New puzzle shape');
+}
+
+function loop(now) {
+  if (!running) return;
+  drawBoard(now);
+  requestAnimationFrame(loop);
+}
+
+canvas.addEventListener('pointermove', (event) => {
+  const rect = canvas.getBoundingClientRect();
+  const pos = cellAtPoint((event.clientX - rect.left) * (canvas.width / rect.width), (event.clientY - rect.top) * (canvas.height / rect.height));
+  hover = pos;
+});
+canvas.addEventListener('pointerleave', () => { hover = null; });
+canvas.addEventListener('pointerdown', (event) => {
+  const rect = canvas.getBoundingClientRect();
+  const pos = cellAtPoint((event.clientX - rect.left) * (canvas.width / rect.width), (event.clientY - rect.top) * (canvas.height / rect.height));
+  if (!pos) return;
+  handleCell(pos.row, pos.col);
+});
+canvas.addEventListener('contextmenu', (event) => {
+  event.preventDefault();
+});
+canvas.addEventListener('auxclick', (event) => {
+  if (event.button !== 2) return;
+  const rect = canvas.getBoundingClientRect();
+  const pos = cellAtPoint((event.clientX - rect.left) * (canvas.width / rect.width), (event.clientY - rect.top) * (canvas.height / rect.height));
+  if (!pos) return;
+  if (wasm.animal_puzzle_is_occupied(pos.row, pos.col)) {
+    wasm.animal_puzzle_toggle(pos.row, pos.col);
+    syncFromWasm();
+    setStatus(`Removed R${pos.row + 1} C${pos.col + 1}.`, `${wasm.animal_puzzle_count()}/6`);
+  }
+});
+
+window.addEventListener('resize', () => {
+  resizeCanvas();
+});
+
+document.getElementById('btn-reset').addEventListener('click', resetPuzzle);
+document.getElementById('btn-check').addEventListener('click', () => {
+  updateSolvedState();
+  setStatus(solved ? 'Solved!' : 'Not solved yet.', solved ? 'Complete' : 'Keep going');
+});
+document.getElementById('btn-hint').addEventListener('click', hintMove);
+document.getElementById('btn-scramble').addEventListener('click', scrambleLayout);
+
+async function start() {
+  await init('../maze3d/wasm/wasm_app_bg.wasm');
+  resizeCanvas();
+  initPuzzle();
+  running = true;
+  requestAnimationFrame(loop);
+}
+
+start();
+</script>
+</body>
+</html>

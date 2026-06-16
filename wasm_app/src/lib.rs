@@ -24,6 +24,8 @@ pub mod earthdef;
 pub mod pacman;
 pub mod penpen;
 pub mod penpen2;
+pub mod animal_puzzle;
+pub mod vrm;
 
 use wasm_bindgen::prelude::*;
 use std::cell::RefCell;
@@ -441,17 +443,13 @@ pub fn force_slot_select(val: u8) {
 pub fn boot_cartridge_msx() {
     MSX.with(|s| {
         if let Some(m) = s.borrow_mut().as_mut() {
-            m.bus.add_log("[BOOT] boot_cartridge_msx() called".to_string());
-
             // Check if cartridge exists in slot 1 at $4000
             if m.bus.cart.is_empty() {
-                m.bus.add_log("[BOOT] No cartridge loaded".to_string());
                 return;
             }
 
             // Check for "AB" signature at $4000
             if m.bus.cart.len() < 4 || m.bus.cart[0] != 0x41 || m.bus.cart[1] != 0x42 {
-                m.bus.add_log("[BOOT] No valid cartridge (missing AB signature)".to_string());
                 return;
             }
 
@@ -461,16 +459,12 @@ pub fn boot_cartridge_msx() {
             let init_addr = (init_high << 8) | init_low;
 
             if init_addr == 0 {
-                m.bus.add_log("[BOOT] INIT address is 0, skipping".to_string());
                 return;
             }
-
-            m.bus.add_log(format!("[BOOT] Found cartridge with INIT=${:04X}", init_addr));
 
             // Jump to INIT address
             m.cpu.pc = init_addr;
             m.cpu.halted = false;  // Clear HALT state so CPU can execute
-            m.bus.add_log(format!("[BOOT] Jumped to ${:04X}, halted=false", init_addr));
         }
     });
 }
@@ -871,5 +865,4 @@ pub fn reset_game_penpen2() {
         }
     });
 }
-
 
