@@ -137,8 +137,8 @@ main {
 .stage {
   width: min(560px, calc(100vw - 28px));
   margin: 0 auto;
-  display: grid;
-  grid-template-rows: auto 1fr auto;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
 }
 .board-shell {
@@ -275,6 +275,9 @@ button.control {
 @media (max-width: 640px) {
   body { overflow: auto; }
   main { min-height: 100vh; height: auto; }
+  .stage {
+    gap: 10px;
+  }
   .rules {
     width: min(560px, calc(100vw - 28px));
     height: 38px;
