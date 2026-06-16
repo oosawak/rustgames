@@ -138,8 +138,8 @@ main {
   position: relative;
   padding: 14px;
   border-radius: 28px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.86), rgba(255,255,255,0.70));
-  box-shadow: 0 24px 50px rgba(150, 112, 102, 0.18);
+  background: linear-gradient(180deg, rgba(255,255,255,0.88), rgba(255,255,255,0.74));
+  box-shadow: 0 24px 50px rgba(150, 112, 102, 0.14);
   border: 1px solid rgba(169, 127, 119, 0.14);
 }
 canvas {
@@ -289,7 +289,7 @@ button.control {
   </div>
 
   <div class="rules">
-    <div class="rule active">1色につき1匹</div>
+    <div class="rule active">1エリアにつき1匹</div>
     <div class="rule active">各列・各行に1匹</div>
     <div class="rule active">どうぶつ同士は隣接不可</div>
   </div>
@@ -328,20 +328,20 @@ import init, * as wasm from '../maze3d/wasm/wasm_app.js?v=20260616';
 
 const SIZE = 5;
 const BOARD_ZONES = new Uint8Array([
-  0, 1, 2, 2, 2,
-  0, 2, 2, 2, 4,
-  0, 3, 2, 2, 4,
-  0, 3, 2, 4, 4,
-  0, 3, 3, 2, 4,
+  0, 1, 2, 2, 3,
+  0, 2, 2, 2, 3,
+  0, 4, 2, 2, 3,
+  0, 4, 4, 2, 3,
+  0, 4, 4, 4, 3,
 ]);
 const DEFAULT_LAYOUT = [1, 3, 0, 4, 2];
-const PALETTE = ['#f27ca4', '#a7d8a0', '#ffbf54', '#9dc4f2', '#c4aff3'];
+const PALETTE = ['#f48fb0', '#b2df9f', '#ffbf59', '#a7c8f1', '#cbb6f2'];
 const ANIMALS = [
-  { emoji: '🐶', name: 'dog', accent: '#ffd0a8' },
-  { emoji: '🐰', name: 'rabbit', accent: '#f7c7de' },
-  { emoji: '🦊', name: 'fox', accent: '#ffb36f' },
-  { emoji: '🐼', name: 'panda', accent: '#c8d0d8' },
-  { emoji: '🐻', name: 'bear', accent: '#d9b08c' },
+  { name: 'dog', accent: '#f3af77', face: '#fff4e6', detail: '#5c4035' },
+  { name: 'rabbit', accent: '#f4bfd8', face: '#fff9fc', detail: '#6f5265' },
+  { name: 'fox', accent: '#f1a24c', face: '#fff5ea', detail: '#7a431f' },
+  { name: 'panda', accent: '#404040', face: '#ffffff', detail: '#202020' },
+  { name: 'bear', accent: '#c88f62', face: '#fff3e8', detail: '#55362a' },
 ];
 
 const canvas = document.getElementById('board');
@@ -517,17 +517,17 @@ function drawX(ctx, cx, cy, size) {
   ctx.restore();
 }
 
-function animalFor(row) {
-  return ANIMALS[row % ANIMALS.length];
+function animalForZone(zone) {
+  return ANIMALS[zone % ANIMALS.length];
 }
 
 function drawAnimal(ctx, cx, cy, size, animal, pulse = 1) {
   const r = size * 0.36 * pulse;
   ctx.save();
   ctx.translate(cx, cy);
-  ctx.shadowColor = 'rgba(0,0,0,0.18)';
+  ctx.shadowColor = 'rgba(0,0,0,0.14)';
   ctx.shadowBlur = 10;
-  ctx.shadowOffsetY = 4;
+  ctx.shadowOffsetY = 5;
   ctx.fillStyle = animal.accent;
   ctx.beginPath();
   ctx.arc(0, 0, r, 0, Math.PI * 2);
@@ -535,17 +535,126 @@ function drawAnimal(ctx, cx, cy, size, animal, pulse = 1) {
 
   ctx.shadowBlur = 0;
   ctx.shadowOffsetY = 0;
-  ctx.fillStyle = '#ffffff';
+  drawAnimalFace(ctx, animal, r);
+  ctx.restore();
+}
+
+function drawCircleFace(ctx, faceFill, detailFill, r, earFill = detailFill) {
+  ctx.fillStyle = earFill;
+  ctx.beginPath();
+  ctx.arc(-r * 0.52, -r * 0.58, r * 0.20, 0, Math.PI * 2);
+  ctx.arc(r * 0.52, -r * 0.58, r * 0.20, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = faceFill;
   ctx.beginPath();
   ctx.arc(0, 0, r * 0.72, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = animal.name === 'panda' ? '#202020' : '#2c1f1b';
-  ctx.font = `700 ${Math.max(12, Math.floor(r * 1.05))}px "Apple Color Emoji", "Segoe UI Emoji", system-ui, sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(animal.emoji, 0, r * 0.03);
-  ctx.restore();
+  ctx.fillStyle = detailFill;
+  ctx.beginPath();
+  ctx.arc(-r * 0.22, -r * 0.10, r * 0.08, 0, Math.PI * 2);
+  ctx.arc(r * 0.22, -r * 0.10, r * 0.08, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawAnimalFace(ctx, animal, r) {
+  const face = animal.face;
+  const detail = animal.detail;
+  switch (animal.name) {
+    case 'dog': {
+      ctx.fillStyle = animal.accent;
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 0.94, 0, Math.PI * 2);
+      ctx.fill();
+      drawCircleFace(ctx, face, detail, r, animal.accent);
+      ctx.fillStyle = detail;
+      ctx.beginPath();
+      roundRect(ctx, -r * 0.16, r * 0.20, r * 0.32, r * 0.18, r * 0.08);
+      ctx.fill();
+      break;
+    }
+    case 'rabbit': {
+      ctx.fillStyle = animal.accent;
+      ctx.beginPath();
+      ctx.ellipse(-r * 0.32, -r * 0.76, r * 0.12, r * 0.42, -0.08, 0, Math.PI * 2);
+      ctx.ellipse(r * 0.32, -r * 0.76, r * 0.12, r * 0.42, 0.08, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.ellipse(-r * 0.32, -r * 0.78, r * 0.07, r * 0.28, -0.08, 0, Math.PI * 2);
+      ctx.ellipse(r * 0.32, -r * 0.78, r * 0.07, r * 0.28, 0.08, 0, Math.PI * 2);
+      ctx.fill();
+      drawCircleFace(ctx, face, detail, r, animal.accent);
+      ctx.fillStyle = '#f6a8bf';
+      ctx.beginPath();
+      ctx.arc(0, r * 0.15, r * 0.10, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+    case 'fox': {
+      ctx.fillStyle = animal.accent;
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.70, -r * 0.20);
+      ctx.lineTo(-r * 0.34, -r * 0.76);
+      ctx.lineTo(-r * 0.16, -r * 0.16);
+      ctx.closePath();
+      ctx.moveTo(r * 0.70, -r * 0.20);
+      ctx.lineTo(r * 0.34, -r * 0.76);
+      ctx.lineTo(r * 0.16, -r * 0.16);
+      ctx.closePath();
+      ctx.fill();
+      drawCircleFace(ctx, face, detail, r, animal.accent);
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.26, r * 0.02);
+      ctx.lineTo(0, r * 0.36);
+      ctx.lineTo(r * 0.26, r * 0.02);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+    case 'panda': {
+      ctx.fillStyle = animal.accent;
+      ctx.beginPath();
+      ctx.arc(-r * 0.42, -r * 0.62, r * 0.18, 0, Math.PI * 2);
+      ctx.arc(r * 0.42, -r * 0.62, r * 0.18, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = face;
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 0.74, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = detail;
+      ctx.beginPath();
+      ctx.arc(-r * 0.26, -r * 0.08, r * 0.15, 0, Math.PI * 2);
+      ctx.arc(r * 0.26, -r * 0.08, r * 0.15, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(-r * 0.26, -r * 0.08, r * 0.06, 0, Math.PI * 2);
+      ctx.arc(r * 0.26, -r * 0.08, r * 0.06, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = detail;
+      ctx.beginPath();
+      ctx.arc(0, r * 0.18, r * 0.08, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+    case 'bear':
+    default: {
+      ctx.fillStyle = animal.accent;
+      ctx.beginPath();
+      ctx.arc(-r * 0.45, -r * 0.58, r * 0.16, 0, Math.PI * 2);
+      ctx.arc(r * 0.45, -r * 0.58, r * 0.16, 0, Math.PI * 2);
+      ctx.fill();
+      drawCircleFace(ctx, face, detail, r, animal.accent);
+      ctx.fillStyle = detail;
+      ctx.beginPath();
+      ctx.arc(0, r * 0.16, r * 0.12, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+  }
 }
 
 function drawBoard(now) {
@@ -595,22 +704,20 @@ function drawBoard(now) {
       }
 
       const base = PALETTE[zone % PALETTE.length];
-      const fill = ctx.createLinearGradient(x, y, x + cellSize, y + cellSize);
-      fill.addColorStop(0, shade(base, 0.20 + pulse * 0.03));
-      fill.addColorStop(1, shade(base, -0.02));
+      const fill = base;
 
       ctx.save();
       ctx.translate(x + shakeX, y + shakeY);
       ctx.fillStyle = fill;
-      roundRect(ctx, 2, 2, cellSize - 4, cellSize - 4, cellSize * 0.18);
+      roundRect(ctx, 3.5, 3.5, cellSize - 7, cellSize - 7, cellSize * 0.18);
       ctx.fill();
 
-      ctx.lineWidth = isHover ? 2.2 : 1.1;
-      ctx.strokeStyle = isHover ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.55)';
+      ctx.lineWidth = isHover ? 2.4 : 1.3;
+      ctx.strokeStyle = isHover ? 'rgba(255,255,255,0.96)' : 'rgba(255,255,255,0.68)';
       ctx.stroke();
 
-      ctx.fillStyle = 'rgba(255,255,255,0.12)';
-      roundRect(ctx, 5, 5, cellSize - 10, cellSize - 10, cellSize * 0.16);
+      ctx.fillStyle = 'rgba(255,255,255,0.14)';
+      roundRect(ctx, 8, 8, cellSize - 16, cellSize - 16, cellSize * 0.14);
       ctx.fill();
 
       if (xMarked) {
@@ -618,7 +725,7 @@ function drawBoard(now) {
       }
 
       if (animalPlaced) {
-        drawAnimal(ctx, cellSize / 2, cellSize / 2, cellSize * 0.9, animalFor(r), scale);
+        drawAnimal(ctx, cellSize / 2, cellSize / 2, cellSize * 0.88, animalForZone(zone), scale);
       }
 
       ctx.restore();
