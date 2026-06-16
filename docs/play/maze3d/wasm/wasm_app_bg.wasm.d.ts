@@ -19,6 +19,7 @@ export const animal_puzzle_is_solved: () => number;
 export const animal_puzzle_is_valid: (a: number, b: number) => number;
 export const animal_puzzle_set_solution: (a: number, b: number) => number;
 export const animal_puzzle_set_zones: (a: number, b: number) => number;
+export const animal_puzzle_reset: () => void;
 export const animal_puzzle_toggle: (a: number, b: number) => number;
 export const animal_puzzle_zones: () => [number, number];
 export const init_maze3d: (a: number, b: number) => any;
