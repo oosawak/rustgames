@@ -507,6 +507,101 @@ export function sound_def_maze3d(event) {
     }
 }
 
+/**
+ *  {number}
+ */
+export function animal_puzzle_count() {
+    const ret = wasm.animal_puzzle_count();
+    return ret >>> 0;
+}
+
+/**
+ *  {Uint8Array}
+ */
+export function animal_puzzle_animals() {
+    const ret = wasm.animal_puzzle_animals();
+    var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v1;
+}
+
+/**
+ *  {boolean}
+ */
+export function animal_puzzle_is_solved() {
+    const ret = wasm.animal_puzzle_is_solved();
+    return ret !== 0;
+}
+
+/**
+ *  {number} row
+ *  {number} col
+ *  {boolean}
+ */
+export function animal_puzzle_is_valid(row, col) {
+    const ret = wasm.animal_puzzle_is_valid(row, col);
+    return ret !== 0;
+}
+
+/**
+ *  {number} row
+ *  {number} col
+ *  {boolean}
+ */
+export function animal_puzzle_is_occupied(row, col) {
+    const ret = wasm.animal_puzzle_is_occupied(row, col);
+    return ret !== 0;
+}
+
+/**
+ *  {Uint8Array} solution
+ *  {boolean}
+ */
+export function animal_puzzle_set_solution(solution) {
+    const ptr0 = passArray8ToWasm0(solution, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.animal_puzzle_set_solution(ptr0, len0);
+    return ret !== 0;
+}
+
+/**
+ *  {Uint8Array} zones
+ *  {boolean}
+ */
+export function animal_puzzle_set_zones(zones) {
+    const ptr0 = passArray8ToWasm0(zones, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.animal_puzzle_set_zones(ptr0, len0);
+    return ret !== 0;
+}
+
+/**
+ *  {number} size
+ */
+export function animal_puzzle_init(size) {
+    wasm.animal_puzzle_init(size);
+}
+
+/**
+ *  {number} row
+ *  {number} col
+ *  {boolean}
+ */
+export function animal_puzzle_toggle(row, col) {
+    const ret = wasm.animal_puzzle_toggle(row, col);
+    return ret !== 0;
+}
+
+/**
+ *  {Uint8Array}
+ */
+export function animal_puzzle_zones() {
+    const ret = wasm.animal_puzzle_zones();
+    var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v1;
+}
+
 export function start_blaster3d() {
     wasm.start_blaster3d();
 }
