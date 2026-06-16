@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Animal Doku</title>
 <link rel="stylesheet" href="../../engine.css">
 <style>
@@ -345,7 +348,7 @@ button.control {
 </main>
 
 <script type="module">
-import init, * as wasm from '../maze3d/wasm/wasm_app.js?v=20260616-4';
+import init, * as wasm from './wasm/wasm_app.js?v=20260616-6';
 
 const SIZE = 5;
 const BOARD_ZONES = new Uint8Array([
@@ -991,7 +994,7 @@ document.getElementById('btn-new').addEventListener('click', () => {
 
 async function start() {
   try {
-    await init('../maze3d/wasm/wasm_app_bg.wasm?v=20260616-4');
+    await init('./wasm/wasm_app_bg.wasm?v=20260616-6');
     wasm.animal_puzzle_init(SIZE);
     wasm.animal_puzzle_set_zones(BOARD_ZONES);
     wasm.animal_puzzle_set_solution(solution);
