@@ -3,302 +3,469 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Animal Zone Clash</title>
+<title>Animal Doku</title>
 <link rel="stylesheet" href="../../engine.css">
 <style>
 :root {
-  --bg0: #07111f;
-  --bg1: #0a1a2e;
-  --panel: rgba(8, 18, 34, 0.78);
-  --panel-border: rgba(106, 223, 255, 0.22);
-  --text: #d8f6ff;
-  --muted: rgba(216, 246, 255, 0.62);
-  --cyan: #69e7ff;
-  --pink: #ff77d4;
-  --good: #7dffb2;
-  --bad: #ff7a8a;
+  --bg: #f6efe8;
+  --bg-accent: #f3d6dc;
+  --panel: rgba(255, 255, 255, 0.72);
+  --panel-border: rgba(169, 127, 119, 0.18);
+  --text: #5e4039;
+  --muted: rgba(94, 64, 57, 0.62);
+  --pink: #f27ca4;
+  --green: #a7d8a0;
+  --amber: #ffbf54;
+  --blue: #9dc4f2;
+  --purple: #c4aff3;
+  --good: #59a86f;
+  --bad: #d35d66;
 }
 * { box-sizing: border-box; }
 html, body { width: 100%; min-height: 100%; margin: 0; }
 body {
-  font-family: var(--engine-font, system-ui, sans-serif);
+  font-family: var(--engine-font, "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif);
   color: var(--text);
   background:
-    radial-gradient(circle at top, rgba(62, 118, 255, 0.22), transparent 30%),
-    radial-gradient(circle at 80% 20%, rgba(255, 119, 212, 0.14), transparent 25%),
-    linear-gradient(180deg, var(--bg0), var(--bg1));
+    radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.78), transparent 20%),
+    radial-gradient(circle at 82% 16%, rgba(255, 226, 175, 0.42), transparent 18%),
+    radial-gradient(circle at 50% 100%, rgba(107, 174, 255, 0.20), transparent 34%),
+    linear-gradient(180deg, #fbf7f2 0%, #f7efe7 45%, #f4e6e3 100%);
   overflow: hidden;
 }
 main {
   width: 100%;
-  height: 100vh;
+  min-height: 100vh;
   display: grid;
   grid-template-rows: auto auto 1fr auto;
   gap: 12px;
-  padding: 18px;
+  padding: 16px 14px 12px;
 }
-header, .toolbar, .footer {
-  max-width: 1080px;
-  width: min(1080px, calc(100vw - 36px));
+.shell {
+  width: min(560px, calc(100vw - 28px));
   margin: 0 auto;
 }
-header {
+.topbar {
   display: grid;
-  gap: 6px;
-  padding: 18px 20px 16px;
-  border: 1px solid var(--panel-border);
-  border-radius: 22px;
-  background: linear-gradient(180deg, rgba(9, 20, 40, 0.88), rgba(10, 26, 46, 0.72));
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(12px);
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  width: min(560px, calc(100vw - 28px));
+  margin: 0 auto;
 }
-h1 {
-  margin: 0;
-  font-size: clamp(1.7rem, 4vw, 3rem);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.72);
+  color: var(--text);
+  box-shadow: 0 8px 18px rgba(121, 98, 92, 0.12);
+  font-size: 1.05rem;
+  font-weight: 700;
 }
-.subtitle {
+.title-block {
+  text-align: center;
+  line-height: 1;
+}
+.title-block h1 {
   margin: 0;
+  font-size: clamp(1.4rem, 3.8vw, 1.8rem);
+  letter-spacing: 0.06em;
+}
+.title-block p {
+  margin: 4px 0 0;
+  font-size: 0.84rem;
   color: var(--muted);
-  line-height: 1.5;
-  font-size: 0.96rem;
 }
-.badge-row {
+.hud {
   display: flex;
+  justify-content: center;
+  gap: 12px;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 4px;
+  width: min(560px, calc(100vw - 28px));
+  margin: 0 auto;
 }
-.badge {
+.hud-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
+  gap: 8px;
+  padding: 10px 14px;
   border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.04);
+  background: rgba(255,255,255,0.84);
+  border: 1px solid rgba(169, 127, 119, 0.10);
+  box-shadow: 0 10px 24px rgba(130, 98, 90, 0.10);
+  font-size: 0.92rem;
+}
+.hud-pill strong {
+  font-weight: 800;
+}
+.hearts {
+  letter-spacing: 0.15em;
+  color: #f06d78;
+  font-size: 1.02rem;
+}
+.rules {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: min(560px, calc(100vw - 28px));
+  margin: 0 auto;
+}
+.rule {
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.88);
+  border: 1px solid rgba(169, 127, 119, 0.08);
+  color: var(--muted);
   font-size: 0.8rem;
+  box-shadow: 0 8px 18px rgba(130, 98, 90, 0.08);
+}
+.rule.active {
+  color: var(--text);
+  border-color: rgba(94, 64, 57, 0.24);
+  box-shadow: inset 0 0 0 1px rgba(94, 64, 57, 0.08), 0 10px 18px rgba(130, 98, 90, 0.12);
+}
+.stage {
+  width: min(560px, calc(100vw - 28px));
+  margin: 0 auto;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 12px;
+}
+.board-shell {
+  position: relative;
+  padding: 14px;
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.86), rgba(255,255,255,0.70));
+  box-shadow: 0 24px 50px rgba(150, 112, 102, 0.18);
+  border: 1px solid rgba(169, 127, 119, 0.14);
+}
+canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  touch-action: none;
+  cursor: pointer;
+  border-radius: 22px;
+}
+.overlay {
+  position: absolute;
+  inset: 14px;
+  display: grid;
+  place-items: center;
+  border-radius: 22px;
+  background: rgba(248, 241, 233, 0.68);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+.overlay-card {
+  padding: 18px 22px;
+  border-radius: 24px;
+  background: rgba(255,255,255,0.92);
+  border: 1px solid rgba(94, 64, 57, 0.12);
+  text-align: center;
+  box-shadow: 0 16px 36px rgba(130, 98, 90, 0.14);
+}
+.overlay-card h2 {
+  margin: 0 0 6px;
+  font-size: 1.55rem;
+}
+.overlay-card p {
+  margin: 0;
   color: var(--muted);
 }
-.badge strong { color: var(--text); }
-.toolbar {
+.status-row {
   display: flex;
-  flex-wrap: wrap;
   gap: 10px;
-  align-items: center;
   justify-content: space-between;
-}
-.controls, .status {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
+  width: min(560px, calc(100vw - 28px));
+  margin: 0 auto;
 }
-button {
+.controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+button.control {
   appearance: none;
-  border: 1px solid rgba(105, 231, 255, 0.3);
-  background: linear-gradient(180deg, rgba(105, 231, 255, 0.17), rgba(105, 231, 255, 0.08));
+  border: 1px solid rgba(94, 64, 57, 0.12);
+  background: rgba(255,255,255,0.80);
   color: var(--text);
   border-radius: 14px;
   padding: 10px 14px;
   font: inherit;
   font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  box-shadow: 0 10px 20px rgba(130, 98, 90, 0.08);
 }
-button:hover { transform: translateY(-1px); border-color: rgba(105, 231, 255, 0.52); }
-button:active { transform: translateY(1px); }
-button.secondary {
-  border-color: rgba(255, 255, 255, 0.12);
-  background: rgba(255,255,255,0.05);
-  font-weight: 600;
-}
-#status-text {
+.status {
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: 0.91rem;
 }
-#status-text strong { color: var(--cyan); }
-.stage {
-  position: relative;
-  width: min(1080px, calc(100vw - 36px));
-  margin: 0 auto;
-  border-radius: 28px;
-  border: 1px solid rgba(105, 231, 255, 0.12);
-  background:
-    linear-gradient(180deg, rgba(8, 18, 34, 0.48), rgba(6, 11, 19, 0.92)),
-    radial-gradient(circle at center, rgba(105, 231, 255, 0.08), transparent 55%);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 40px 100px rgba(0,0,0,0.38);
-  overflow: hidden;
-}
-canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-  touch-action: manipulation;
-}
-.overlay {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  background: rgba(4, 8, 16, 0.72);
-  backdrop-filter: blur(8px);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.22s ease;
-}
-.overlay.show { opacity: 1; pointer-events: auto; }
-.overlay-card {
-  text-align: center;
-  padding: 24px 28px;
-  border-radius: 24px;
-  border: 1px solid rgba(125, 255, 178, 0.24);
-  background: linear-gradient(180deg, rgba(10, 26, 46, 0.9), rgba(6, 11, 19, 0.86));
-  box-shadow: 0 24px 60px rgba(0,0,0,0.4);
-}
-.overlay-card h2 {
-  margin: 0 0 8px;
+.status strong {
   color: var(--good);
-  font-size: clamp(1.5rem, 4vw, 2.4rem);
 }
-.overlay-card p {
-  margin: 0;
-  color: var(--muted);
-  line-height: 1.6;
+.bottom-banner {
+  position: relative;
+  width: min(560px, calc(100vw - 28px));
+  margin: 0 auto;
+  padding: 28px 16px 18px;
+  border-radius: 34px 34px 0 0;
+  background: linear-gradient(180deg, #95ccff 0%, #74b5ef 100%);
+  box-shadow: 0 -16px 24px rgba(120, 164, 217, 0.24) inset;
+  overflow: hidden;
+  min-height: 96px;
 }
-.footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  color: rgba(216, 246, 255, 0.45);
-  font-size: 0.8rem;
+.bottom-banner::before {
+  content: "";
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  width: 120px;
+  height: 40px;
+  transform: translateX(-50%);
+  background:
+    radial-gradient(circle at 25% 65%, #74b5ef 0 18px, transparent 19px),
+    radial-gradient(circle at 75% 65%, #74b5ef 0 18px, transparent 19px),
+    linear-gradient(180deg, #95ccff, #74b5ef);
+  border-radius: 0 0 50px 50px;
 }
-@media (max-width: 700px) {
+.banner-animal {
+  position: absolute;
+  left: 50%;
+  top: -6px;
+  width: 74px;
+  height: 38px;
+  transform: translateX(-50%);
+  border-radius: 18px 18px 14px 14px;
+  background: rgba(255,255,255,0.18);
+  filter: blur(0.2px);
+}
+.bottom-banner h3 {
+  margin: 16px 0 0;
+  text-align: center;
+  color: rgba(255,255,255,0.98);
+  font-size: clamp(1.45rem, 4vw, 2rem);
+  text-shadow: 0 4px 10px rgba(76, 132, 184, 0.30);
+  letter-spacing: 0.08em;
+}
+.bottom-banner p {
+  margin: 6px 0 0;
+  text-align: center;
+  color: rgba(255,255,255,0.88);
+  font-size: 0.82rem;
+}
+@media (max-width: 640px) {
   body { overflow: auto; }
-  main { height: auto; min-height: 100vh; padding: 12px; }
-  .stage { height: min(72vh, 720px); }
-  .toolbar, .footer { width: min(1080px, calc(100vw - 24px)); }
-  .footer { flex-direction: column; align-items: flex-start; }
+  main { min-height: 100vh; height: auto; }
+  .bottom-banner { min-height: 88px; padding-top: 24px; }
 }
 </style>
 </head>
 <body>
 <main>
-  <header>
-    <h1>Animal Zone Clash</h1>
-    <p class="subtitle">
-      各行・各列・各色エリアに1匹ずつ。さらに、上下左右と斜めの 8 マスに別の動物を置けません。
-      Rust/WASM が置けるかどうかを判定し、Canvas でアニメーション表示します。
-    </p>
-    <div class="badge-row">
-      <span class="badge"><strong>6×6</strong> prototype</span>
-      <span class="badge"><strong>Rust</strong> placement validator</span>
-      <span class="badge"><strong>Canvas</strong> animated animals</span>
+  <div class="topbar">
+    <button class="icon-btn" id="btn-back" aria-label="back">←</button>
+    <div class="title-block">
+      <h1>レベル 1</h1>
+      <p>動物を見つけよう</p>
     </div>
-  </header>
-
-  <div class="toolbar">
-    <div class="controls">
-      <button id="btn-reset">Reset</button>
-      <button id="btn-check" class="secondary">Check</button>
-      <button id="btn-hint" class="secondary">Hint</button>
-      <button id="btn-scramble" class="secondary">New layout</button>
-    </div>
-    <div class="status" id="status-text">Loading puzzle…</div>
+    <button class="icon-btn" id="btn-settings" aria-label="settings">⚙</button>
   </div>
 
-  <section class="stage" id="stage">
-    <canvas id="board"></canvas>
-    <div class="overlay" id="clear-overlay">
-      <div class="overlay-card">
-        <h2>Clear</h2>
-        <p>すべての動物を正しい位置に配置しました。</p>
+  <div class="hud">
+    <div class="hud-pill"><strong>🐾</strong> <span id="progress">0/5</span></div>
+    <div class="hud-pill hearts" id="hearts">❤️❤️❤️</div>
+  </div>
+
+  <div class="rules">
+    <div class="rule active">1色につき1匹</div>
+    <div class="rule active">各列・各行に1匹</div>
+    <div class="rule active">どうぶつ同士は隣接不可</div>
+  </div>
+
+  <section class="stage">
+    <div class="board-shell" id="board-shell">
+      <canvas id="board"></canvas>
+      <div class="overlay" id="clear-overlay">
+        <div class="overlay-card">
+          <h2>クリア</h2>
+          <p>すべての動物を見つけました。</p>
+        </div>
       </div>
     </div>
-  </section>
 
-  <div class="footer">
-    <div>操作: クリック / タップで配置。右クリックや再クリックで削除。</div>
-    <div>ルール: 行, 列, 同色エリア, 隣接 8 マス</div>
-  </div>
+    <div class="status-row">
+      <div class="controls">
+        <button class="control" id="btn-reset">Reset</button>
+        <button class="control" id="btn-check">Check</button>
+        <button class="control" id="btn-hint">Hint</button>
+        <button class="control" id="btn-new">New layout</button>
+      </div>
+      <div class="status" id="status">Loading puzzle…</div>
+    </div>
+
+    <div class="bottom-banner">
+      <div class="banner-animal" aria-hidden="true"></div>
+      <h3>動物を見つけよう</h3>
+      <p>短いタップで×、長押しで動物を表示</p>
+    </div>
+  </section>
 </main>
 
 <script type="module">
-import init, * as wasm from '../maze3d/wasm/wasm_app.js';
+import init, * as wasm from '../maze3d/wasm/wasm_app.js?v=20260616';
 
-const SIZE = 6;
-const ANIMALS = ['🐱', '🐶', '🐰', '🦊', '🐼', '🐻'];
-const SOLUTION_COLS = [0, 2, 4, 1, 3, 5];
-const ROW_COLORS = ['#26354f', '#2f4b68', '#355c73', '#3d6b79', '#4c5d86', '#5a4f7f'];
+const SIZE = 5;
+const BOARD_ZONES = new Uint8Array([
+  0, 1, 2, 2, 2,
+  0, 2, 2, 2, 4,
+  0, 3, 2, 2, 4,
+  0, 3, 2, 4, 4,
+  0, 3, 3, 2, 4,
+]);
+const DEFAULT_LAYOUT = [1, 3, 0, 4, 2];
+const PALETTE = ['#f27ca4', '#a7d8a0', '#ffbf54', '#9dc4f2', '#c4aff3'];
+const ANIMALS = [
+  { emoji: '🐶', name: 'dog', accent: '#ffd0a8' },
+  { emoji: '🐰', name: 'rabbit', accent: '#f7c7de' },
+  { emoji: '🦊', name: 'fox', accent: '#ffb36f' },
+  { emoji: '🐼', name: 'panda', accent: '#c8d0d8' },
+  { emoji: '🐻', name: 'bear', accent: '#d9b08c' },
+];
 
 const canvas = document.getElementById('board');
-const stage = document.getElementById('stage');
-const statusText = document.getElementById('status-text');
+const shell = document.getElementById('board-shell');
 const overlay = document.getElementById('clear-overlay');
+const statusEl = document.getElementById('status');
+const progressEl = document.getElementById('progress');
+const heartsEl = document.getElementById('hearts');
 
 let boardSize = 0;
 let cellSize = 0;
 let originX = 0;
 let originY = 0;
-let zones = buildZones();
-let solution = buildSolutionMask();
-let animals = new Uint8Array(SIZE * SIZE);
-let hover = null;
+let layout = DEFAULT_LAYOUT.slice();
+let solution = layoutToMask(layout);
+let marks = new Uint8Array(SIZE * SIZE);
+let hovered = null;
 let animations = new Map();
-let solved = false;
-let lastStatus = '';
+let revealCount = 0;
+let mistakes = 0;
 let running = false;
+let solved = false;
+let clickTimer = null;
+let longPressTimer = null;
+let longPressTriggered = false;
+let activePointer = null;
+let activeCell = null;
+let pressStart = null;
+let layouts = [];
 
-function buildZones() {
-  const result = new Uint8Array(SIZE * SIZE);
+function layoutToMask(cols) {
+  const mask = new Uint8Array(SIZE * SIZE);
   for (let r = 0; r < SIZE; r += 1) {
-    for (let c = 0; c < SIZE; c += 1) {
-      result[r * SIZE + c] = r;
+    mask[r * SIZE + cols[r]] = 1;
+  }
+  return mask;
+}
+
+function zonesAt(row, col) {
+  return BOARD_ZONES[row * SIZE + col];
+}
+
+function isAdjacent(aRow, aCol, bRow, bCol) {
+  return Math.abs(aRow - bRow) <= 1 && Math.abs(aCol - bCol) <= 1;
+}
+
+function validLayout(cols) {
+  const usedCols = new Set();
+  const usedZones = new Set();
+  const positions = [];
+  for (let row = 0; row < SIZE; row += 1) {
+    const col = cols[row];
+    if (col < 0 || col >= SIZE || usedCols.has(col)) return false;
+    usedCols.add(col);
+    const zone = zonesAt(row, col);
+    if (usedZones.has(zone)) return false;
+    usedZones.add(zone);
+    for (const [pr, pc] of positions) {
+      if (isAdjacent(row, col, pr, pc)) return false;
+    }
+    positions.push([row, col]);
+  }
+  return true;
+}
+
+function enumerateLayouts() {
+  const cols = [0, 1, 2, 3, 4];
+  const found = [];
+  function permute(i) {
+    if (i === cols.length) {
+      if (validLayout(cols)) found.push(cols.slice());
+      return;
+    }
+    for (let j = i; j < cols.length; j += 1) {
+      [cols[i], cols[j]] = [cols[j], cols[i]];
+      permute(i + 1);
+      [cols[i], cols[j]] = [cols[j], cols[i]];
     }
   }
-  return result;
+  permute(0);
+  return found;
 }
 
-function buildSolutionMask() {
-  const result = new Uint8Array(SIZE * SIZE);
-  for (let r = 0; r < SIZE; r += 1) {
-    result[r * SIZE + SOLUTION_COLS[r]] = 1;
+function syncHud() {
+  progressEl.textContent = `${revealCount}/5`;
+  heartsEl.textContent = '❤️'.repeat(Math.max(0, 3 - mistakes)) + '🖤'.repeat(Math.max(0, mistakes - 3));
+}
+
+function setStatus(text, accent = '') {
+  statusEl.innerHTML = accent ? `${text} <strong>${accent}</strong>` : text;
+}
+
+function setAnimation(row, col, kind) {
+  animations.set(row * SIZE + col, {
+    kind,
+    started: performance.now(),
+    duration: kind === 'error' ? 340 : 260,
+  });
+}
+
+function clearTimers() {
+  if (clickTimer) {
+    clearTimeout(clickTimer);
+    clickTimer = null;
   }
-  return result;
-}
-
-function syncFromWasm() {
-  animals = wasm.animal_puzzle_animals();
-  solved = wasm.animal_puzzle_is_solved();
-  overlay.classList.toggle('show', solved);
-}
-
-function setStatus(text, accent = null) {
-  lastStatus = text;
-  statusText.innerHTML = accent ? `${text} <strong>${accent}</strong>` : text;
-}
-
-function initPuzzle() {
-  wasm.animal_puzzle_init(SIZE);
-  wasm.animal_puzzle_set_zones(zones);
-  wasm.animal_puzzle_set_solution(solution);
-  syncFromWasm();
-  setStatus('Puzzle ready. Place <strong>6</strong> animals.');
+  if (longPressTimer) {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+  }
+  longPressTriggered = false;
+  activePointer = null;
+  activeCell = null;
+  pressStart = null;
 }
 
 function resizeCanvas() {
-  const rect = stage.getBoundingClientRect();
-  const width = Math.max(320, Math.floor(rect.width));
-  const height = Math.max(320, Math.floor(rect.height));
+  const rect = shell.getBoundingClientRect();
+  const width = Math.max(300, Math.floor(rect.width - 28));
   canvas.width = width;
-  canvas.height = height;
-  const fit = Math.min(width, height) * 0.86;
-  boardSize = Math.floor(fit);
+  canvas.height = width;
+  boardSize = width;
   cellSize = boardSize / SIZE;
-  originX = Math.floor((width - boardSize) / 2);
-  originY = Math.floor((height - boardSize) / 2);
+  originX = 0;
+  originY = 0;
 }
 
 function cellAtPoint(x, y) {
@@ -311,140 +478,6 @@ function cellAtPoint(x, y) {
   };
 }
 
-function setAnimation(row, col, kind) {
-  animations.set(row * SIZE + col, {
-    kind,
-    started: performance.now(),
-    duration: kind === 'error' ? 360 : 260,
-  });
-}
-
-function easeOutBack(t) {
-  const c1 = 1.70158;
-  const c3 = c1 + 1;
-  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
-}
-
-function drawRoundedRect(ctx, x, y, w, h, r) {
-  const radius = Math.min(r, w * 0.5, h * 0.5);
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + w - radius, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
-  ctx.lineTo(x + w, y + h - radius);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
-  ctx.lineTo(x + radius, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
-  ctx.lineTo(x, y + radius);
-  ctx.quadraticCurveTo(x, y, x + radius, y);
-  ctx.closePath();
-}
-
-function drawBoard(now) {
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
-  const w = canvas.width;
-  const h = canvas.height;
-  ctx.clearRect(0, 0, w, h);
-
-  const bg = ctx.createLinearGradient(0, 0, 0, h);
-  bg.addColorStop(0, 'rgba(9, 19, 35, 0.95)');
-  bg.addColorStop(1, 'rgba(4, 8, 16, 1)');
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, w, h);
-
-  const pulse = 0.5 + 0.5 * Math.sin(now * 0.0012);
-  ctx.save();
-  ctx.translate(originX, originY);
-  drawRoundedRect(ctx, -10, -10, boardSize + 20, boardSize + 20, 32);
-  ctx.fillStyle = 'rgba(255,255,255,0.02)';
-  ctx.fill();
-  ctx.restore();
-
-  for (let r = 0; r < SIZE; r += 1) {
-    for (let c = 0; c < SIZE; c += 1) {
-      const x = originX + c * cellSize;
-      const y = originY + r * cellSize;
-      const idx = r * SIZE + c;
-      const zone = zones[idx];
-      const isHover = hover && hover.row === r && hover.col === c;
-      const isPlaced = animals[idx] !== 0;
-      const cellAnim = animations.get(idx);
-      let animScale = 1;
-      let shakeX = 0;
-      let shakeY = 0;
-
-      if (cellAnim) {
-        const t = Math.min(1, (now - cellAnim.started) / cellAnim.duration);
-        if (cellAnim.kind === 'place') {
-          animScale = 0.72 + 0.28 * easeOutBack(t);
-          if (t >= 1) animations.delete(idx);
-        } else if (cellAnim.kind === 'error') {
-          const amp = (1 - t) * 5;
-          shakeX = Math.sin(t * 26) * amp;
-          shakeY = Math.cos(t * 18) * amp * 0.35;
-          if (t >= 1) animations.delete(idx);
-        }
-      }
-
-      const base = rowColor(zone);
-      const grad = ctx.createLinearGradient(x, y, x + cellSize, y + cellSize);
-      grad.addColorStop(0, shade(base, 0.18 + pulse * 0.08));
-      grad.addColorStop(1, shade(base, -0.12));
-
-      ctx.save();
-      ctx.translate(x + shakeX, y + shakeY);
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, cellSize, cellSize);
-
-      ctx.strokeStyle = isHover ? 'rgba(255,255,255,0.48)' : 'rgba(255,255,255,0.10)';
-      ctx.lineWidth = isHover ? 2.4 : 1.2;
-      ctx.strokeRect(0.5, 0.5, cellSize - 1, cellSize - 1);
-
-      ctx.fillStyle = 'rgba(255,255,255,0.04)';
-      for (let n = 0; n < 3; n += 1) {
-        const xx = (n * cellSize) / 3;
-        ctx.fillRect(xx, 0, 1, cellSize);
-      }
-
-      if (isPlaced) {
-        const anim = rowAnimFactor(r, now) * animScale;
-        const fontSize = Math.floor(cellSize * 0.64 * anim);
-        const emoji = ANIMALS[(r + c) % ANIMALS.length];
-        ctx.save();
-        ctx.translate(cellSize / 2, cellSize / 2);
-        ctx.scale(anim, anim);
-        ctx.font = `${fontSize}px "Segoe UI Emoji", "Apple Color Emoji", sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.shadowColor = 'rgba(0,0,0,0.45)';
-        ctx.shadowBlur = 12;
-        ctx.fillText(emoji, 0, 0);
-        ctx.restore();
-      } else {
-        const hint = isHover && wasm.animal_puzzle_is_valid(r, c);
-        if (hint) {
-          ctx.strokeStyle = 'rgba(125, 255, 178, 0.62)';
-          ctx.lineWidth = 2;
-          ctx.strokeRect(3, 3, cellSize - 6, cellSize - 6);
-        }
-      }
-
-      ctx.restore();
-    }
-  }
-
-  ctx.save();
-  ctx.strokeStyle = 'rgba(105, 231, 255, 0.8)';
-  ctx.lineWidth = 3;
-  ctx.strokeRect(originX + 1.5, originY + 1.5, boardSize - 3, boardSize - 3);
-  ctx.restore();
-}
-
-function rowColor(zone) {
-  return ROW_COLORS[zone % ROW_COLORS.length];
-}
-
 function shade(hex, amount) {
   const n = hex.replace('#', '');
   const r = parseInt(n.slice(0, 2), 16);
@@ -454,8 +487,150 @@ function shade(hex, amount) {
   return `rgb(${clamp(Math.round(r + 255 * amount))}, ${clamp(Math.round(g + 255 * amount))}, ${clamp(Math.round(b + 255 * amount))})`;
 }
 
-function rowAnimFactor(row, now) {
-  return 0.94 + 0.04 * Math.sin(now * 0.003 + row * 0.7);
+function roundRect(ctx, x, y, w, h, r) {
+  const rr = Math.min(r, w * 0.5, h * 0.5);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.lineTo(x + w - rr, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + rr);
+  ctx.lineTo(x + w, y + h - rr);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
+  ctx.lineTo(x + rr, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - rr);
+  ctx.lineTo(x, y + rr);
+  ctx.quadraticCurveTo(x, y, x + rr, y);
+  ctx.closePath();
+}
+
+function drawX(ctx, cx, cy, size) {
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = 'rgba(86, 54, 49, 0.55)';
+  ctx.lineWidth = Math.max(3, size * 0.10);
+  ctx.beginPath();
+  ctx.moveTo(cx - size * 0.26, cy - size * 0.26);
+  ctx.lineTo(cx + size * 0.26, cy + size * 0.26);
+  ctx.moveTo(cx + size * 0.26, cy - size * 0.26);
+  ctx.lineTo(cx - size * 0.26, cy + size * 0.26);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function animalFor(row) {
+  return ANIMALS[row % ANIMALS.length];
+}
+
+function drawAnimal(ctx, cx, cy, size, animal, pulse = 1) {
+  const r = size * 0.36 * pulse;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.shadowColor = 'rgba(0,0,0,0.18)';
+  ctx.shadowBlur = 10;
+  ctx.shadowOffsetY = 4;
+  ctx.fillStyle = animal.accent;
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 0.72, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = animal.name === 'panda' ? '#202020' : '#2c1f1b';
+  ctx.font = `700 ${Math.max(12, Math.floor(r * 1.05))}px "Apple Color Emoji", "Segoe UI Emoji", system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(animal.emoji, 0, r * 0.03);
+  ctx.restore();
+}
+
+function drawBoard(now) {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  const w = canvas.width;
+  const h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#fffaf7');
+  bg.addColorStop(1, '#f8eee8');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+
+  const pulse = 0.5 + 0.5 * Math.sin(now * 0.0015);
+
+  for (let r = 0; r < SIZE; r += 1) {
+    for (let c = 0; c < SIZE; c += 1) {
+      const idx = r * SIZE + c;
+      const zone = BOARD_ZONES[idx];
+      const x = c * cellSize;
+      const y = r * cellSize;
+      const isHover = hovered && hovered.row === r && hovered.col === c;
+      const animalPlaced = wasm.animal_puzzle_is_occupied(r, c);
+      const xMarked = marks[idx] === 1 && !animalPlaced;
+      const anim = animations.get(idx);
+      let scale = 1;
+      let shakeX = 0;
+      let shakeY = 0;
+
+      if (anim) {
+        const t = Math.min(1, (now - anim.started) / anim.duration);
+        if (anim.kind === 'reveal') {
+          scale = 0.72 + 0.28 * (1 - Math.pow(1 - t, 3));
+          if (t >= 1) animations.delete(idx);
+        } else if (anim.kind === 'error') {
+          const amp = (1 - t) * 5;
+          shakeX = Math.sin(t * 28) * amp;
+          shakeY = Math.cos(t * 22) * amp * 0.35;
+          if (t >= 1) animations.delete(idx);
+        } else if (anim.kind === 'mark') {
+          scale = 0.9 + 0.1 * pulse;
+          if (t >= 1) animations.delete(idx);
+        }
+      }
+
+      const base = PALETTE[zone % PALETTE.length];
+      const fill = ctx.createLinearGradient(x, y, x + cellSize, y + cellSize);
+      fill.addColorStop(0, shade(base, 0.20 + pulse * 0.03));
+      fill.addColorStop(1, shade(base, -0.02));
+
+      ctx.save();
+      ctx.translate(x + shakeX, y + shakeY);
+      ctx.fillStyle = fill;
+      roundRect(ctx, 2, 2, cellSize - 4, cellSize - 4, cellSize * 0.18);
+      ctx.fill();
+
+      ctx.lineWidth = isHover ? 2.2 : 1.1;
+      ctx.strokeStyle = isHover ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.55)';
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(255,255,255,0.12)';
+      roundRect(ctx, 5, 5, cellSize - 10, cellSize - 10, cellSize * 0.16);
+      ctx.fill();
+
+      if (xMarked) {
+        drawX(ctx, cellSize / 2, cellSize / 2, cellSize * 0.64);
+      }
+
+      if (animalPlaced) {
+        drawAnimal(ctx, cellSize / 2, cellSize / 2, cellSize * 0.9, animalFor(r), scale);
+      }
+
+      ctx.restore();
+    }
+  }
+
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.94)';
+  ctx.lineWidth = 4;
+  roundRect(ctx, 1.5, 1.5, boardSize - 3, boardSize - 3, 24);
+  ctx.stroke();
+  ctx.restore();
 }
 
 function updateSolvedState() {
@@ -463,116 +638,242 @@ function updateSolvedState() {
   if (nextSolved !== solved) {
     solved = nextSolved;
     overlay.classList.toggle('show', solved);
-    if (solved) setStatus('Solved!', 'Nice work');
-  }
-}
-
-function handleCell(row, col) {
-  const ok = wasm.animal_puzzle_toggle(row, col);
-  if (ok) {
-    syncFromWasm();
-    setAnimation(row, col, 'place');
-    setStatus(`Placed at R${row + 1} C${col + 1}.`, `${wasm.animal_puzzle_count()}/6`);
-    updateSolvedState();
-  } else {
-    setAnimation(row, col, 'error');
-    setStatus(`Cannot place at R${row + 1} C${col + 1}.`, 'Rule violation');
-  }
-}
-
-function hintMove() {
-  for (let r = 0; r < SIZE; r += 1) {
-    for (let c = 0; c < SIZE; c += 1) {
-      const idx = r * SIZE + c;
-      if (solution[idx] !== 1 || animals[idx] === 1) continue;
-      if (wasm.animal_puzzle_toggle(r, c)) {
-        syncFromWasm();
-        setAnimation(r, c, 'place');
-        setStatus(`Hint used at R${r + 1} C${c + 1}.`, `${wasm.animal_puzzle_count()}/6`);
-        updateSolvedState();
-        return;
-      }
+    if (solved) {
+      setStatus('Solved!', 'よくできました');
     }
   }
-  setStatus('No hint available.', 'All correct cells are already filled.');
+}
+
+function revealCell(row, col, source = 'manual') {
+  const idx = row * SIZE + col;
+  if (wasm.animal_puzzle_is_occupied(row, col)) {
+    return true;
+  }
+  if (!wasm.animal_puzzle_is_valid(row, col)) {
+    mistakes += 1;
+    setAnimation(row, col, 'error');
+    syncHud();
+    setStatus('そこにはいないよ', source === 'hint' ? 'ヒント失敗' : 'もう一度');
+    return false;
+  }
+
+  const ok = wasm.animal_puzzle_toggle(row, col);
+  if (!ok) {
+    mistakes += 1;
+    setAnimation(row, col, 'error');
+    syncHud();
+    setStatus('そこにはいないよ', 'もう一度');
+    return false;
+  }
+
+  marks[idx] = 0;
+  revealCount = wasm.animal_puzzle_count();
+  setAnimation(row, col, 'reveal');
+  syncHud();
+  updateSolvedState();
+  setStatus(`動物を見つけた R${row + 1} C${col + 1}`, `${revealCount}/5`);
+  return true;
+}
+
+function toggleMark(row, col) {
+  if (wasm.animal_puzzle_is_occupied(row, col)) return;
+  const idx = row * SIZE + col;
+  marks[idx] ^= 1;
+  setAnimation(row, col, 'mark');
+  setStatus(marks[idx] ? '× をつけた' : '× を消した', '候補');
 }
 
 function resetPuzzle() {
   wasm.animal_puzzle_reset();
-  syncFromWasm();
-  animations.clear();
-  setStatus('Puzzle reset.', 'Try again');
+  marks.fill(0);
+  revealCount = 0;
+  mistakes = 0;
+  solved = false;
+  overlay.classList.remove('show');
+  clearTimers();
+  syncHud();
+  setStatus('もう一度やってみよう', 'Reset');
 }
 
-function scrambleLayout() {
-  // simple deterministic alternative layouts that still satisfy the rules
-  const layouts = [
-    [0, 2, 4, 1, 3, 5],
-    [1, 3, 5, 0, 2, 4],
-    [2, 4, 0, 3, 5, 1],
-  ];
-  const next = layouts[(Date.now() / 1000 | 0) % layouts.length];
-  const nextSolution = new Uint8Array(SIZE * SIZE);
-  for (let r = 0; r < SIZE; r += 1) {
-    nextSolution[r * SIZE + next[r]] = 1;
-  }
-  solution = nextSolution;
+function applyLayout(cols) {
+  layout = cols.slice();
+  solution = layoutToMask(layout);
   wasm.animal_puzzle_set_solution(solution);
   resetPuzzle();
-  setStatus('Layout changed.', 'New puzzle shape');
 }
 
-function loop(now) {
-  if (!running) return;
-  drawBoard(now);
-  requestAnimationFrame(loop);
+function chooseLayout() {
+  if (!layouts.length) {
+    layouts = enumerateLayouts();
+  }
+  if (!layouts.length) return DEFAULT_LAYOUT.slice();
+  const current = layout.join(',');
+  const index = Math.max(0, layouts.findIndex((item) => item.join(',') === current));
+  return layouts[(index + 1) % layouts.length].slice();
+}
+
+function useHint() {
+  for (let r = 0; r < SIZE; r += 1) {
+    for (let c = 0; c < SIZE; c += 1) {
+      const idx = r * SIZE + c;
+      if (solution[idx] !== 1 || wasm.animal_puzzle_is_occupied(r, c)) continue;
+      revealCell(r, c, 'hint');
+      return;
+    }
+  }
+  setStatus('もうヒントはないよ', '全部見つけた');
+}
+
+function updatePointerPosition(event) {
+  const rect = canvas.getBoundingClientRect();
+  const x = (event.clientX - rect.left) * (canvas.width / rect.width);
+  const y = (event.clientY - rect.top) * (canvas.height / rect.height);
+  return cellAtPoint(x, y);
+}
+
+function onPointerDown(event) {
+  const pos = updatePointerPosition(event);
+  if (!pos) return;
+  hovered = pos;
+  activePointer = event.pointerId;
+  activeCell = pos;
+  pressStart = performance.now();
+  longPressTriggered = false;
+  if (longPressTimer) clearTimeout(longPressTimer);
+  longPressTimer = setTimeout(() => {
+    if (!activeCell || longPressTriggered) return;
+    longPressTriggered = true;
+    suppressNextClick = true;
+    revealCell(activeCell.row, activeCell.col);
+    if (clickTimer) {
+      clearTimeout(clickTimer);
+      clickTimer = null;
+    }
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+    activePointer = null;
+    activeCell = null;
+    pressStart = null;
+  }, 450);
+  if (canvas.setPointerCapture && event.pointerId !== undefined) {
+    try { canvas.setPointerCapture(event.pointerId); } catch (_) {}
+  }
+}
+
+let suppressNextClick = false;
+
+function onPointerUp(event) {
+  if (activePointer !== event.pointerId) return;
+  const pos = updatePointerPosition(event) || activeCell;
+  if (longPressTimer) {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+  }
+  const held = pressStart ? (performance.now() - pressStart) : 0;
+  const didLongPress = longPressTriggered || held >= 420;
+  if (!didLongPress && pos) {
+    if (clickTimer) {
+      clearTimeout(clickTimer);
+      clickTimer = null;
+      revealCell(pos.row, pos.col);
+    } else {
+      clickTimer = setTimeout(() => {
+        toggleMark(pos.row, pos.col);
+        clickTimer = null;
+      }, 180);
+    }
+  } else {
+    suppressNextClick = true;
+  }
+  activePointer = null;
+  activeCell = null;
+  pressStart = null;
+  longPressTriggered = false;
 }
 
 canvas.addEventListener('pointermove', (event) => {
-  const rect = canvas.getBoundingClientRect();
-  const pos = cellAtPoint((event.clientX - rect.left) * (canvas.width / rect.width), (event.clientY - rect.top) * (canvas.height / rect.height));
-  hover = pos;
+  hovered = updatePointerPosition(event);
 });
-canvas.addEventListener('pointerleave', () => { hover = null; });
-canvas.addEventListener('pointerdown', (event) => {
-  const rect = canvas.getBoundingClientRect();
-  const pos = cellAtPoint((event.clientX - rect.left) * (canvas.width / rect.width), (event.clientY - rect.top) * (canvas.height / rect.height));
-  if (!pos) return;
-  handleCell(pos.row, pos.col);
+canvas.addEventListener('pointerleave', () => {
+  hovered = null;
 });
-canvas.addEventListener('contextmenu', (event) => {
+canvas.addEventListener('pointercancel', clearTimers);
+canvas.addEventListener('pointerdown', onPointerDown);
+canvas.addEventListener('pointerup', onPointerUp);
+canvas.addEventListener('click', (event) => {
+  if (suppressNextClick) {
+    suppressNextClick = false;
+    event.preventDefault();
+    return;
+  }
   event.preventDefault();
 });
-canvas.addEventListener('auxclick', (event) => {
-  if (event.button !== 2) return;
-  const rect = canvas.getBoundingClientRect();
-  const pos = cellAtPoint((event.clientX - rect.left) * (canvas.width / rect.width), (event.clientY - rect.top) * (canvas.height / rect.height));
-  if (!pos) return;
-  if (wasm.animal_puzzle_is_occupied(pos.row, pos.col)) {
-    wasm.animal_puzzle_toggle(pos.row, pos.col);
-    syncFromWasm();
-    setStatus(`Removed R${pos.row + 1} C${pos.col + 1}.`, `${wasm.animal_puzzle_count()}/6`);
+canvas.addEventListener('dblclick', (event) => {
+  event.preventDefault();
+  const pos = updatePointerPosition(event);
+  if (pos) {
+    if (clickTimer) {
+      clearTimeout(clickTimer);
+      clickTimer = null;
+    }
+    revealCell(pos.row, pos.col);
   }
 });
+canvas.addEventListener('contextmenu', (event) => event.preventDefault());
 
-window.addEventListener('resize', () => {
-  resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+document.getElementById('btn-back').addEventListener('click', () => {
+  history.back();
 });
-
+document.getElementById('btn-settings').addEventListener('click', () => {
+  setStatus('設定はまだ未実装', 'あとで追加');
+});
 document.getElementById('btn-reset').addEventListener('click', resetPuzzle);
 document.getElementById('btn-check').addEventListener('click', () => {
   updateSolvedState();
-  setStatus(solved ? 'Solved!' : 'Not solved yet.', solved ? 'Complete' : 'Keep going');
+  setStatus(
+    solved ? 'Solved!' : `${revealCount}/5 だよ`,
+    solved ? 'Complete' : '続けよう',
+  );
 });
-document.getElementById('btn-hint').addEventListener('click', hintMove);
-document.getElementById('btn-scramble').addEventListener('click', scrambleLayout);
+document.getElementById('btn-hint').addEventListener('click', useHint);
+document.getElementById('btn-new').addEventListener('click', () => {
+  const next = chooseLayout();
+  applyLayout(next);
+  setStatus('レイアウトを変えたよ', 'New layout');
+});
 
 async function start() {
-  await init('../maze3d/wasm/wasm_app_bg.wasm');
-  resizeCanvas();
-  initPuzzle();
-  running = true;
-  requestAnimationFrame(loop);
+  try {
+    await init('../maze3d/wasm/wasm_app_bg.wasm?v=20260616');
+    wasm.animal_puzzle_init(SIZE);
+    wasm.animal_puzzle_set_zones(BOARD_ZONES);
+    wasm.animal_puzzle_set_solution(solution);
+    resizeCanvas();
+    revealCount = wasm.animal_puzzle_count();
+    syncHud();
+    setStatus('短いタップで×、長押しで動物', '準備OK');
+    layouts = enumerateLayouts();
+    if (!layouts.length) {
+      layouts = [DEFAULT_LAYOUT.slice()];
+    }
+    running = true;
+    const loop = (now) => {
+      if (!running) return;
+      drawBoard(now);
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  } catch (err) {
+    console.error('Animal Doku init failed:', err);
+    overlay.classList.add('show');
+    overlay.querySelector('h2').textContent = 'Load error';
+    overlay.querySelector('p').textContent = 'WASM 初期化に失敗しました。';
+    setStatus('Failed to load puzzle.', String(err?.message ?? err));
+  }
 }
 
 start();
