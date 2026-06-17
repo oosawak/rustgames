@@ -339,7 +339,7 @@ button.control.new-layout {
 </main>
 
 <script type="module">
-import init, * as wasm from './wasm/wasm_app.js?v=20260617-11';
+import init, * as wasm from './wasm/wasm_app.js?v=20260617-12';
 
 const BOARD_SIZES = { 1: 5, 2: 10, 3: 15 };
 const PALETTE = ['#f48fb0', '#b2df9f', '#ffbf59', '#a7c8f1', '#cbb6f2'];
@@ -842,6 +842,26 @@ function revealCell(row, col, source = 'manual') {
   return true;
 }
 
+function toggleLongPressCell(row, col) {
+  const idx = row * currentBoardSize + col;
+  if (wasm.animal_puzzle_is_occupied(row, col)) {
+    const ok = wasm.animal_puzzle_toggle(row, col);
+    if (!ok) {
+      setStatus('キャンセルできなかった', 'もう一度');
+      return false;
+    }
+    marks[idx] = 0;
+    revealCount = wasm.animal_puzzle_count();
+    setAnimation(row, col, 'mark');
+    syncHud();
+    updateSolvedState();
+    setStatus(`キャンセルした R${row + 1} C${col + 1}`, `${revealCount}/${currentBoardSize}`);
+    return true;
+  }
+
+  return revealCell(row, col, 'manual');
+}
+
 function toggleMark(row, col) {
   if (wasm.animal_puzzle_is_occupied(row, col)) return;
   const idx = row * currentBoardSize + col;
@@ -920,7 +940,7 @@ function onPointerDown(event) {
     if (!activeCell || longPressTriggered) return;
     longPressTriggered = true;
     suppressNextClick = true;
-    revealCell(activeCell.row, activeCell.col);
+    toggleLongPressCell(activeCell.row, activeCell.col);
     if (clickTimer) {
       clearTimeout(clickTimer);
       clickTimer = null;
@@ -1032,7 +1052,7 @@ document.getElementById('btn-new').addEventListener('click', () => {
 
 async function start() {
   try {
-    await init({ module_or_path: './wasm/wasm_app_bg.wasm?v=20260617-11' });
+    await init({ module_or_path: './wasm/wasm_app_bg.wasm?v=20260617-12' });
     loadPuzzle(currentDifficulty);
     resizeCanvas();
     revealCount = wasm.animal_puzzle_count();
