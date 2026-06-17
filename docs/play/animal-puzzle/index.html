@@ -339,9 +339,9 @@ button.control.new-layout {
 </main>
 
 <script type="module">
-import init, * as wasm from './wasm/wasm_app.js?v=20260617-13';
+import init, * as wasm from './wasm/wasm_app.js?v=20260617-14';
 
-const BOARD_SIZES = { 1: 5, 2: 10, 3: 15 };
+const BOARD_SIZES = { 1: 5, 2: 7, 3: 9 };
 const PALETTE = ['#f48fb0', '#b2df9f', '#ffbf59', '#a7c8f1', '#cbb6f2'];
 const ANIMALS = [
   { name: 'dog', accent: '#f3af77', face: '#fff4e6', detail: '#5c4035' },
@@ -349,6 +349,10 @@ const ANIMALS = [
   { name: 'fox', accent: '#f1a24c', face: '#fff5ea', detail: '#7a431f' },
   { name: 'panda', accent: '#404040', face: '#ffffff', detail: '#202020' },
   { name: 'bear', accent: '#c88f62', face: '#fff3e8', detail: '#55362a' },
+  { name: 'cat', accent: '#9e7bdf', face: '#f6f0ff', detail: '#5b477d' },
+  { name: 'owl', accent: '#7d96e8', face: '#f6f8ff', detail: '#32447b' },
+  { name: 'pig', accent: '#f1a2b4', face: '#fff4f7', detail: '#8b4f63' },
+  { name: 'frog', accent: '#88c97a', face: '#f4fff1', detail: '#37613a' },
 ];
 
 const canvas = document.getElementById('board');
@@ -697,6 +701,94 @@ function drawAnimalFace(ctx, animal, r) {
       ctx.fillStyle = detail;
       ctx.beginPath();
       ctx.arc(0, r * 0.18, r * 0.08, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+    case 'bear':
+    case 'cat': {
+      ctx.fillStyle = animal.accent;
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.62, -r * 0.18);
+      ctx.lineTo(-r * 0.34, -r * 0.78);
+      ctx.lineTo(-r * 0.12, -r * 0.20);
+      ctx.closePath();
+      ctx.moveTo(r * 0.62, -r * 0.18);
+      ctx.lineTo(r * 0.34, -r * 0.78);
+      ctx.lineTo(r * 0.12, -r * 0.20);
+      ctx.closePath();
+      ctx.fill();
+      drawCircleFace(ctx, face, detail, r, animal.accent);
+      ctx.fillStyle = detail;
+      ctx.beginPath();
+      ctx.arc(-r * 0.18, -r * 0.12, r * 0.05, 0, Math.PI * 2);
+      ctx.arc(r * 0.18, -r * 0.12, r * 0.05, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+    case 'owl': {
+      ctx.fillStyle = animal.accent;
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 0.82, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = face;
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 0.64, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = detail;
+      ctx.beginPath();
+      ctx.arc(-r * 0.24, -r * 0.06, r * 0.16, 0, Math.PI * 2);
+      ctx.arc(r * 0.24, -r * 0.06, r * 0.16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(-r * 0.24, -r * 0.06, r * 0.06, 0, Math.PI * 2);
+      ctx.arc(r * 0.24, -r * 0.06, r * 0.06, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = animal.accent;
+      ctx.beginPath();
+      ctx.moveTo(0, r * 0.08);
+      ctx.lineTo(-r * 0.08, r * 0.24);
+      ctx.lineTo(r * 0.08, r * 0.24);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+    case 'pig': {
+      ctx.fillStyle = animal.accent;
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 0.88, 0, Math.PI * 2);
+      ctx.fill();
+      drawCircleFace(ctx, face, detail, r, animal.accent);
+      ctx.fillStyle = detail;
+      ctx.beginPath();
+      ctx.ellipse(-r * 0.18, r * 0.08, r * 0.10, r * 0.14, -0.15, 0, Math.PI * 2);
+      ctx.ellipse(r * 0.18, r * 0.08, r * 0.10, r * 0.14, 0.15, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+    case 'frog': {
+      ctx.fillStyle = animal.accent;
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 0.80, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = face;
+      ctx.beginPath();
+      ctx.arc(-r * 0.26, -r * 0.56, r * 0.18, 0, Math.PI * 2);
+      ctx.arc(r * 0.26, -r * 0.56, r * 0.18, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = detail;
+      ctx.beginPath();
+      ctx.arc(-r * 0.26, -r * 0.56, r * 0.07, 0, Math.PI * 2);
+      ctx.arc(r * 0.26, -r * 0.56, r * 0.07, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(-r * 0.26, -r * 0.56, r * 0.03, 0, Math.PI * 2);
+      ctx.arc(r * 0.26, -r * 0.56, r * 0.03, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = detail;
+      ctx.beginPath();
+      ctx.arc(0, r * 0.16, r * 0.08, 0, Math.PI * 2);
       ctx.fill();
       break;
     }
@@ -1053,7 +1145,7 @@ document.getElementById('btn-new').addEventListener('click', () => {
 
 async function start() {
   try {
-    await init({ module_or_path: './wasm/wasm_app_bg.wasm?v=20260617-13' });
+    await init({ module_or_path: './wasm/wasm_app_bg.wasm?v=20260617-14' });
     loadPuzzle(currentDifficulty);
     resizeCanvas();
     revealCount = wasm.animal_puzzle_count();

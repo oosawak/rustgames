@@ -2,7 +2,7 @@ use serde::Serialize;
 use std::cell::RefCell;
 use wasm_bindgen::prelude::*;
 
-const ANIMAL_KIND_COUNT: u8 = 5;
+const ANIMAL_KIND_COUNT: u8 = 9;
 
 thread_local! {
     static PUZZLE: RefCell<Option<AnimalPuzzleState>> = RefCell::new(None);
