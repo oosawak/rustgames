@@ -184,6 +184,17 @@ fn solution_mask_from_cols(cols: &[usize], size: usize) -> Vec<u8> {
     mask
 }
 
+fn fallback_solution_cols(size: usize) -> Vec<usize> {
+    let mut cols = Vec::with_capacity(size);
+    for col in (0..size).step_by(2) {
+        cols.push(col);
+    }
+    for col in (1..size).step_by(2) {
+        cols.push(col);
+    }
+    cols
+}
+
 fn generate_solution_cols(size: usize, rng: &mut Rng) -> Option<Vec<usize>> {
     let mut cols = vec![usize::MAX; size];
     let mut used_cols = vec![false; size];
@@ -548,9 +559,8 @@ fn generate_puzzle_spec(size: usize, difficulty: u8) -> AnimalPuzzleSpec {
 
     // Fallback: return the last generated shape even if the uniqueness check
     // could not find a perfect board in time.
-    let solution_cols = generate_solution_cols(size, &mut rng).unwrap_or_else(|| {
-        (0..size).map(|row| row % size).collect()
-    });
+    let solution_cols = generate_solution_cols(size, &mut rng)
+        .unwrap_or_else(|| fallback_solution_cols(size));
     let zones = generate_zones(size, &solution_cols, difficulty, &mut rng);
     AnimalPuzzleSpec {
         size,

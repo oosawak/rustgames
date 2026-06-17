@@ -275,6 +275,15 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly inspect_vrm: (a: number, b: number) => [number, number];
+    readonly __wbg_sokobangame_free: (a: number, b: number) => void;
+    readonly sokobangame_get_elapsed: (a: number) => number;
+    readonly sokobangame_get_moves: (a: number) => number;
+    readonly sokobangame_is_won: (a: number) => number;
+    readonly sokobangame_move_player: (a: number, b: number, c: number) => void;
+    readonly sokobangame_new: () => number;
+    readonly sokobangame_render: (a: number, b: number, c: number) => [number, number];
+    readonly sokobangame_reset: (a: number) => void;
+    readonly sokobangame_tick: (a: number, b: number) => void;
     readonly animal_puzzle_animals: () => [number, number];
     readonly animal_puzzle_count: () => number;
     readonly animal_puzzle_generate: (a: number, b: number) => [number, number];
@@ -288,15 +297,6 @@ export interface InitOutput {
     readonly animal_puzzle_size: () => number;
     readonly animal_puzzle_toggle: (a: number, b: number) => number;
     readonly animal_puzzle_zones: () => [number, number];
-    readonly __wbg_sokobangame_free: (a: number, b: number) => void;
-    readonly sokobangame_get_elapsed: (a: number) => number;
-    readonly sokobangame_get_moves: (a: number) => number;
-    readonly sokobangame_is_won: (a: number) => number;
-    readonly sokobangame_move_player: (a: number, b: number, c: number) => void;
-    readonly sokobangame_new: () => number;
-    readonly sokobangame_render: (a: number, b: number, c: number) => [number, number];
-    readonly sokobangame_reset: (a: number) => void;
-    readonly sokobangame_tick: (a: number, b: number) => void;
     readonly all_sound_defs_maze3d: () => [number, number];
     readonly audio_event_blaster3d: () => number;
     readonly audio_event_earthdef: () => number;
