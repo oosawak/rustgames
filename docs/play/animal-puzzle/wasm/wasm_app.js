@@ -723,6 +723,12 @@ export function wave_earthdef() {
 function __wbg_get_imports() {
     const import0 = {
         __proto__: null,
+        __wbindgen_object_drop_ref: function(arg0) {
+            takeFromExternrefTable0(arg0);
+        },
+        __wbindgen_object_clone_ref: function(arg0) {
+            return addToExternrefTable0(wasm.__wbindgen_externrefs.get(arg0));
+        },
         __wbg___wbindgen_boolean_get_c3dd5c39f1b5a12b: function(arg0) {
             const v = arg0;
             const ret = typeof(v) === 'boolean' ? v : undefined;
