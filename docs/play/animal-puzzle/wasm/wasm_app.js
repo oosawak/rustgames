@@ -2203,7 +2203,9 @@ function __wbg_finalize_init(instance, module) {
     cachedUint16ArrayMemory0 = null;
     cachedUint32ArrayMemory0 = null;
     cachedUint8ArrayMemory0 = null;
-    wasm.__wbindgen_start();
+    if (typeof wasm.__wbindgen_start === 'function') {
+        wasm.__wbindgen_start();
+    }
     return wasm;
 }
 
