@@ -52,7 +52,7 @@ main {
 }
 .topbar {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr;
   align-items: center;
   gap: 12px;
   width: min(560px, calc(100vw - 28px));
@@ -68,20 +68,6 @@ main {
   box-shadow: 0 8px 18px rgba(121, 98, 92, 0.12);
   font-size: 1.05rem;
   font-weight: 700;
-}
-.title-block {
-  text-align: center;
-  line-height: 1;
-}
-.title-block h1 {
-  margin: 0;
-  font-size: clamp(1.4rem, 3.8vw, 1.8rem);
-  letter-spacing: 0.06em;
-}
-.title-block p {
-  margin: 4px 0 0;
-  font-size: 0.84rem;
-  color: var(--muted);
 }
 .hud {
   display: flex;
@@ -301,12 +287,8 @@ button.control {
 <body>
 <main>
   <div class="topbar">
-    <button class="icon-btn" id="btn-back" aria-label="back">←</button>
-    <div class="title-block">
-      <h1>レベル 1</h1>
-      <p>短いタップで× / 長押しで動物</p>
-    </div>
-    <button class="icon-btn" id="btn-settings" aria-label="settings">⚙</button>
+    <button class="icon-btn" id="btn-music" aria-label="music">▶</button>
+    <div></div>
   </div>
 
   <div class="hud">
@@ -322,7 +304,7 @@ button.control {
 
   <div class="bottom-banner">
     <div class="banner-animal" aria-hidden="true"></div>
-    <h3>動物を見つけよう</h3>
+    <h3>レベル 1</h3>
     <p>短いタップで×、長押しで動物を表示</p>
   </div>
 
@@ -350,7 +332,7 @@ button.control {
 </main>
 
 <script type="module">
-import init, * as wasm from './wasm/wasm_app.js?v=20260617-7';
+import init, * as wasm from './wasm/wasm_app.js?v=20260617-8';
 
 const SIZE = 5;
 const PALETTE = ['#f48fb0', '#b2df9f', '#ffbf59', '#a7c8f1', '#cbb6f2'];
@@ -390,6 +372,12 @@ let longPressTriggered = false;
 let activePointer = null;
 let activeCell = null;
 let pressStart = null;
+let musicPlaying = false;
+let musicContext = null;
+let musicTimer = null;
+let musicStep = 0;
+
+const MUSIC_PATTERN = [261.63, 329.63, 392.0, 523.25, 392.0, 329.63];
 
 function zonesAt(row, col) {
   return zonesData[row * SIZE + col];
@@ -439,6 +427,48 @@ function enumerateLayouts() {
 function syncHud() {
   progressEl.textContent = `${revealCount}/5`;
   heartsEl.textContent = '❤️'.repeat(Math.max(0, 3 - mistakes)) + '🖤'.repeat(Math.max(0, mistakes - 3));
+}
+
+function stopMusic() {
+  if (musicTimer) {
+    clearInterval(musicTimer);
+    musicTimer = null;
+  }
+  if (musicContext) {
+    musicContext.close().catch(() => {});
+    musicContext = null;
+  }
+  musicStep = 0;
+}
+
+async function startMusic() {
+  if (!musicContext) {
+    const Ctor = window.AudioContext || window.webkitAudioContext;
+    if (!Ctor) return false;
+    musicContext = new Ctor();
+  }
+  if (musicContext.state === 'suspended') {
+    await musicContext.resume();
+  }
+  if (musicTimer) return true;
+  musicTimer = setInterval(() => {
+    if (!musicContext) return;
+    const freq = MUSIC_PATTERN[musicStep % MUSIC_PATTERN.length];
+    const now = musicContext.currentTime;
+    const osc = musicContext.createOscillator();
+    const gain = musicContext.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.02, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.42);
+    osc.connect(gain);
+    gain.connect(musicContext.destination);
+    osc.start(now);
+    osc.stop(now + 0.46);
+    musicStep += 1;
+  }, 480);
+  return true;
 }
 
 function setStatus(text, accent = '') {
@@ -829,8 +859,7 @@ function applyPuzzleSpec(spec) {
   zonesData = Uint8Array.from(spec.zones ?? []);
   solution = Uint8Array.from(spec.solution ?? []);
   currentAnimal = ANIMALS[(spec.animal_kind ?? 0) % ANIMALS.length];
-  document.querySelector('.title-block h1').textContent = `レベル ${currentDifficulty}`;
-  document.querySelector('.title-block p').textContent = '短いタップで× / 長押しで動物';
+  document.querySelector('.bottom-banner h3').textContent = `レベル ${currentDifficulty}`;
 
   wasm.animal_puzzle_set_zones(zonesData);
   wasm.animal_puzzle_set_solution(solution);
@@ -955,11 +984,19 @@ canvas.addEventListener('contextmenu', (event) => event.preventDefault());
 
 window.addEventListener('resize', resizeCanvas);
 
-document.getElementById('btn-back').addEventListener('click', () => {
-  history.back();
-});
-document.getElementById('btn-settings').addEventListener('click', () => {
-  setStatus('設定はまだ未実装', 'あとで追加');
+document.getElementById('btn-music').addEventListener('click', () => {
+  musicPlaying = !musicPlaying;
+  document.getElementById('btn-music').textContent = musicPlaying ? '⏸' : '▶';
+  if (musicPlaying) {
+    startMusic().catch(() => {
+      musicPlaying = false;
+      document.getElementById('btn-music').textContent = '▶';
+      setStatus('BGM を開始できませんでした', 'audio');
+    });
+  } else {
+    stopMusic();
+  }
+  setStatus(musicPlaying ? 'BGM 再生' : 'BGM 停止', musicPlaying ? 'ON' : 'OFF');
 });
 document.getElementById('btn-reset').addEventListener('click', resetPuzzle);
 document.getElementById('btn-check').addEventListener('click', () => {
@@ -978,7 +1015,7 @@ document.getElementById('btn-new').addEventListener('click', () => {
 
 async function start() {
   try {
-    await init({ module_or_path: './wasm/wasm_app_bg.wasm?v=20260617-7' });
+    await init({ module_or_path: './wasm/wasm_app_bg.wasm?v=20260617-8' });
     loadPuzzle(currentDifficulty);
     resizeCanvas();
     revealCount = wasm.animal_puzzle_count();
