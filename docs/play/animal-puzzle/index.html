@@ -348,7 +348,7 @@ button.control {
 </main>
 
 <script type="module">
-import init, * as wasm from './wasm/wasm_app.js?v=20260617-2';
+import init, * as wasm from './wasm/wasm_app.js?v=20260617-3';
 
 const SIZE = 5;
 const BOARD_ZONES = new Uint8Array([
@@ -994,7 +994,7 @@ document.getElementById('btn-new').addEventListener('click', () => {
 
 async function start() {
   try {
-    await init('./wasm/wasm_app_bg.wasm?v=20260617-2');
+    await init({ module_or_path: './wasm/wasm_app_bg.wasm?v=20260617-3' });
     wasm.animal_puzzle_init(SIZE);
     wasm.animal_puzzle_set_zones(BOARD_ZONES);
     wasm.animal_puzzle_set_solution(solution);

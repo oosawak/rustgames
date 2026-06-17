@@ -723,6 +723,8 @@ export function wave_earthdef() {
 function __wbg_get_imports() {
     const import0 = {
         __proto__: null,
+        __wbindgen_describe: function() {},
+        __wbindgen_describe_cast: function() {},
         __wbindgen_object_drop_ref: function(arg0) {
             takeFromExternrefTable0(arg0);
         },
