@@ -327,16 +327,6 @@ button.control {
   </div>
 
   <section class="stage">
-    <div class="board-shell" id="board-shell">
-      <canvas id="board"></canvas>
-      <div class="overlay" id="clear-overlay">
-        <div class="overlay-card">
-          <h2>クリア</h2>
-          <p>すべての動物を見つけました。</p>
-        </div>
-      </div>
-    </div>
-
     <div class="status-row">
       <div class="controls">
         <button class="control" id="btn-reset">Reset</button>
@@ -345,6 +335,16 @@ button.control {
         <button class="control" id="btn-new">New layout</button>
       </div>
       <div class="status" id="status">Loading puzzle…</div>
+    </div>
+
+    <div class="board-shell" id="board-shell">
+      <canvas id="board"></canvas>
+      <div class="overlay" id="clear-overlay">
+        <div class="overlay-card">
+          <h2>クリア</h2>
+          <p>すべての動物を見つけました。</p>
+        </div>
+      </div>
     </div>
   </section>
 </main>
