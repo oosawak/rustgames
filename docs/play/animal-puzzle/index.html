@@ -339,7 +339,7 @@ button.control.new-layout {
 </main>
 
 <script type="module">
-import init, * as wasm from './wasm/wasm_app.js?v=20260617-15';
+import init, * as wasm from './wasm/wasm_app.js?v=20260617-16';
 
 const BOARD_SIZES = { 1: 5, 2: 7, 3: 9 };
 const PALETTE = ['#f48fb0', '#b2df9f', '#ffbf59', '#a7c8f1', '#cbb6f2'];
@@ -388,6 +388,7 @@ let musicPlaying = false;
 let musicContext = null;
 let musicTimer = null;
 let musicStep = 0;
+let suppressedAutoMarks = new Set();
 
 const MUSIC_PATTERN = [261.63, 329.63, 392.0, 523.25, 392.0, 329.63];
 
@@ -833,7 +834,7 @@ function drawBoard(now) {
       const y = r * cellSize;
       const isHover = hovered && hovered.row === r && hovered.col === c;
       const animalPlaced = wasm.animal_puzzle_is_occupied(r, c);
-      const autoMarked = !animalPlaced && !wasm.animal_puzzle_is_valid(r, c);
+      const autoMarked = !animalPlaced && !suppressedAutoMarks.has(idx) && !wasm.animal_puzzle_is_valid(r, c);
       const xMarked = (marks[idx] === 1 || autoMarked) && !animalPlaced;
       const anim = animations.get(idx);
       let scale = 1;
@@ -927,6 +928,7 @@ function revealCell(row, col, source = 'manual') {
   }
 
   marks[idx] = 0;
+  suppressedAutoMarks.delete(idx);
   revealCount = wasm.animal_puzzle_count();
   setAnimation(row, col, 'reveal');
   syncHud();
@@ -944,6 +946,7 @@ function toggleLongPressCell(row, col) {
       return false;
     }
     marks[idx] = 0;
+    suppressedAutoMarks.add(idx);
     revealCount = wasm.animal_puzzle_count();
     setAnimation(row, col, 'mark');
     syncHud();
@@ -971,6 +974,7 @@ function toggleMark(row, col) {
 function resetPuzzle() {
   wasm.animal_puzzle_reset();
   marks.fill(0);
+  suppressedAutoMarks.clear();
   revealCount = 0;
   mistakes = 0;
   solved = false;
@@ -987,6 +991,7 @@ function applyPuzzleSpec(spec) {
     zonesData = new Uint8Array(currentBoardSize * currentBoardSize);
     solution = new Uint8Array(currentBoardSize * currentBoardSize);
     marks = new Uint8Array(currentBoardSize * currentBoardSize);
+    suppressedAutoMarks.clear();
   }
   currentDifficulty = spec.difficulty ?? currentDifficulty;
   zonesData = Uint8Array.from(spec.zones ?? []);
@@ -1151,7 +1156,7 @@ document.getElementById('btn-new').addEventListener('click', () => {
 
 async function start() {
   try {
-    await init({ module_or_path: './wasm/wasm_app_bg.wasm?v=20260617-15' });
+    await init({ module_or_path: './wasm/wasm_app_bg.wasm?v=20260617-16' });
     loadPuzzle(currentDifficulty);
     resizeCanvas();
     revealCount = wasm.animal_puzzle_count();
