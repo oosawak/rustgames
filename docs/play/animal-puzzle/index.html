@@ -41,20 +41,12 @@ main {
   height: 100vh;
   min-height: 100vh;
   display: grid;
-  grid-template-rows: auto auto auto auto auto;
+  grid-template-rows: auto auto auto auto;
   align-content: start;
   gap: 10px;
   padding: 16px 14px 12px;
 }
 .shell {
-  width: min(560px, calc(100vw - 28px));
-  margin: 0 auto;
-}
-.topbar {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  align-items: center;
-  gap: 12px;
   width: min(560px, calc(100vw - 28px));
   margin: 0 auto;
 }
@@ -71,11 +63,23 @@ main {
 }
 .hud {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: center;
   gap: 12px;
   flex-wrap: wrap;
   width: min(560px, calc(100vw - 28px));
   margin: 0 auto;
+}
+.hud-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.music-btn {
+  width: 38px;
+  height: 38px;
+  font-size: 0.95rem;
 }
 .hud-pill {
   display: inline-flex;
@@ -286,26 +290,24 @@ button.control {
 </head>
 <body>
 <main>
-  <div class="topbar">
-    <button class="icon-btn" id="btn-music" aria-label="music">▶</button>
-    <div></div>
+  <div class="bottom-banner">
+    <div class="banner-animal" aria-hidden="true"></div>
+    <h3>レベル 1</h3>
+    <p>短いタップで×、長押しで動物を表示</p>
   </div>
 
   <div class="hud">
     <div class="hud-pill"><strong>🐾</strong> <span id="progress">0/5</span></div>
-    <div class="hud-pill hearts" id="hearts">❤️❤️❤️</div>
+    <div class="hud-right">
+      <div class="hud-pill hearts" id="hearts">❤️❤️❤️</div>
+      <button class="icon-btn music-btn" id="btn-music" aria-label="music">▶</button>
+    </div>
   </div>
 
   <div class="rules">
     <div class="rule active">1エリアにつき1匹</div>
     <div class="rule active">各列・各行に1匹</div>
     <div class="rule active">どうぶつ同士は隣接不可</div>
-  </div>
-
-  <div class="bottom-banner">
-    <div class="banner-animal" aria-hidden="true"></div>
-    <h3>レベル 1</h3>
-    <p>短いタップで×、長押しで動物を表示</p>
   </div>
 
   <section class="stage">
