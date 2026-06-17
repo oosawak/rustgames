@@ -188,10 +188,9 @@ canvas {
 }
 .status-row {
   display: flex;
-  gap: 10px;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
   width: min(560px, calc(100vw - 28px));
   margin: 0 auto;
 }
@@ -199,6 +198,7 @@ canvas {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  align-items: flex-start;
 }
 button.control {
   appearance: none;
@@ -219,6 +219,8 @@ button.control.new-layout {
 .status {
   color: var(--muted);
   font-size: 0.91rem;
+  line-height: 1.35;
+  min-height: 1.4em;
 }
 .status strong {
   color: var(--good);
@@ -339,7 +341,7 @@ button.control.new-layout {
 </main>
 
 <script type="module">
-import init, * as wasm from './wasm/wasm_app.js?v=20260617-17';
+import init, * as wasm from './wasm/wasm_app.js?v=20260617-18';
 
 const BOARD_SIZES = { 1: 5, 2: 7, 3: 9 };
 const PALETTE = ['#f48fb0', '#b2df9f', '#ffbf59', '#a7c8f1', '#cbb6f2'];
@@ -910,7 +912,7 @@ function revealCell(row, col, source = 'manual') {
   if (wasm.animal_puzzle_is_occupied(row, col)) {
     return true;
   }
-  if (!wasm.animal_puzzle_is_valid(row, col)) {
+  if (solution[idx] !== 1) {
     mistakes += 1;
     setAnimation(row, col, 'error');
     syncHud();
@@ -1156,7 +1158,7 @@ document.getElementById('btn-new').addEventListener('click', () => {
 
 async function start() {
   try {
-    await init({ module_or_path: './wasm/wasm_app_bg.wasm?v=20260617-17' });
+    await init({ module_or_path: './wasm/wasm_app_bg.wasm?v=20260617-18' });
     loadPuzzle(currentDifficulty);
     resizeCanvas();
     revealCount = wasm.animal_puzzle_count();
