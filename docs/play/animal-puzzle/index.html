@@ -211,6 +211,11 @@ button.control {
   font-weight: 700;
   box-shadow: 0 10px 20px rgba(130, 98, 90, 0.08);
 }
+button.control.new-layout {
+  width: 102px;
+  padding: 9px 10px;
+  line-height: 1.02;
+}
 .status {
   color: var(--muted);
   font-size: 0.91rem;
@@ -316,7 +321,7 @@ button.control {
         <button class="control" id="btn-reset">Reset</button>
         <button class="control" id="btn-check">Check</button>
         <button class="control" id="btn-hint">Hint</button>
-        <button class="control" id="btn-new">New layout</button>
+        <button class="control new-layout" id="btn-new"><span>New<br>Layout</span></button>
       </div>
       <div class="status" id="status">Loading puzzle…</div>
     </div>
@@ -334,9 +339,9 @@ button.control {
 </main>
 
 <script type="module">
-import init, * as wasm from './wasm/wasm_app.js?v=20260617-9';
+import init, * as wasm from './wasm/wasm_app.js?v=20260617-11';
 
-const SIZE = 5;
+const BOARD_SIZES = { 1: 5, 2: 10, 3: 15 };
 const PALETTE = ['#f48fb0', '#b2df9f', '#ffbf59', '#a7c8f1', '#cbb6f2'];
 const ANIMALS = [
   { name: 'dog', accent: '#f3af77', face: '#fff4e6', detail: '#5c4035' },
@@ -357,11 +362,12 @@ let boardSize = 0;
 let cellSize = 0;
 let originX = 0;
 let originY = 0;
-let zonesData = new Uint8Array(SIZE * SIZE);
-let solution = new Uint8Array(SIZE * SIZE);
+let currentBoardSize = BOARD_SIZES[1];
+let zonesData = new Uint8Array(currentBoardSize * currentBoardSize);
+let solution = new Uint8Array(currentBoardSize * currentBoardSize);
 let currentAnimal = ANIMALS[0];
 let currentDifficulty = 1;
-let marks = new Uint8Array(SIZE * SIZE);
+let marks = new Uint8Array(currentBoardSize * currentBoardSize);
 let hovered = null;
 let animations = new Map();
 let revealCount = 0;
@@ -382,7 +388,7 @@ let musicStep = 0;
 const MUSIC_PATTERN = [261.63, 329.63, 392.0, 523.25, 392.0, 329.63];
 
 function zonesAt(row, col) {
-  return zonesData[row * SIZE + col];
+  return zonesData[row * currentBoardSize + col];
 }
 
 function isAdjacent(aRow, aCol, bRow, bCol) {
@@ -393,9 +399,9 @@ function validLayout(cols) {
   const usedCols = new Set();
   const usedZones = new Set();
   const positions = [];
-  for (let row = 0; row < SIZE; row += 1) {
+  for (let row = 0; row < currentBoardSize; row += 1) {
     const col = cols[row];
-    if (col < 0 || col >= SIZE || usedCols.has(col)) return false;
+    if (col < 0 || col >= currentBoardSize || usedCols.has(col)) return false;
     usedCols.add(col);
     const zone = zonesAt(row, col);
     if (usedZones.has(zone)) return false;
@@ -409,7 +415,7 @@ function validLayout(cols) {
 }
 
 function enumerateLayouts() {
-  const cols = [0, 1, 2, 3, 4];
+  const cols = Array.from({ length: currentBoardSize }, (_, i) => i);
   const found = [];
   function permute(i) {
     if (i === cols.length) {
@@ -427,7 +433,7 @@ function enumerateLayouts() {
 }
 
 function syncHud() {
-  progressEl.textContent = `${revealCount}/5`;
+  progressEl.textContent = `${revealCount}/${currentBoardSize}`;
   heartsEl.textContent = '❤️'.repeat(Math.max(0, 3 - mistakes)) + '🖤'.repeat(Math.max(0, mistakes - 3));
 }
 
@@ -478,7 +484,7 @@ function setStatus(text, accent = '') {
 }
 
 function setAnimation(row, col, kind) {
-  animations.set(row * SIZE + col, {
+  animations.set(row * currentBoardSize + col, {
     kind,
     started: performance.now(),
     duration: kind === 'error' ? 340 : 260,
@@ -521,7 +527,7 @@ function resizeCanvas() {
   canvas.width = size;
   canvas.height = size;
   boardSize = size;
-  cellSize = boardSize / SIZE;
+  cellSize = boardSize / currentBoardSize;
   originX = 0;
   originY = 0;
 }
@@ -727,9 +733,9 @@ function drawBoard(now) {
 
   const pulse = 0.5 + 0.5 * Math.sin(now * 0.0015);
 
-  for (let r = 0; r < SIZE; r += 1) {
-    for (let c = 0; c < SIZE; c += 1) {
-      const idx = r * SIZE + c;
+  for (let r = 0; r < currentBoardSize; r += 1) {
+    for (let c = 0; c < currentBoardSize; c += 1) {
+      const idx = r * currentBoardSize + c;
       const zone = zonesData[idx];
       const x = c * cellSize;
       const y = r * cellSize;
@@ -806,7 +812,7 @@ function updateSolvedState() {
 }
 
 function revealCell(row, col, source = 'manual') {
-  const idx = row * SIZE + col;
+  const idx = row * currentBoardSize + col;
   if (wasm.animal_puzzle_is_occupied(row, col)) {
     return true;
   }
@@ -832,13 +838,13 @@ function revealCell(row, col, source = 'manual') {
   setAnimation(row, col, 'reveal');
   syncHud();
   updateSolvedState();
-  setStatus(`動物を見つけた R${row + 1} C${col + 1}`, `${revealCount}/5`);
+  setStatus(`動物を見つけた R${row + 1} C${col + 1}`, `${revealCount}/${currentBoardSize}`);
   return true;
 }
 
 function toggleMark(row, col) {
   if (wasm.animal_puzzle_is_occupied(row, col)) return;
-  const idx = row * SIZE + col;
+  const idx = row * currentBoardSize + col;
   marks[idx] ^= 1;
   setAnimation(row, col, 'mark');
   setStatus(marks[idx] ? '× をつけた' : '× を消した', '候補');
@@ -857,11 +863,18 @@ function resetPuzzle() {
 }
 
 function applyPuzzleSpec(spec) {
+  const nextBoardSize = spec.size ?? currentBoardSize;
+  if (nextBoardSize !== currentBoardSize) {
+    currentBoardSize = nextBoardSize;
+    zonesData = new Uint8Array(currentBoardSize * currentBoardSize);
+    solution = new Uint8Array(currentBoardSize * currentBoardSize);
+    marks = new Uint8Array(currentBoardSize * currentBoardSize);
+  }
   currentDifficulty = spec.difficulty ?? currentDifficulty;
   zonesData = Uint8Array.from(spec.zones ?? []);
   solution = Uint8Array.from(spec.solution ?? []);
   currentAnimal = ANIMALS[(spec.animal_kind ?? 0) % ANIMALS.length];
-  document.querySelector('.bottom-banner h3').textContent = `レベル ${currentDifficulty}`;
+  document.querySelector('.bottom-banner h3').textContent = `レベル ${currentDifficulty} / ${currentBoardSize}×${currentBoardSize}`;
 
   wasm.animal_puzzle_set_zones(zonesData);
   wasm.animal_puzzle_set_solution(solution);
@@ -869,14 +882,16 @@ function applyPuzzleSpec(spec) {
 }
 
 function loadPuzzle(nextDifficulty = currentDifficulty) {
-  const spec = JSON.parse(wasm.animal_puzzle_generate(SIZE, nextDifficulty));
+  const size = BOARD_SIZES[nextDifficulty] ?? currentBoardSize;
+  currentBoardSize = size;
+  const spec = JSON.parse(wasm.animal_puzzle_generate(size, nextDifficulty));
   applyPuzzleSpec(spec);
 }
 
 function useHint() {
-  for (let r = 0; r < SIZE; r += 1) {
-    for (let c = 0; c < SIZE; c += 1) {
-      const idx = r * SIZE + c;
+  for (let r = 0; r < currentBoardSize; r += 1) {
+    for (let c = 0; c < currentBoardSize; c += 1) {
+      const idx = r * currentBoardSize + c;
       if (solution[idx] !== 1 || wasm.animal_puzzle_is_occupied(r, c)) continue;
       revealCell(r, c, 'hint');
       return;
@@ -1004,7 +1019,7 @@ document.getElementById('btn-reset').addEventListener('click', resetPuzzle);
 document.getElementById('btn-check').addEventListener('click', () => {
   updateSolvedState();
   setStatus(
-    solved ? 'Solved!' : `${revealCount}/5 だよ`,
+    solved ? 'Solved!' : `${revealCount}/${currentBoardSize} だよ`,
     solved ? 'Complete' : '続けよう',
   );
 });
@@ -1012,17 +1027,17 @@ document.getElementById('btn-hint').addEventListener('click', useHint);
 document.getElementById('btn-new').addEventListener('click', () => {
   const nextDifficulty = currentDifficulty >= 3 ? 1 : currentDifficulty + 1;
   loadPuzzle(nextDifficulty);
-  setStatus('新しい盤面を作ったよ', `Lv ${nextDifficulty}`);
+  setStatus('新しい盤面を作ったよ', `Lv ${nextDifficulty} / ${currentBoardSize}×${currentBoardSize}`);
 });
 
 async function start() {
   try {
-    await init({ module_or_path: './wasm/wasm_app_bg.wasm?v=20260617-9' });
+    await init({ module_or_path: './wasm/wasm_app_bg.wasm?v=20260617-11' });
     loadPuzzle(currentDifficulty);
     resizeCanvas();
     revealCount = wasm.animal_puzzle_count();
     syncHud();
-    setStatus('短いタップで×、長押しで動物', '準備OK');
+    setStatus('短いタップで×、長押しで動物', `Lv ${currentDifficulty} / ${currentBoardSize}×${currentBoardSize}`);
     running = true;
     const loop = (now) => {
       if (!running) return;
