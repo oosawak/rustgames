@@ -339,7 +339,7 @@ button.control.new-layout {
 </main>
 
 <script type="module">
-import init, * as wasm from './wasm/wasm_app.js?v=20260617-14';
+import init, * as wasm from './wasm/wasm_app.js?v=20260617-15';
 
 const BOARD_SIZES = { 1: 5, 2: 7, 3: 9 };
 const PALETTE = ['#f48fb0', '#b2df9f', '#ffbf59', '#a7c8f1', '#cbb6f2'];
@@ -833,7 +833,8 @@ function drawBoard(now) {
       const y = r * cellSize;
       const isHover = hovered && hovered.row === r && hovered.col === c;
       const animalPlaced = wasm.animal_puzzle_is_occupied(r, c);
-      const xMarked = marks[idx] === 1 && !animalPlaced;
+      const autoMarked = !animalPlaced && !wasm.animal_puzzle_is_valid(r, c);
+      const xMarked = (marks[idx] === 1 || autoMarked) && !animalPlaced;
       const anim = animations.get(idx);
       let scale = 1;
       let shakeX = 0;
@@ -957,6 +958,11 @@ function toggleLongPressCell(row, col) {
 function toggleMark(row, col) {
   if (wasm.animal_puzzle_is_occupied(row, col)) return;
   const idx = row * currentBoardSize + col;
+  if (!wasm.animal_puzzle_is_valid(row, col)) {
+    marks[idx] = 0;
+    setStatus('そこは自動で×だよ', 'ルール');
+    return;
+  }
   marks[idx] ^= 1;
   setAnimation(row, col, 'mark');
   setStatus(marks[idx] ? '× をつけた' : '× を消した', '候補');
@@ -1145,7 +1151,7 @@ document.getElementById('btn-new').addEventListener('click', () => {
 
 async function start() {
   try {
-    await init({ module_or_path: './wasm/wasm_app_bg.wasm?v=20260617-14' });
+    await init({ module_or_path: './wasm/wasm_app_bg.wasm?v=20260617-15' });
     loadPuzzle(currentDifficulty);
     resizeCanvas();
     revealCount = wasm.animal_puzzle_count();
