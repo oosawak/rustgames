@@ -1820,6 +1820,16 @@ function __wbg_get_imports() {
     return {
         __proto__: null,
         "./wasm_app_bg.js": import0,
+        "__wbindgen_placeholder__": import0,
+        "__wbindgen_externref_xform__": {
+            __proto__: null,
+            __wbindgen_externref_table_set_null: function(table, idx) {
+                table.set(idx, null);
+            },
+            __wbindgen_externref_table_grow: function(table) {
+                return table.grow(4);
+            },
+        },
     };
 }
 
