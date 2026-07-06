@@ -15,10 +15,7 @@ use std::sync::{Arc, Mutex};
 use log::info;
 
 pub struct Engine {
-    #[cfg(not(target_arch = "wasm32"))]
     renderer: Arc<tokio::sync::Mutex<Renderer>>,
-    #[cfg(target_arch = "wasm32")]
-    renderer: Arc<Mutex<Renderer>>,
     scene: Arc<Mutex<Scene>>,
     input_state: Arc<Mutex<InputState>>,
     running: bool,
@@ -53,7 +50,7 @@ impl Engine {
         let renderer = Renderer::new_stub();
         
         Ok(Engine {
-            renderer: Arc::new(Mutex::new(renderer)),
+            renderer: Arc::new(tokio::sync::Mutex::new(renderer)),
             scene: Arc::new(Mutex::new(scene)),
             input_state: Arc::new(Mutex::new(input_state)),
             running: true,
@@ -74,7 +71,7 @@ impl Engine {
     
     #[cfg(not(target_arch = "wasm32"))]
     pub async fn render(&self) -> Result<(), String> {
-        let renderer = self.renderer.lock().unwrap();
+        let renderer = self.renderer.lock().await;
         let scene = self.scene.lock().unwrap();
         renderer.render(&scene).await
     }
@@ -101,7 +98,7 @@ impl Engine {
         Arc::clone(&self.scene)
     }
     
-    pub fn get_renderer(&self) -> Arc<Mutex<Renderer>> {
+    pub fn get_renderer(&self) -> Arc<tokio::sync::Mutex<Renderer>> {
         Arc::clone(&self.renderer)
     }
 }

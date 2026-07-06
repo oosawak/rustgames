@@ -14,7 +14,7 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$REPO_DIR"
 
 # GitHub ユーザー名
-GITHUB_USER="oosawak"
+GITHUB_USER="user"
 
 # トークンを隠し入力
 echo "GitHub Personal Access Token を入力してください："
@@ -32,14 +32,14 @@ fi
 echo ""
 echo "認証情報を設定中（キャッシュ: 24時間）..."
 git config --global credential.helper 'cache --timeout=86400'
-git config --global user.name "oosawak" 2>/dev/null || true
+git config --global user.name "user" 2>/dev/null || true
 git config --global user.email "your_email@example.com" 2>/dev/null || true
 
 # リモートの URL を HTTPS に変更（必要に応じて）
 REMOTE_URL=$(git config --get remote.origin.url)
 if [[ $REMOTE_URL == git@github.com:* ]]; then
     # SSH URL を HTTPS に変換
-    # git@github.com:oosawak/rustgames.git -> https://github.com/oosawak/rustgames.git
+    # git@github.com:user/rustgames.git -> https://github.com/user/rustgames.git
     REPO_NAME="${REMOTE_URL##*:}"
     HTTPS_URL="https://github.com/${REPO_NAME}"
     echo "リモート URL を HTTPS に変更: $HTTPS_URL"
@@ -59,7 +59,7 @@ if git -c credential.helper='cache --timeout=86400' push origin main; then
     echo "4. Branch: main, Folder: /docs"
     echo "5. Save"
     echo ""
-    echo "その後、数分で https://github.com/oosawak/rustgames/settings/pages で確認できます"
+    echo "その後、数分で https://github.com/user/rustgames/settings/pages で確認できます"
 else
     echo "❌ プッシュに失敗しました"
     exit 1

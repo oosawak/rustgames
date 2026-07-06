@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>PenPen Glide 3D – DEMO MODE</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  #hud { background: rgba(0, 0, 0, 0.4); border-bottom: 2px solid #00d4ff; }
+  #demo-label {
+    position: fixed;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-weight: bold;
+    color: #00d4ff;
+    text-shadow: 0 0 10px #00d4ff;
+    letter-spacing: 4px;
+    z-index: 100;
+    font-size: 1.2em;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<!-- Loading Screen -->
+<div id="loading">
+  <div>
+    <div class="spin"></div>
+    <p style="margin-top:14px">LOADING ICE ENGINE (DEMO)…</p>
+  </div>
+</div>
+
+<div id="demo-label">ENDLESS DEMO MODE</div>
+
+<!-- Fullscreen Canvas -->
+<div id="canvas-wrap">
+  <canvas id="penpen-canvas"></canvas>
+</div>
+
+<!-- In-Game HUD -->
+<div id="hud">
+  <span>SPEED <b id="speed-val">0</b> <span class="unit">km/h</span></span>
+  <span>DISTANCE <b id="dist-val">0</b> <span class="unit">m</span></span>
+  <span>CAM <b id="cam-val">TPS</b></span>
+  <span style="margin-left:auto">FPS <b id="fps-val">--</b></span>
+</div>
+
+<script type="module">
+import init, * as wasm from './wasm_demo/penpen_wasm.js';
+import { FontLoader, AudioEngine, CanvasManager } from '../../engine.js';
+
+const audio = new AudioEngine({ autoAmbient: true });
+const canvas = new CanvasManager('penpen-canvas', { hudHeight: 46 });
+
+window.addEventListener('resize', () => {
+    canvas.resize();
+    const c = document.getElementById('penpen-canvas');
+    if (c) wasm.resize_penpen(c.width, c.height);
+});
+
+const speedVal    = document.getElementById('speed-val');
+const distVal     = document.getElementById('dist-val');
+const camVal      = document.getElementById('cam-val');
+const fpsVal      = document.getElementById('fps-val');
+const loadingEl   = document.getElementById('loading');
+
+const fpsHistory = new Float64Array(60);
+let fpsIdx = 0, fpsPrev = 0;
+
+function loop(ts) {
+    if (fpsPrev > 0) {
+        const dt = ts - fpsPrev;
+        fpsHistory[fpsIdx % 60] = dt;
+        fpsIdx++;
+        if (fpsIdx % 10 === 0) {
+            const avg = fpsHistory.reduce((a,b)=>a+b,0) / Math.min(fpsIdx, 60);
+            fpsVal.textContent = avg > 0 ? (1000/avg).toFixed(0) : '--';
+        }
+    }
+    fpsPrev = ts;
+
+    wasm.tick_penpen(ts);
+
+    const rawSpeed = wasm.speed_penpen();
+    speedVal.textContent = Math.floor(rawSpeed * 5.2);
+    
+    // player_z is distance
+    // We don't have a direct getter for player_z, but we can approximate or use progress if we had track length
+    // Let's assume speed is enough for demo.
+    
+    camVal.textContent = wasm.camera_name_penpen();
+
+    // Auto-switch camera every 15 seconds for variety
+    if (Math.floor(ts / 15000) !== Math.floor((ts - 16) / 15000)) {
+        wasm.switch_camera_penpen();
+    }
+
+    requestAnimationFrame(loop);
+}
+
+async function main() {
+    await init();
+    console.log("WASM Module loaded. Available functions:", Object.keys(wasm));
+    
+    canvas.resize();
+    await FontLoader.load('GenInterfaceJP', wasm).catch(() => {});
+    
+    // Initialize in demo mode
+    if (typeof wasm.init_penpen_demo === 'function') {
+        await wasm.init_penpen_demo('penpen-canvas');
+    } else {
+        console.error("init_penpen_demo is NOT a function in the loaded module!");
+        loadingEl.innerHTML = `<p style="color:#ff3b30">ERROR: init_penpen_demo is not a function.<br>Please try clearing your browser cache.</p>`;
+        return;
+    }
+    
+    const c = document.getElementById('penpen-canvas');
+    if (c) wasm.resize_penpen(c.width, c.height);
+    canvas.bindResize();
+
+    // Start automatically
+    audio.ensure();
+    wasm.start_penpen();
+
+    loadingEl.style.display = 'none';
+    requestAnimationFrame(loop);
+}
+
+main().catch(err => {
+    loadingEl.innerHTML = `<p style="color:#ff3b30">ERROR: ${err}</p>`;
+});
+</script>
+</body>
+</html>

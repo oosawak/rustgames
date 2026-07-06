@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>PenPen Glide 3D – wgpu WASM</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Loading Screen -->
+<div id="loading">
+  <div>
+    <div class="spin"></div>
+    <p style="margin-top:14px">LOADING ICE ENGINE…</p>
+  </div>
+</div>
+
+<!-- Fullscreen Canvas -->
+<div id="canvas-wrap">
+  <canvas id="penpen-canvas"></canvas>
+</div>
+
+<!-- Progress Bar -->
+<div id="progress-wrap">
+  <div id="progress-fill" style="width: 0%"></div>
+  <div id="progress-label">PROGRESS</div>
+</div>
+
+<!-- In-Game HUD -->
+<div id="hud">
+  <div class="hp-bar-wrap" id="hp-hearts"></div>
+  <span>SCORE <b id="score-val">0</b></span>
+  <span>FISH <b id="fish-val">0</b></span>
+  <span>LEVEL <b id="level-val">1</b></span>
+  <span>SPEED <b id="speed-val">0</b> <span class="unit">km/h</span></span>
+  <span>CAM <b id="cam-val">TPS</b></span>
+  <span style="margin-left:auto">FPS <b id="fps-val">--</b></span>
+</div>
+
+<!-- Speed Overlay Glow effect -->
+<div id="speed-glow"></div>
+
+<!-- Title / Start Screen Overlay -->
+<div class="overlay" id="title-screen">
+  <div class="glass-panel">
+    <h1>🐧 PENPEN GLIDE 3D</h1>
+    <p class="sub">wgpu WebGL — 超高速・氷上ペンギンスライディング！</p>
+    <p class="desc">
+      ネオンで彩られたクネクネ曲がる氷のハーフパイプを滑り降りよう！<br>
+      カーブでは慣性で壁を駆け上がるスリリングなアクションが楽しめます。
+    </p>
+    <button id="btn-start">▶ SLIDE START</button>
+    <div class="key-hint">
+      <table class="help-table">
+        <tr><td><kbd>A</kbd> / <kbd>D</kbd> or <kbd>←</kbd> / <kbd>→</kbd></td><td>左右に傾いてカーブ（慣性がはたらきます）</td></tr>
+        <tr><td><kbd>Space</kbd> / <kbd>W</kbd> or <kbd>↑</kbd></td><td>ジャンプ（高いところの魚をゲット！）</td></tr>
+        <tr><td><kbd>Tab</kbd></td><td>カメラ切替 TPS ➔ TOP ➔ FPS</td></tr>
+      </table>
+      <p style="margin-top:10px;opacity:0.6;font-size:0.85em">障害物（雪だるま・木・結晶）にぶつかると大減速＆ダメージ！</p>
+      <p style="margin-top:4px;opacity:0.6;font-size:0.85em">魚を集めるとスピードアップ＆スコアボーナス！</p>
+    </div>
+  </div>
+</div>
+
+<!-- Level Clear Screen -->
+<div class="overlay hidden" id="clear-screen">
+  <div class="glass-panel success">
+    <p class="result-title">🏆 GOAL REACHED!</p>
+    <p class="result-sub" id="clear-score"></p>
+    <p class="result-sub" id="clear-fish"></p>
+    <button class="btn-action" id="btn-next-level">NEXT SLOPE ➔</button>
+  </div>
+</div>
+
+<!-- Game Over Screen -->
+<div class="overlay hidden" id="gameover-screen">
+  <div class="glass-panel failure">
+    <p class="result-title">💀 CRASHED!</p>
+    <p class="result-sub" id="go-score"></p>
+    <button class="btn-action" id="btn-retry">TRY AGAIN ↺</button>
+  </div>
+</div>
+
+<!-- Touch Controls (Mobile Only) -->
+<div id="touch-controls">
+  <button id="btn-left-touch">◀</button>
+  <button id="btn-jump-touch">JUMP</button>
+  <button id="btn-right-touch">▶</button>
+</div>
+<div id="btn-cam-touch">CAM</div>
+
+<!-- Help toggle button -->
+<button id="btn-help" title="操作方法">?</button>
+<div id="help-panel" class="hidden">
+  <p class="help-panel-title">⌨ 操作ガイド</p>
+  <table class="help-table">
+    <tr><td><kbd>A</kbd> / <kbd>D</kbd> or <kbd>←</kbd> / <kbd>→</kbd></td><td>左右に体重移動</td></tr>
+    <tr><td><kbd>Space</kbd> / <kbd>W</kbd> or <kbd>↑</kbd></td><td>ジャンプ</td></tr>
+    <tr><td><kbd>Tab</kbd></td><td>カメラモード切替</td></tr>
+  </table>
+</div>
+
+<script type="module">
+import init, * as wasm from './wasm/penpen_wasm.js';
+import { FontLoader, AudioEngine, CanvasManager } from '../../engine.js';
+
+// ── エンジン設定 ───────────────────────────────────────────────────────────
+const audio = new AudioEngine({ autoAmbient: true });
+const canvas = new CanvasManager('penpen-canvas', { hudHeight: 46 });
+
+// Canvas resize listener
+window.addEventListener('resize', () => {
+    canvas.resize();
+    const c = document.getElementById('penpen-canvas');
+    if (c) wasm.resize_penpen(c.width, c.height);
+});
+
+// ── キーボード入力管理 ───────────────────────────────────────────────────────
+const keys = new Set();
+let lastDx = 0;
+
+function updateInput() {
+    let dx = 0;
+    if (keys.has('KeyA') || keys.has('ArrowLeft'))  dx -= 1.0;
+    if (keys.has('KeyD') || keys.has('ArrowRight')) dx += 1.0;
+    
+    if (dx !== lastDx) {
+        wasm.move_penpen(dx);
+        lastDx = dx;
+    }
+}
+
+document.addEventListener('keydown', e => {
+    if (e.repeat) return;
+    keys.add(e.code);
+    updateInput();
+
+    if (e.code === 'Space' || e.code === 'KeyW' || e.code === 'ArrowUp') {
+        wasm.jump_penpen(true);
+    }
+    if (e.code === 'Tab') {
+        e.preventDefault();
+        wasm.switch_camera_penpen();
+    }
+});
+
+document.addEventListener('keyup', e => {
+    keys.delete(e.code);
+    updateInput();
+
+    if (e.code === 'Space' || e.code === 'KeyW' || e.code === 'ArrowUp') {
+        wasm.jump_penpen(false);
+    }
+});
+
+// ── タッチデバイス入力（モバイル） ──────────────────────────────────────────
+const btnLeft  = document.getElementById('btn-left-touch');
+const btnRight = document.getElementById('btn-right-touch');
+const btnJump  = document.getElementById('btn-jump-touch');
+const btnCam   = document.getElementById('btn-cam-touch');
+
+btnLeft.addEventListener('touchstart', e => { e.preventDefault(); keys.add('ArrowRight'); updateInput(); audio.ensure(); });
+btnLeft.addEventListener('touchend',   e => { e.preventDefault(); keys.delete('ArrowRight'); updateInput(); });
+btnRight.addEventListener('touchstart', e => { e.preventDefault(); keys.add('ArrowLeft'); updateInput(); audio.ensure(); });
+btnRight.addEventListener('touchend',   e => { e.preventDefault(); keys.delete('ArrowLeft'); updateInput(); });
+
+btnJump.addEventListener('touchstart', e => { e.preventDefault(); wasm.jump_penpen(true); audio.ensure(); });
+btnJump.addEventListener('touchend',   e => { e.preventDefault(); wasm.jump_penpen(false); });
+
+btnCam.addEventListener('touchstart', e => {
+    e.preventDefault();
+    wasm.switch_camera_penpen();
+});
+
+// ヘルプパネル
+const helpBtn   = document.getElementById('btn-help');
+const helpPanel = document.getElementById('help-panel');
+helpBtn.addEventListener('click', () => {
+    helpPanel.classList.toggle('hidden');
+});
+
+// ── HUD更新 & UI ───────────────────────────────────────────────────────────
+const scoreVal    = document.getElementById('score-val');
+const fishVal     = document.getElementById('fish-val');
+const levelVal    = document.getElementById('level-val');
+const speedVal    = document.getElementById('speed-val');
+const camVal      = document.getElementById('cam-val');
+const fpsVal      = document.getElementById('fps-val');
+const heartsWrap  = document.getElementById('hp-hearts');
+const progressFill = document.getElementById('progress-fill');
+const speedGlow   = document.getElementById('speed-glow');
+
+const titleScreen = document.getElementById('title-screen');
+const clearScreen = document.getElementById('clear-screen');
+const gameoverScreen = document.getElementById('gameover-screen');
+const clearScore  = document.getElementById('clear-score');
+const clearFish   = document.getElementById('clear-fish');
+const goScore     = document.getElementById('go-score');
+const loadingEl   = document.getElementById('loading');
+
+function updateHp(hp, maxHp) {
+    heartsWrap.innerHTML = '';
+    for (let i = 0; i < maxHp; i++) {
+        const heart = document.createElement('span');
+        heart.className = i < hp ? 'heart' : 'heart empty';
+        heart.textContent = '♥';
+        heartsWrap.appendChild(heart);
+    }
+}
+
+// ── オーディオ処理 ──────────────────────────────────────────────────────────
+function handleAudioEvent(ev) {
+    if (!ev) return;
+    const json = wasm.sound_def_penpen(ev);
+    if (json && json !== '{}') {
+        try {
+            audio.ensure();
+            audio.play(JSON.parse(json));
+        } catch (e) {
+            console.error("Audio error", e);
+        }
+    }
+}
+
+// ── ゲームループ ─────────────────────────────────────────────────────────────
+const SCENE_TITLE       = 0;
+const SCENE_PLAYING     = 1;
+const SCENE_LEVEL_CLEAR = 2;
+const SCENE_GAME_OVER   = 3;
+let lastScene = -1;
+
+// FPS計測用
+const fpsHistory = new Float64Array(60);
+let fpsIdx = 0, fpsPrev = 0;
+
+function loop(ts) {
+    // FPS計算
+    if (fpsPrev > 0) {
+        const dt = ts - fpsPrev;
+        fpsHistory[fpsIdx % 60] = dt;
+        fpsIdx++;
+        if (fpsIdx % 10 === 0) {
+            const avg = fpsHistory.reduce((a,b)=>a+b,0) / Math.min(fpsIdx, 60);
+            fpsVal.textContent = avg > 0 ? (1000/avg).toFixed(0) : '--';
+        }
+    }
+    fpsPrev = ts;
+
+    // ゲーム状態をアップデート＆描画
+    wasm.tick_penpen(ts);
+
+    const scene = wasm.scene_penpen();
+
+    if (scene === SCENE_PLAYING) {
+        const hp = wasm.hp_penpen();
+        const maxHp = wasm.max_hp_penpen();
+        updateHp(hp, maxHp);
+
+        const rawSpeed = wasm.speed_penpen();
+        const speedKmh = Math.floor(rawSpeed * 5.2);
+        speedVal.textContent = speedKmh;
+
+        // 超高速滑走時のスピードグロー効果
+        if (speedKmh > 100) {
+            const intensity = Math.min((speedKmh - 100) / 60, 0.85);
+            speedGlow.style.boxShadow = `inset 0 0 ${20 + intensity * 40}px rgba(0, 212, 255, ${intensity})`;
+        } else {
+            speedGlow.style.boxShadow = 'none';
+        }
+
+        scoreVal.textContent = wasm.score_penpen();
+        fishVal.textContent = wasm.fish_count_penpen();
+        levelVal.textContent = wasm.level_penpen();
+        camVal.textContent = wasm.camera_name_penpen();
+
+        // 進行度の更新
+        const progress = wasm.progress_penpen();
+        progressFill.style.width = (progress * 100).toFixed(1) + '%';
+
+        // サウンド再生
+        handleAudioEvent(wasm.audio_event_penpen());
+    }
+
+    // シーン遷移検知
+    if (scene !== lastScene) {
+        lastScene = scene;
+        if (scene === SCENE_TITLE) {
+            titleScreen.classList.remove('hidden');
+            clearScreen.classList.add('hidden');
+            gameoverScreen.classList.add('hidden');
+        } else if (scene === SCENE_LEVEL_CLEAR) {
+            clearScore.textContent = `SCORE: ${wasm.score_penpen()}`;
+            clearFish.textContent = `COLLECTED FISH: ${wasm.fish_count_penpen()}`;
+            clearScreen.classList.remove('hidden');
+            // サウンド再生 (レベルクリア)
+            handleAudioEvent(4);
+        } else if (scene === SCENE_GAME_OVER) {
+            goScore.textContent = `FINAL SCORE: ${wasm.score_penpen()}`;
+            gameoverScreen.classList.remove('hidden');
+            // サウンド再生 (ゲームオーバー)
+            handleAudioEvent(5);
+        }
+    }
+
+    requestAnimationFrame(loop);
+}
+
+// ── 初期化 ─────────────────────────────────────────────────────────────────
+async function main() {
+    await init();
+
+    canvas.resize();
+
+    // フォントのロード
+    await FontLoader.load('GenInterfaceJP', wasm).catch(() => {});
+
+    // WebGL Canvasのバインドとゲーム初期化
+    await wasm.init_penpen('penpen-canvas');
+
+    // Update GPU state with canvas dimensions
+    const c = document.getElementById('penpen-canvas');
+    if (c) wasm.resize_penpen(c.width, c.height);
+
+    canvas.bindResize();
+
+    loadingEl.style.display = 'none';
+    requestAnimationFrame(loop);
+}
+
+// イベントリスナー (開始/リトライ/次レベル)
+document.getElementById('btn-start').addEventListener('click', () => {
+    audio.ensure();
+    wasm.start_penpen();
+    titleScreen.classList.add('hidden');
+});
+
+document.getElementById('btn-next-level').addEventListener('click', () => {
+    wasm.next_level_penpen();
+    clearScreen.classList.add('hidden');
+});
+
+document.getElementById('btn-retry').addEventListener('click', () => {
+    wasm.reset_game_penpen();
+    gameoverScreen.classList.add('hidden');
+});
+
+main().catch(err => {
+    loadingEl.innerHTML = `<p style="color:#ff3b30">ERROR: ${err}</p>`;
+});
+</script>
+</body>
+</html>

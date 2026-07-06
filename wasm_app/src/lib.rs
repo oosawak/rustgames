@@ -22,6 +22,8 @@ pub mod font;
 pub mod blaster;
 pub mod earthdef;
 pub mod pacman;
+pub mod penpen;
+pub mod penpen2;
 pub mod animal_puzzle;
 pub mod sokoban;
 pub mod vrm;
@@ -487,4 +489,3 @@ pub fn debug_log_clear_msx() {
         }
     });
 }
-

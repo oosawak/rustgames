@@ -135,7 +135,7 @@ pub fn build_scene(g: &EarthDefGame) -> (Vec<Vertex>, Vec<u32>) {
         let sy = r * phi.sin();
         let sz = r * phi.cos() * theta.cos();
         // Twinkle: random speed and phase per star, including brief dim moments
-        let twinkle = (0.3 + 0.7 * ((g.time * (1.5 + phase * 5.0) + phase * TAU).sin() * 0.5 + 0.5));
+        let twinkle = 0.3 + 0.7 * ((g.time * (1.5 + phase * 5.0) + phase * TAU).sin() * 0.5 + 0.5);
         let bright = base_b * twinkle;
         // Slight warm/cool tint
         let rc = (bright + hue * 0.25).min(1.0);

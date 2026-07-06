@@ -1,0 +1,47 @@
+[package]
+name = "penpen_wasm"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+embed-font = []
+
+[dependencies]
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+bytemuck = { version = "1", features = ["derive"] }
+console_error_panic_hook = "0.1"
+
+[dependencies.wgpu]
+version = "0.19"
+default-features = false
+features = ["webgl", "wgsl"]
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+    "Window",
+    "Document",
+    "Element",
+    "HtmlCanvasElement",
+    "CanvasRenderingContext2d",
+    "Storage",
+    "console",
+]
+
+[profile.release]
+opt-level = 'z'
+lto = true
+codegen-units = 1
+panic = 'abort'
+strip = true
+
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-O4", "--enable-bulk-memory", "--enable-nontrapping-float-to-int"]

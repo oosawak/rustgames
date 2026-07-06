@@ -76,7 +76,7 @@ impl BlasterGame {
             .get_element_by_id(canvas_id).unwrap()
             .dyn_into::<web_sys::HtmlCanvasElement>()
             .map_err(|_| "canvas cast failed")?;
-        let gpu = GpuState::new(canvas).await?;
+        let gpu = GpuState::new(canvas, true).await?;
         Ok(Self {
             gpu,
             scene: BlasterScene::Title,
