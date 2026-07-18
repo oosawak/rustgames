@@ -101,6 +101,11 @@ pub fn player_y_roguelike() -> i32 {
 }
 
 #[wasm_bindgen]
+pub fn player_direction_roguelike() -> i32 {
+    ROGUELIKE_STATE.with(|s| s.borrow().as_ref().map(|g| g.player_direction).unwrap_or(0))
+}
+
+#[wasm_bindgen]
 pub fn map_data_roguelike() -> Vec<u8> {
     ROGUELIKE_STATE.with(|s| {
         if let Some(g) = s.borrow().as_ref() {

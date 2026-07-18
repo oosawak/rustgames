@@ -18,6 +18,16 @@ pub struct Room {
     pub height: i32,
 }
 
+pub struct Projectile {
+    pub from_x: f64,
+    pub from_y: f64,
+    pub to_x: f64,
+    pub to_y: f64,
+    pub progress: f64,  // 0.0 to 1.0
+    pub proj_type: i32, // 0=attack, 1=magic
+    pub direction: i32, // 0=up, 1=left, 2=right, 3=down
+}
+
 pub struct RoguelikeGame {
     pub scene: RogueScene,
     pub depth: u32,
@@ -38,6 +48,9 @@ pub struct RoguelikeGame {
     pub visited: Vec<Vec<bool>>,
     pub player_shake: u32,
     pub enemy_shake: Vec<u32>,
+    pub projectiles: Vec<Projectile>,
+    pub exp: u32,
+    pub next_level_exp: u32,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -88,6 +101,9 @@ impl RoguelikeGame {
             visited,
             player_shake: 0,
             enemy_shake: vec![],
+            projectiles: vec![],
+            exp: 0,
+            next_level_exp: 100,
         }
     }
 
@@ -225,7 +241,7 @@ impl RoguelikeGame {
                 [1.0, 0.5, 0.0],
                 [0.8, 0.2, 0.8],
             ];
-            let names = ["ゴブリン", "オーク", "スケルトン"];
+            let names = ["Goblin", "Troll", "Ghost"];
             self.enemies.push(Enemy {
                 x: ex,
                 y: ey,
@@ -250,7 +266,40 @@ impl RoguelikeGame {
             return;
         }
 
-        // action: 0=up, 1=left, 2=right, 3=down
+        // action: 0=up, 1=left, 2=right, 3=down, 4=magic
+        if action == 4 {
+            // Magic attack - consumes MP
+            let magic_cost: u32 = 5;
+            if self.mp < magic_cost {
+                self.add_message("MPが足りません".to_string());
+                return;
+            }
+
+            self.mp -= magic_cost;
+
+            // Magic attack in player direction
+            let (dx, dy) = match self.player_direction {
+                0 => (0, -18),  // up
+                1 => (-18, 0),  // left
+                2 => (18, 0),   // right
+                3 => (0, 18),   // down
+                _ => (0, 0),
+            };
+            let target_x = (self.player_x + dx) as f64;
+            let target_y = (self.player_y + dy) as f64;
+            self.projectiles.push(Projectile {
+                from_x: self.player_x as f64,
+                from_y: self.player_y as f64,
+                to_x: target_x,
+                to_y: target_y,
+                progress: 0.0,
+                proj_type: 1,  // magic
+                direction: self.player_direction,
+            });
+            self.add_message("魔法を放った！".to_string());
+            return;
+        }
+
         self.player_direction = action;
 
         let (dx, dy) = match action {
@@ -279,6 +328,7 @@ impl RoguelikeGame {
 
                 if self.enemies[i].hp == 0 {
                     self.add_message("敵を倒した！".to_string());
+                    self.gain_exp(10);
                     self.enemies.remove(i);
                     self.enemy_shake.remove(i);
                 }
@@ -403,6 +453,24 @@ impl RoguelikeGame {
         }
     }
 
+    fn gain_exp(&mut self, amount: u32) {
+        self.exp += amount;
+        while self.exp >= self.next_level_exp {
+            self.exp -= self.next_level_exp;
+            self.level_up();
+        }
+    }
+
+    fn level_up(&mut self) {
+        self.level += 1;
+        self.max_hp += 10;
+        self.max_mp += 5;
+        self.hp = self.max_hp;
+        self.mp = self.max_mp;
+        self.next_level_exp = self.level * 50;
+        self.add_message(format!("レベルアップ！LV{}", self.level));
+    }
+
     pub fn tick(&mut self, _ts: f64) {
         // 震える時間を減らす
         if self.player_shake > 0 {
@@ -414,6 +482,77 @@ impl RoguelikeGame {
                 *shake -= 1;
             }
         }
+
+        // Update projectiles
+        for projectile in self.projectiles.iter_mut() {
+            projectile.progress += 0.008;
+        }
+
+        // Check magic collision with enemies and damage them
+        let mut hit_projectiles = std::collections::HashSet::new();
+        for (proj_idx, projectile) in self.projectiles.iter().enumerate() {
+            if projectile.proj_type == 1 && projectile.progress > 0.1 {  // magic
+                let current_x = projectile.from_x + (projectile.to_x - projectile.from_x) * projectile.progress;
+                let current_y = projectile.from_y + (projectile.to_y - projectile.from_y) * projectile.progress;
+                let map_x = current_x as i32;
+                let map_y = current_y as i32;
+
+                // Check enemy collision and damage
+                for i in 0..self.enemies.len() {
+                    if self.enemies[i].x == map_x && self.enemies[i].y == map_y {
+                        self.enemies[i].hp = (self.enemies[i].hp as i32 - 5).max(0) as u32;
+                        hit_projectiles.insert(proj_idx);
+
+                        if self.enemies[i].hp == 0 {
+                            self.enemy_shake[i] = 5;
+                        } else {
+                            self.enemy_shake[i] = 3;
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Add messages after the loop and gain exp
+        for i in 0..self.enemies.len() {
+            if self.enemy_shake[i] == 5 {
+                self.add_message("敵を倒した！".to_string());
+                self.gain_exp(10);
+                break;
+            }
+        }
+
+        // Remove dead enemies
+        self.enemies.retain(|e| e.hp > 0);
+        self.enemy_shake.truncate(self.enemies.len());
+
+        // Check magic collision with walls
+        self.projectiles.retain(|p| {
+            if p.proj_type == 1 {  // magic
+                // Only check collision after progress > 0.1 to avoid colliding with starting position
+                if p.progress > 0.1 {
+                    let current_x = p.from_x + (p.to_x - p.from_x) * p.progress;
+                    let current_y = p.from_y + (p.to_y - p.from_y) * p.progress;
+                    let map_x = current_x as i32;
+                    let map_y = current_y as i32;
+
+                    // Check wall collision
+                    if map_x < 0 || map_x >= self.map_width || map_y < 0 || map_y >= self.map_height {
+                        return false;  // Out of bounds
+                    }
+
+                    let tile = self.map[map_y as usize][map_x as usize];
+                    if tile == TileType::Wall {
+                        return false;  // Hit wall
+                    }
+                }
+
+                p.progress < 1.0
+            } else {
+                p.progress < 1.0
+            }
+        });
     }
 
     pub fn add_message(&mut self, msg: String) {
@@ -453,11 +592,11 @@ impl RoguelikeGame {
             }
         }
 
-        // プレイヤーを最初の部屋に配置
+        // プレイヤーを上り階段の場所に配置
         if !self.rooms.is_empty() {
             let room = &self.rooms[0];
-            self.player_x = room.x + room.width / 2;
-            self.player_y = room.y + room.height / 2;
+            self.player_x = (room.x + 1).max(0).min(self.map_width - 1);
+            self.player_y = (room.y + 1).max(0).min(self.map_height - 1);
         }
 
         // 敵を配置
@@ -474,7 +613,7 @@ impl RoguelikeGame {
                 [1.0, 0.5, 0.0],
                 [0.8, 0.2, 0.8],
             ];
-            let names = ["ゴブリン", "オーク", "スケルトン"];
+            let names = ["Goblin", "Troll", "Ghost"];
             self.enemies.push(Enemy {
                 x: ex,
                 y: ey,
@@ -517,11 +656,11 @@ impl RoguelikeGame {
             }
         }
 
-        // プレイヤーを最後の部屋に配置
+        // プレイヤーを下り階段の場所に配置
         if self.rooms.len() > 1 {
             let room = &self.rooms[self.rooms.len() - 1];
-            self.player_x = room.x + room.width / 2;
-            self.player_y = room.y + room.height / 2;
+            self.player_x = (room.x + room.width - 2).max(0).min(self.map_width - 1);
+            self.player_y = (room.y + room.height - 2).max(0).min(self.map_height - 1);
         }
 
         // 敵を配置
@@ -538,7 +677,7 @@ impl RoguelikeGame {
                 [1.0, 0.5, 0.0],
                 [0.8, 0.2, 0.8],
             ];
-            let names = ["ゴブリン", "オーク", "スケルトン"];
+            let names = ["Goblin", "Troll", "Ghost"];
             self.enemies.push(Enemy {
                 x: ex,
                 y: ey,
@@ -643,7 +782,7 @@ pub fn render_canvas(game: &RoguelikeGame, canvas_id: &str, width: i32, height: 
                 }
 
                 // Draw enemies
-                let enemy_icons = ["\u{e9a2}", "\u{ea43}", "\u{eaa1}"];  // dragon, monster-skull, skull
+                let enemy_icon_ids = ["goblin-icon", "troll-icon", "ghost-icon"];
                 for (i, enemy) in game.enemies.iter().enumerate() {
                     if enemy.x >= camera_x && enemy.x < camera_x + view_width
                         && enemy.y >= camera_y && enemy.y < camera_y + view_height
@@ -660,16 +799,27 @@ pub fn render_canvas(game: &RoguelikeGame, canvas_id: &str, width: i32, height: 
                             shake_offset_y = shake;
                         }
 
-                        let color = format!("rgb({},{},{})",
-                            (enemy.color[0] * 255.0) as i32,
-                            (enemy.color[1] * 255.0) as i32,
-                            (enemy.color[2] * 255.0) as i32
-                        );
-                        ctx.set_fill_style(&color.into());
-                        ctx.set_font(&format!("{}px 'RPGAwesome'", font_size as i32));
-                        let icon_x = screen_x + (cell_w - font_size) * 0.5 + shake_offset_x;
-                        let icon_y = screen_y + (cell_h + font_size * 0.7) * 0.5 + shake_offset_y;
-                        ctx.fill_text(enemy_icons[i % 3], icon_x, icon_y).ok();
+                        // Draw enemy icon
+                        if let Ok(img_elem) = window.document().unwrap()
+                            .get_element_by_id(enemy_icon_ids[i % 3])
+                            .unwrap()
+                            .dyn_into::<web_sys::HtmlImageElement>()
+                        {
+                            let icon_x = screen_x + cell_w * 0.5 + shake_offset_x;
+                            let icon_y = screen_y + cell_h * 0.5 + shake_offset_y;
+                            let icon_size = cell_w * 0.6;
+
+                            ctx.save();
+                            ctx.translate(icon_x, icon_y).ok();
+                            ctx.draw_image_with_html_image_element_and_dw_and_dh(
+                                &img_elem,
+                                -icon_size * 0.5,
+                                -icon_size * 0.5,
+                                icon_size,
+                                icon_size
+                            ).ok();
+                            ctx.restore();
+                        }
                     }
                 }
 
@@ -714,6 +864,42 @@ pub fn render_canvas(game: &RoguelikeGame, canvas_id: &str, width: i32, height: 
                     ctx.restore();
                 }
 
+                // Draw magic projectiles
+                for projectile in game.projectiles.iter() {
+                    let current_x = projectile.from_x + (projectile.to_x - projectile.from_x) * projectile.progress;
+                    let current_y = projectile.from_y + (projectile.to_y - projectile.from_y) * projectile.progress;
+
+                    let screen_x = (current_x - camera_x as f64) * cell_w;
+                    let screen_y = (current_y - camera_y as f64) * cell_h;
+                    let icon_x = screen_x + cell_w * 0.5;
+                    let icon_y = screen_y + cell_h * 0.5;
+
+                    ctx.save();
+
+                    // Draw magic as a glowing orb (cyan) - shrinks as it travels
+                    let size_factor = 1.0 - projectile.progress;
+
+                    // Glow effect
+                    ctx.set_fill_style(&"rgba(0,255,255,0.2)".into());
+                    ctx.begin_path();
+                    ctx.arc(icon_x, icon_y, cell_w * 0.2 * size_factor, 0.0, std::f64::consts::PI * 2.0).ok();
+                    ctx.fill();
+
+                    // Core orb
+                    ctx.set_fill_style(&"#0ff".into());
+                    ctx.begin_path();
+                    ctx.arc(icon_x, icon_y, cell_w * 0.12 * size_factor, 0.0, std::f64::consts::PI * 2.0).ok();
+                    ctx.fill();
+
+                    // Bright center
+                    ctx.set_fill_style(&"#fff".into());
+                    ctx.begin_path();
+                    ctx.arc(icon_x, icon_y, cell_w * 0.05 * size_factor, 0.0, std::f64::consts::PI * 2.0).ok();
+                    ctx.fill();
+
+                    ctx.restore();
+                }
+
                 // Draw HP bar at top
                 ctx.set_fill_style(&"#333".into());
                 ctx.fill_rect(5.0, 5.0, 150.0, 30.0);
@@ -741,18 +927,20 @@ pub fn render_canvas(game: &RoguelikeGame, canvas_id: &str, width: i32, height: 
                         // HP above
                         ctx.set_fill_style(&"#fff".into());
                         ctx.set_font("8px monospace");
+                        ctx.set_text_align("center");
                         ctx.fill_text(
                             &format!("HP:{}", enemy.hp),
-                            screen_x + 2.0,
+                            screen_x + cell_w * 0.5,
                             screen_y - 5.0,
                         ).ok();
 
                         // Name below
                         ctx.set_fill_style(&"#aaf".into());
                         ctx.set_font("7px monospace");
+                        ctx.set_text_align("center");
                         ctx.fill_text(
                             &enemy.name,
-                            screen_x + 2.0,
+                            screen_x + cell_w * 0.5,
                             screen_y + cell_h + 10.0,
                         ).ok();
                     }

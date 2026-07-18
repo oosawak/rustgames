@@ -481,6 +481,9 @@ html, body {
 <div style="position: absolute; left: -9999px;">
   <img id="player-icon" src="./icons/cathelineau/swordman.png" width="64" height="64">
   <img id="stairs-icon" src="./icons/delapouite/3d-stairs.png" width="64" height="64">
+  <img id="goblin-icon" src="./icons/caro-asercion/goblin.png" width="64" height="64">
+  <img id="troll-icon" src="./icons/lorc/daemon-skull.png" width="64" height="64">
+  <img id="ghost-icon" src="./icons/lorc/ghost.png" width="64" height="64">
 </div>
 
 <!-- Loading screen -->
@@ -546,6 +549,28 @@ html, body {
   <div id="canvas-wrap">
     <canvas id="game-canvas"></canvas>
   </div>
+
+  <!-- Movement joystick (mobile) -->
+  <!-- Magic button (left side) -->
+  <button id="magic-button" style="position: fixed; bottom: 60px; left: 10px; z-index: 50; display: none; width: 120px; height: 120px; background: rgba(0,255,255,0.2); border: 2px solid #0ff; border-radius: 50%; color: #0ff; font-weight: bold; cursor: pointer; font-size: 40px;">✨</button>
+
+  <!-- Movement joystick (right side) -->
+  <div id="movement-joystick" style="position: fixed; bottom: 60px; right: 10px; z-index: 50; display: none; width: 120px; height: 120px; background: rgba(0,200,255,0.2); border: 2px solid #0ff; border-radius: 50%; padding: 10px;">
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; height: 100%;">
+      <div></div>
+      <button id="btn-up" style="background: rgba(0,200,255,0.6); border: 1px solid rgba(0,200,255,0.6); border-radius: 3px; color: #0ff; font-weight: bold; cursor: pointer;">↑</button>
+      <div></div>
+      <button id="btn-left" style="background: rgba(0,200,255,0.6); border: 1px solid rgba(0,200,255,0.6); border-radius: 3px; color: #0ff; font-weight: bold; cursor: pointer;">←</button>
+      <div></div>
+      <button id="btn-right" style="background: rgba(0,200,255,0.6); border: 1px solid rgba(0,200,255,0.6); border-radius: 3px; color: #0ff; font-weight: bold; cursor: pointer;">→</button>
+      <div></div>
+      <button id="btn-down" style="background: rgba(0,200,255,0.6); border: 1px solid rgba(0,200,255,0.6); border-radius: 3px; color: #0ff; font-weight: bold; cursor: pointer;">↓</button>
+      <div></div>
+    </div>
+  </div>
+
+  <!-- Toggle button to swap positions -->
+  <button id="swap-button" style="position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%); z-index: 50; width: 60px; height: 60px; background: rgba(0,200,255,0.6); border: 2px solid #0ff; border-radius: 5px; color: #0ff; font-weight: bold; cursor: pointer; font-size: 24px; display: flex; align-items: center; justify-content: center;">⇆</button>
 
   <!-- Navigation bar (bottom) -->
   <div id="nav-bar">
@@ -625,6 +650,9 @@ async function start() {
       audio.ensure();
       document.getElementById('title-screen').style.display = 'none';
       document.getElementById('nav-bar').style.display = 'flex';
+      document.getElementById('movement-joystick').style.display = 'flex';
+      document.getElementById('magic-button').style.display = 'block';
+      document.getElementById('swap-button').style.display = 'block';
 
       const isLandscape = window.innerHeight < window.innerWidth;
       const tabContent = document.getElementById('tab-content');
@@ -644,7 +672,139 @@ async function start() {
 
     document.getElementById('btn-retry').addEventListener('click', () => {
       document.getElementById('game-over').style.display = 'none';
+      document.getElementById('movement-joystick').style.display = 'flex';
+      document.getElementById('magic-button').style.display = 'block';
+      document.getElementById('swap-button').style.display = 'block';
       wasm.start_game_roguelike();
+    });
+
+    // Movement joystick swipe detection
+    const joystick = document.getElementById('movement-joystick');
+    let joystickTouchStart = { x: 0, y: 0 };
+
+    joystick.addEventListener('touchstart', (e) => {
+      const touch = e.touches[0];
+      joystickTouchStart = { x: touch.clientX, y: touch.clientY };
+    });
+
+    joystick.addEventListener('touchend', (e) => {
+      if (e.changedTouches.length === 0) return;
+      const touch = e.changedTouches[0];
+      const dx = touch.clientX - joystickTouchStart.x;
+      const dy = touch.clientY - joystickTouchStart.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < 10) return; // Minimum swipe distance
+
+      const angle = Math.atan2(dy, dx);
+      // 0=right, π/2=down, π/-π=left, -π/2=up
+      if (angle > -Math.PI / 4 && angle < Math.PI / 4) {
+        wasm.move_roguelike(2); // right
+      } else if (angle >= Math.PI / 4 && angle < 3 * Math.PI / 4) {
+        wasm.move_roguelike(3); // down
+      } else if (angle >= 3 * Math.PI / 4 || angle < -3 * Math.PI / 4) {
+        wasm.move_roguelike(1); // left
+      } else {
+        wasm.move_roguelike(0); // up
+      }
+    });
+
+
+    // Movement joystick buttons with continuous movement
+    let pressedButtons = new Set();
+    let moveInterval = null;
+    let shiftPressed = false;
+    const MOVE_SPEED = 200; // 200ms between moves
+
+    const buttons = [
+      { id: 'btn-up', action: 0 },
+      { id: 'btn-left', action: 1 },
+      { id: 'btn-right', action: 2 },
+      { id: 'btn-down', action: 3 }
+    ];
+
+    // Track Shift key state
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Shift') {
+        shiftPressed = true;
+      }
+    });
+
+    document.addEventListener('keyup', (e) => {
+      if (e.key === 'Shift') {
+        shiftPressed = false;
+      }
+    });
+
+    const startContinuousMove = () => {
+      if (moveInterval) clearInterval(moveInterval);
+      moveInterval = setInterval(() => {
+        // Don't move if Shift key is pressed (reserved for magic)
+        if (initialized && pressedButtons.size > 0 && !shiftPressed) {
+          // Move in the last pressed direction
+          const lastButton = Array.from(pressedButtons)[pressedButtons.size - 1];
+          const btn = buttons.find(b => b.id === lastButton);
+          if (btn) wasm.move_roguelike(btn.action);
+        }
+      }, MOVE_SPEED);
+    };
+
+    buttons.forEach(btn => {
+      const element = document.getElementById(btn.id);
+      element.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        pressedButtons.add(btn.id);
+        startContinuousMove();
+      });
+      element.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        pressedButtons.add(btn.id);
+        startContinuousMove();
+      });
+    });
+
+    // Handle mouseup and touchend globally
+    document.addEventListener('mouseup', () => {
+      pressedButtons.clear();
+      if (moveInterval) clearInterval(moveInterval);
+      moveInterval = null;
+    });
+
+    document.addEventListener('touchend', () => {
+      pressedButtons.clear();
+      if (moveInterval) clearInterval(moveInterval);
+      moveInterval = null;
+    });
+
+    // Magic button
+    const magicButton = document.getElementById('magic-button');
+    magicButton.addEventListener('click', () => {
+      if (initialized) wasm.move_roguelike(4);
+    });
+    magicButton.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (initialized) wasm.move_roguelike(4);
+    });
+
+    // Swap buttons position
+    const swapButton = document.getElementById('swap-button');
+    let swapped = false;
+    swapButton.addEventListener('click', () => {
+      swapped = !swapped;
+      const joystick = document.getElementById('movement-joystick');
+      const magic = document.getElementById('magic-button');
+
+      if (swapped) {
+        joystick.style.left = '10px';
+        joystick.style.right = 'auto';
+        magic.style.right = '10px';
+        magic.style.left = 'auto';
+      } else {
+        joystick.style.right = '10px';
+        joystick.style.left = 'auto';
+        magic.style.left = '10px';
+        magic.style.right = 'auto';
+      }
     });
 
     // Setup navigation tabs
@@ -652,6 +812,14 @@ async function start() {
 
     // Initialize first tab content
     updateTabContent('status');
+
+    // Spacebar for magic
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' && initialized) {
+        e.preventDefault();
+        wasm.move_roguelike(4);  // magic attack in player direction
+      }
+    });
 
     requestAnimationFrame(gameLoop);
   } catch (e) {
@@ -717,6 +885,28 @@ function updateStatus() {
   } else {
     document.getElementById('game-over').style.display = 'none';
   }
+
+  // Update joystick button border colors based on player direction
+  const direction = wasm.player_direction_roguelike();
+  const buttons = [
+    { id: 'btn-up', dir: 0 },
+    { id: 'btn-left', dir: 1 },
+    { id: 'btn-right', dir: 2 },
+    { id: 'btn-down', dir: 3 }
+  ];
+
+  buttons.forEach(btn => {
+    const element = document.getElementById(btn.id);
+    if (element) {
+      if (btn.dir === direction) {
+        element.style.borderColor = '#0ff';
+        element.style.borderWidth = '3px';
+      } else {
+        element.style.borderColor = 'rgba(0,200,255,0.4)';
+        element.style.borderWidth = '2px';
+      }
+    }
+  });
 }
 
 // ── Flash swipe hint ───────────────────────────────
