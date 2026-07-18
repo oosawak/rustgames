@@ -25,7 +25,6 @@ pub mod pacman;
 pub mod penpen;
 pub mod penpen2;
 pub mod animal_puzzle;
-pub mod sokoban;
 pub mod vrm;
 
 use wasm_bindgen::prelude::*;

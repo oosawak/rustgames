@@ -1,5 +1,5 @@
 [workspace]
-members = ["engine", "ffi_bridge", "game_logic", "native_app", "wasm_app"]
+members = ["engine", "ffi_bridge", "game_logic", "native_app", "wasm_app", "wasm_roguelike"]
 resolver = "2"
 
 [workspace.package]

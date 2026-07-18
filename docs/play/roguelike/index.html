@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Roguelike Dungeon – 3D ダンジョン</title>
+<link rel="stylesheet" href="../../engine.css">
+<style>
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0; padding: 0;
+  width: 100%; height: 100%;
+  background: #000;
+  font-family: 'GenInterfaceJP', monospace;
+  overflow: hidden;
+}
+
+/* ── Main container ── */
+#container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  padding-bottom: 50px;
+}
+
+/* ── Upper HUD (50%) ── */
+#ui-upper {
+  display: none;
+}
+
+/* ── Canvas area (50%) ── */
+#canvas-wrap {
+  flex: 0 0 50%;
+  position: relative;
+  background: #000;
+}
+
+/* ── Status panel ── */
+#status-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  font-size: 0.9em;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-label {
+  color: #0ff;
+  font-size: 0.75em;
+  text-shadow: 0 0 6px #0ff;
+  opacity: 0.7;
+}
+
+.stat-value {
+  color: #0ff;
+  font-size: 1.2em;
+  font-weight: bold;
+  text-shadow: 0 0 8px #0ff;
+}
+
+.stat-bar {
+  width: 100%;
+  height: 12px;
+  background: rgba(0, 40, 60, 0.8);
+  border: 1px solid rgba(0, 200, 255, 0.3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.stat-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00aaff, #00ffff);
+  transition: width 0.3s;
+  width: 100%;
+}
+
+#hp-bar { --hp: 100; }
+#mp-bar { --mp: 100; }
+
+/* ── Message log ── */
+#message-log {
+  border-top: 1px solid rgba(0, 200, 255, 0.2);
+  margin-top: 8px;
+  padding-top: 8px;
+  font-size: 0.8em;
+  color: #aaa;
+  max-height: 50px;
+  overflow-y: auto;
+  line-height: 1.4;
+}
+
+.msg-text {
+  color: #aaf;
+  text-shadow: 0 0 4px #0ff;
+  margin: 2px 0;
+}
+
+/* ── Canvas area (50%) ── */
+#canvas-wrap {
+  flex: 0 0 50%;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #000;
+}
+
+#game-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ── Swipe hints ── */
+#swipe-hint {
+  position: fixed;
+  bottom: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 80px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+#swipe-hint .sh-arrow {
+  position: absolute;
+  font-size: 2em;
+  color: rgba(0, 255, 255, 0.2);
+  text-shadow: 0 0 8px rgba(0, 255, 255, 0.3);
+  font-weight: bold;
+}
+
+#swipe-hint .sh-up    { top: 0; left: 50%; transform: translateX(-50%); }
+#swipe-hint .sh-down  { bottom: 0; left: 50%; transform: translateX(-50%); }
+#swipe-hint .sh-left  { left: 0; top: 50%; transform: translateY(-50%); }
+#swipe-hint .sh-right { right: 0; top: 50%; transform: translateY(-50%); }
+
+#swipe-hint .sh-arrow.flash {
+  color: rgba(0, 255, 255, 0.9);
+  text-shadow: 0 0 16px rgba(0, 255, 255, 0.8);
+  animation: flash 0.2s;
+}
+
+@keyframes flash {
+  0% { opacity: 1; }
+  100% { opacity: 0.3; }
+}
+
+/* ── Title screen ── */
+#title-screen {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  color: #0ff;
+  text-shadow: 0 0 20px #0ff;
+}
+
+#title-screen h1 {
+  font-size: clamp(2em, 8vw, 3.5em);
+  margin: 0 0 16px;
+  animation: pulse 0.8s infinite alternate;
+}
+
+#title-screen p {
+  margin: 8px 0;
+  font-size: 1em;
+}
+
+#title-screen button {
+  margin-top: 24px;
+  padding: 12px 32px;
+  background: transparent;
+  border: 2px solid #0ff;
+  color: #0ff;
+  font-family: 'GenInterfaceJP', monospace;
+  font-size: 1.1em;
+  cursor: pointer;
+  text-shadow: 0 0 8px #0ff;
+  box-shadow: 0 0 16px #0ff;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+#title-screen button:active {
+  background: rgba(0, 255, 255, 0.2);
+}
+
+@keyframes pulse {
+  from { opacity: 0.8; }
+  to { opacity: 1; text-shadow: 0 0 30px #0ff, 0 0 60px #0ff; }
+}
+
+/* ── Game Over screen ── */
+#game-over {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.92);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+#game-over h2 {
+  color: #f44;
+  font-size: 2.5em;
+  text-shadow: 0 0 20px #f44;
+  margin: 0 0 12px;
+  animation: pulse 0.5s infinite alternate;
+}
+
+#game-over p {
+  color: #f88;
+  font-size: 1.2em;
+  margin-bottom: 24px;
+}
+
+#game-over button {
+  padding: 12px 32px;
+  background: transparent;
+  border: 2px solid #f44;
+  color: #f44;
+  font-family: 'GenInterfaceJP', monospace;
+  font-size: 1.1em;
+  cursor: pointer;
+  text-shadow: 0 0 8px #f44;
+  box-shadow: 0 0 16px #f44;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+#game-over button:active {
+  background: rgba(244, 68, 68, 0.2);
+}
+
+/* ── Loading screen ── */
+#loading {
+  position: fixed;
+  inset: 0;
+  background: #000008;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  color: #0ff;
+  font-size: 1.2em;
+  text-shadow: 0 0 8px #0ff;
+}
+
+.spin {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(0, 200, 255, 0.2);
+  border-top-color: #0ff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Navigation bar ── */
+#nav-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 50px;
+  background: rgba(0, 20, 40, 0.95);
+  border-top: 2px solid rgba(0, 200, 255, 0.4);
+  display: none;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 100;
+}
+
+.nav-btn {
+  flex: 1;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: rgba(0, 200, 255, 0.6);
+  font-family: 'GenInterfaceJP', monospace;
+  font-size: 0.7em;
+  cursor: pointer;
+  text-shadow: 0 0 4px rgba(0, 200, 255, 0.3);
+  transition: all 0.2s;
+  border-bottom: 3px solid transparent;
+  white-space: nowrap;
+}
+
+.nav-btn:hover {
+  color: #0ff;
+  text-shadow: 0 0 8px #0ff;
+}
+
+.nav-btn.active {
+  color: #0ff;
+  text-shadow: 0 0 8px #0ff;
+  border-bottom-color: #0ff;
+  background: rgba(0, 255, 255, 0.05);
+}
+
+/* ── Tab panels ── */
+#tab-content {
+  background: rgba(0, 0, 20, 0.8);
+  border-bottom: 2px solid rgba(0, 200, 255, 0.3);
+  overflow-y: auto;
+  padding: 12px;
+  display: none;
+}
+
+/* ── Portrait mode (default) ── */
+@media (orientation: portrait) {
+  #container {
+    flex-direction: column;
+  }
+
+  #tab-content {
+    order: -1;
+    flex: 0 0 50%;
+  }
+
+  #canvas-wrap {
+    flex: 1;
+    order: 0;
+  }
+
+  #nav-bar {
+    order: 1;
+    height: 50px;
+  }
+}
+
+.tab-panel {
+  display: none;
+  padding: 16px;
+  color: #aaf;
+  font-size: 0.9em;
+  line-height: 1.6;
+  width: 100%;
+}
+
+.tab-panel.active {
+  display: block;
+}
+
+/* ── Mobile responsive ── */
+@media (max-width: 768px) {
+  #ui-upper {
+    flex: 0 0 45%;
+  }
+  #canvas-wrap {
+    flex: 0 0 55%;
+  }
+
+  #status-panel {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  #nav-bar {
+    height: 45px;
+  }
+
+  #tab-content {
+    bottom: 45px;
+  }
+}
+
+@media (orientation: landscape) {
+  #container {
+    flex-direction: row;
+  }
+
+  #ui-upper {
+    display: none;
+  }
+
+  #status-panel {
+    grid-template-columns: 1fr;
+  }
+
+  #tab-content {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 50%;
+    height: 100%;
+    border-right: 2px solid rgba(0, 200, 255, 0.3);
+    display: flex;
+    flex-direction: column;
+    padding-top: 0;
+    order: auto;
+  }
+
+  #canvas-wrap {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 50% !important;
+    height: calc(100% - 50px) !important;
+    order: auto;
+    z-index: 1;
+  }
+
+  #nav-bar {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    width: 50%;
+    height: 50px;
+    border-top: 2px solid rgba(0, 200, 255, 0.4);
+    border-left: 2px solid rgba(0, 200, 255, 0.4);
+    flex-direction: row;
+  }
+
+  .tab-panel {
+    display: none;
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+  }
+
+  .tab-panel.active {
+    display: block;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- Loading screen -->
+<div id="loading">
+  <div>
+    <div class="spin"></div>
+    <p style="margin-top: 14px">ロード中...</p>
+  </div>
+</div>
+
+<!-- Title screen -->
+<div id="title-screen">
+  <h1>⚔️ ローグライク</h1>
+  <p>ダンジョンの最奥を目指せ</p>
+  <button id="btn-start">▶ スタート</button>
+</div>
+
+<!-- Game Over screen -->
+<div id="game-over">
+  <h2>💀 ゲームオーバー 💀</h2>
+  <p id="game-over-msg">敵に倒されてしまった</p>
+  <button id="btn-retry">↺ リスタート</button>
+</div>
+
+<!-- Main container -->
+<div id="container">
+  <!-- Upper HUD (Status and Messages) -->
+  <div id="ui-upper">
+    <div id="status-panel">
+      <div class="stat-item">
+        <span class="stat-label">HP</span>
+        <div class="stat-bar">
+          <div id="hp-bar" class="stat-bar-fill"></div>
+        </div>
+        <span class="stat-value"><span id="hp-current">50</span> / <span id="hp-max">50</span></span>
+      </div>
+
+      <div class="stat-item">
+        <span class="stat-label">MP</span>
+        <div class="stat-bar">
+          <div id="mp-bar" class="stat-bar-fill"></div>
+        </div>
+        <span class="stat-value"><span id="mp-current">30</span> / <span id="mp-max">30</span></span>
+      </div>
+
+      <div class="stat-item">
+        <span class="stat-label">LV</span>
+        <span class="stat-value" id="level-display">1</span>
+      </div>
+
+      <div class="stat-item">
+        <span class="stat-label">DEPTH</span>
+        <span class="stat-value" id="depth-display">F1</span>
+      </div>
+    </div>
+
+    <div id="message-log">
+      <div class="msg-text">ダンジョンに入った...</div>
+    </div>
+  </div>
+
+  <!-- Canvas area (Map/3D viewport) -->
+  <div id="canvas-wrap">
+    <canvas id="game-canvas"></canvas>
+  </div>
+
+  <!-- Navigation bar (bottom) -->
+  <div id="nav-bar">
+    <button class="nav-btn active" data-tab="status">📊 ステータス</button>
+    <button class="nav-btn" data-tab="equipment">⚔️ 装備</button>
+    <button class="nav-btn" data-tab="items">🎒 アイテム</button>
+    <button class="nav-btn" data-tab="map">🗺️ マップ</button>
+  </div>
+
+  <!-- Tab contents -->
+  <div id="tab-content">
+    <div id="tab-status" class="tab-panel active"></div>
+    <div id="tab-equipment" class="tab-panel"></div>
+    <div id="tab-items" class="tab-panel"></div>
+    <div id="tab-map" class="tab-panel">
+      <canvas id="dungeon-map" style="width: 100%; height: 100%; display: block;"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Swipe hints -->
+<div id="swipe-hint">
+  <span class="sh-arrow sh-up">▲</span>
+  <span class="sh-arrow sh-down">▼</span>
+  <span class="sh-arrow sh-left">◀</span>
+  <span class="sh-arrow sh-right">▶</span>
+</div>
+
+<script type="module">
+import init, * as wasm from './wasm/wasm_roguelike.js';
+import { FontLoader, AudioEngine, InputManager } from '../../engine.js';
+
+// ── Constants ──────────────────────────────────────────
+const KEYMAP = {
+  ArrowUp: 0,    KeyW: 0,
+  ArrowDown: 3,  KeyS: 3,
+  ArrowLeft: 1,  KeyA: 1,
+  ArrowRight: 2, KeyD: 2,
+};
+
+// ── Engine instances ──────────────────────────────────
+const audio = new AudioEngine();
+const input = new InputManager({ swipeMin: 35 });
+
+// ── State ─────────────────────────────────────────────
+let initialized = false;
+
+// ── Init ──────────────────────────────────────────────
+async function start() {
+  try {
+    await init();
+
+    // Load font
+    await FontLoader.load('GenInterfaceJP', wasm);
+
+    // Initialize game
+    wasm.init_roguelike();
+
+    document.getElementById('loading').style.display = 'none';
+    initialized = true;
+
+    // Setup input
+    input.onAction(action => {
+      if (initialized) {
+        wasm.move_roguelike(action);
+      }
+    });
+
+    input.bindKeyboard(KEYMAP);
+    input.bindSwipe(['#ui-upper', '#canvas-wrap'], {
+      onStart: () => audio.ensure(),
+      onHint: flashHint,
+    });
+
+    // Setup buttons
+    document.getElementById('btn-start').addEventListener('click', () => {
+      audio.ensure();
+      document.getElementById('title-screen').style.display = 'none';
+      document.getElementById('nav-bar').style.display = 'flex';
+
+      const isLandscape = window.innerHeight < window.innerWidth;
+      const tabContent = document.getElementById('tab-content');
+
+      if (isLandscape) {
+        tabContent.style.display = 'flex';
+        const uiUpper = document.getElementById('ui-upper');
+        const uiHeight = uiUpper.offsetHeight;
+        tabContent.style.top = uiHeight + 'px';
+        tabContent.style.height = `calc(100% - ${uiHeight}px - 50px)`;
+      } else {
+        tabContent.style.display = 'flex';
+      }
+
+      wasm.start_game_roguelike();
+    });
+
+    document.getElementById('btn-retry').addEventListener('click', () => {
+      document.getElementById('game-over').style.display = 'none';
+      wasm.start_game_roguelike();
+    });
+
+    // Setup navigation tabs
+    setupNavigation();
+
+    // Initialize first tab content
+    updateTabContent('status');
+
+    requestAnimationFrame(gameLoop);
+  } catch (e) {
+    console.error('Failed to initialize:', e);
+    document.getElementById('loading').innerHTML = 'エラーが発生しました: ' + e.message;
+  }
+}
+
+// ── Game loop ──────────────────────────────────────
+function gameLoop() {
+  if (!initialized) return;
+
+  wasm.tick_roguelike(performance.now());
+
+  // Get canvas dimensions
+  const wrap = document.getElementById('canvas-wrap');
+  if (wrap && wrap.offsetWidth > 0 && wrap.offsetHeight > 0) {
+    // Render via WASM
+    wasm.render_roguelike('game-canvas', wrap.offsetWidth, wrap.offsetHeight);
+  }
+
+  // Update UI
+  updateStatus();
+
+  // Update map if map tab is active
+  const mapTab = document.getElementById('tab-map');
+  if (mapTab && mapTab.classList.contains('active')) {
+    drawDungeonMap();
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+// ── Update status display ──────────────────────────
+function updateStatus() {
+  const hp = wasm.hp_roguelike();
+  const maxHp = wasm.max_hp_roguelike();
+  const mp = wasm.mp_roguelike();
+  const maxMp = wasm.max_mp_roguelike();
+  const level = wasm.level_roguelike();
+  const depth = wasm.depth_roguelike();
+  const scene = wasm.scene_roguelike();
+
+  // Update HP bar
+  const hpPercent = maxHp > 0 ? (hp / maxHp) * 100 : 0;
+  document.getElementById('hp-bar').style.width = hpPercent + '%';
+  document.getElementById('hp-current').textContent = hp;
+  document.getElementById('hp-max').textContent = maxHp;
+
+  // Update MP bar
+  const mpPercent = maxMp > 0 ? (mp / maxMp) * 100 : 0;
+  document.getElementById('mp-bar').style.width = mpPercent + '%';
+  document.getElementById('mp-current').textContent = mp;
+  document.getElementById('mp-max').textContent = maxMp;
+
+  // Update level and depth
+  document.getElementById('level-display').textContent = level;
+  document.getElementById('depth-display').textContent = 'F' + depth;
+
+  // Handle game over
+  if (scene === 2) {
+    document.getElementById('game-over').style.display = 'flex';
+  } else {
+    document.getElementById('game-over').style.display = 'none';
+  }
+}
+
+// ── Flash swipe hint ───────────────────────────────
+function flashHint(action) {
+  const hints = ['sh-up', 'sh-left', 'sh-right', 'sh-down'];
+  const hint = document.querySelector(`.${hints[action]}`);
+  if (!hint) return;
+
+  hint.classList.add('flash');
+  setTimeout(() => {
+    hint.classList.remove('flash');
+  }, 200);
+}
+
+// ── Navigation setup ──────────────────────────────
+function setupNavigation() {
+  const navBtns = document.querySelectorAll('.nav-btn');
+
+  navBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tabName = btn.getAttribute('data-tab');
+
+      // Update active button
+      navBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      // Update active tab panel
+      document.querySelectorAll('.tab-panel').forEach(panel => {
+        panel.classList.remove('active');
+      });
+      document.getElementById(`tab-${tabName}`).classList.add('active');
+
+      // Update tab content
+      updateTabContent(tabName);
+
+      // Draw map if map tab
+      if (tabName === 'map') {
+        setTimeout(() => drawDungeonMap(), 100);
+      }
+    });
+  });
+}
+
+function updateTabContent(tabName) {
+  const panel = document.getElementById(`tab-${tabName}`);
+
+  switch (tabName) {
+    case 'status':
+      panel.innerHTML = `
+        <div style="padding: 16px;">
+          <div class="stat-item">
+            <span class="stat-label">HP</span>
+            <div class="stat-bar">
+              <div id="hp-bar" class="stat-bar-fill"></div>
+            </div>
+            <span class="stat-value"><span id="hp-current">50</span> / <span id="hp-max">50</span></span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">MP</span>
+            <div class="stat-bar">
+              <div id="mp-bar" class="stat-bar-fill"></div>
+            </div>
+            <span class="stat-value"><span id="mp-current">30</span> / <span id="mp-max">30</span></span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">LV</span>
+            <span class="stat-value" id="level-display">1</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">DEPTH</span>
+            <span class="stat-value" id="depth-display">F1</span>
+          </div>
+        </div>
+      `;
+      break;
+    case 'equipment':
+      panel.innerHTML = `
+        <div style="padding: 16px;">
+          <div class="stat-item">
+            <span class="stat-label">武器</span>
+            <span class="stat-value">なし</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">防具</span>
+            <span class="stat-value">なし</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">アクセサリ</span>
+            <span class="stat-value">なし</span>
+          </div>
+        </div>
+      `;
+      break;
+    case 'items':
+      panel.innerHTML = `
+        <div style="padding: 16px;">
+          <div class="stat-item">
+            <span class="stat-label">回復ポーション</span>
+            <span class="stat-value">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">鍵</span>
+            <span class="stat-value">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">宝石</span>
+            <span class="stat-value">0</span>
+          </div>
+        </div>
+      `;
+      break;
+    case 'map':
+      drawDungeonMap();
+      break;
+  }
+}
+
+// ── Draw dungeon map ──────────────────────────────
+function drawDungeonMap() {
+  const canvas = document.getElementById('dungeon-map');
+  if (!canvas) return;
+
+  const ctx = canvas.getContext('2d');
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+
+  // Get map data from WASM
+  const mapWidth = wasm.map_width_roguelike();
+  const mapHeight = wasm.map_height_roguelike();
+  const playerX = wasm.player_x_roguelike();
+  const playerY = wasm.player_y_roguelike();
+  const mapData = wasm.map_data_roguelike();
+
+  // Draw background
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Calculate cell size
+  const cellW = canvas.width / mapWidth;
+  const cellH = canvas.height / mapHeight;
+
+  // Get visited data
+  const visitedData = wasm.visited_data_roguelike();
+
+  // Draw tiles
+  for (let y = 0; y < mapHeight; y++) {
+    for (let x = 0; x < mapWidth; x++) {
+      const idx = y * mapWidth + x;
+      const isVisited = visitedData[idx] === 1;
+
+      if (!isVisited) continue; // Skip unvisited tiles
+
+      const tile = mapData[idx];
+
+      let color;
+      if (tile === 1) color = '#222';      // Wall
+      else if (tile === 2) color = '#003'; // Room
+      else color = '#0a0a1a';              // Floor
+
+      ctx.fillStyle = color;
+      ctx.fillRect(x * cellW, y * cellH, cellW, cellH);
+    }
+  }
+
+  // Draw player
+  ctx.fillStyle = '#0f0';
+  ctx.fillRect(playerX * cellW + 2, playerY * cellH + 2, cellW - 4, cellH - 4);
+
+  // Draw label
+  ctx.fillStyle = '#0ff';
+  ctx.font = '12px monospace';
+  ctx.fillText(`F${wasm.depth_roguelike()}`, 8, 20);
+}
+
+start();
+</script>
+</body>
+</html>
