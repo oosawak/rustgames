@@ -6,6 +6,8 @@ pub enum TileType {
     Floor,
     Wall,
     Room,
+    StairDown,
+    StairUp,
 }
 
 #[derive(Clone)]
@@ -26,6 +28,7 @@ pub struct RoguelikeGame {
     pub max_mp: u32,
     pub player_x: i32,
     pub player_y: i32,
+    pub player_direction: i32,  // 0=up, 1=left, 2=right, 3=down
     pub enemies: Vec<Enemy>,
     pub messages: Vec<String>,
     pub map: Vec<Vec<TileType>>,
@@ -33,6 +36,8 @@ pub struct RoguelikeGame {
     pub map_height: i32,
     pub rooms: Vec<Room>,
     pub visited: Vec<Vec<bool>>,
+    pub player_shake: u32,
+    pub enemy_shake: Vec<u32>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -53,12 +58,13 @@ pub struct Enemy {
     pub y: i32,
     pub hp: u32,
     pub color: [f32; 3],
+    pub name: String,
 }
 
 impl RoguelikeGame {
     pub fn new() -> Self {
-        let map_width = 80i32;
-        let map_height = 50i32;
+        let map_width = 160i32;
+        let map_height = 100i32;
         let (map, rooms) = Self::generate_dungeon(map_width, map_height, 1);
         let visited = vec![vec![false; map_width as usize]; map_height as usize];
 
@@ -72,6 +78,7 @@ impl RoguelikeGame {
             max_mp: 30,
             player_x: 0,
             player_y: 0,
+            player_direction: 2,  // default facing right
             enemies: vec![],
             messages: vec!["ダンジョンに入った...".to_string()],
             map,
@@ -79,6 +86,8 @@ impl RoguelikeGame {
             map_height,
             rooms,
             visited,
+            player_shake: 0,
+            enemy_shake: vec![],
         }
     }
 
@@ -149,6 +158,26 @@ impl RoguelikeGame {
             }
         }
 
+        // 最初の部屋に上り階段を配置（部屋の内側に）
+        if !rooms.is_empty() {
+            let room = &rooms[0];
+            let stair_x = (room.x + 1).max(0).min(width - 1);
+            let stair_y = (room.y + 1).max(0).min(height - 1);
+            if map[stair_y as usize][stair_x as usize] != TileType::Wall {
+                map[stair_y as usize][stair_x as usize] = TileType::StairUp;
+            }
+        }
+
+        // 最後の部屋に下り階段を配置（部屋の内側に）
+        if rooms.len() > 1 {
+            let room = &rooms[rooms.len() - 1];
+            let stair_x = (room.x + room.width - 2).max(0).min(width - 1);
+            let stair_y = (room.y + room.height - 2).max(0).min(height - 1);
+            if map[stair_y as usize][stair_x as usize] != TileType::Wall {
+                map[stair_y as usize][stair_x as usize] = TileType::StairDown;
+            }
+        }
+
         (map, rooms)
     }
 
@@ -183,6 +212,7 @@ impl RoguelikeGame {
 
         // 敵を配置
         self.enemies.clear();
+        self.enemy_shake.clear();
         let mut rng = LcgRng::new(self.depth);
 
         for i in 0..3.min(self.rooms.len()) {
@@ -195,12 +225,15 @@ impl RoguelikeGame {
                 [1.0, 0.5, 0.0],
                 [0.8, 0.2, 0.8],
             ];
+            let names = ["ゴブリン", "オーク", "スケルトン"];
             self.enemies.push(Enemy {
                 x: ex,
                 y: ey,
                 hp: 20,
                 color: colors[self.enemies.len() % 3],
+                name: names[self.enemies.len() % 3].to_string(),
             });
+            self.enemy_shake.push(0);
         }
     }
 
@@ -208,7 +241,8 @@ impl RoguelikeGame {
         if x < 0 || x >= self.map_width || y < 0 || y >= self.map_height {
             return false;
         }
-        self.map[y as usize][x as usize] == TileType::Floor
+        matches!(self.map[y as usize][x as usize],
+            TileType::Floor | TileType::Room | TileType::StairDown | TileType::StairUp)
     }
 
     pub fn move_player(&mut self, action: i32) {
@@ -217,6 +251,8 @@ impl RoguelikeGame {
         }
 
         // action: 0=up, 1=left, 2=right, 3=down
+        self.player_direction = action;
+
         let (dx, dy) = match action {
             0 => (0, -1),
             1 => (-1, 0),
@@ -228,7 +264,65 @@ impl RoguelikeGame {
         let new_x = self.player_x + dx;
         let new_y = self.player_y + dy;
 
-        // マップの壁判定
+        // 敵への攻撃判定
+        let mut attacked_enemy = false;
+        for i in 0..self.enemies.len() {
+            if self.enemies[i].x == new_x && self.enemies[i].y == new_y {
+                // 敵に攻撃
+                self.enemies[i].hp = (self.enemies[i].hp as i32 - 15).max(0) as u32;
+                self.add_message("敵を攻撃した！".to_string());
+
+                // 敵を震わせる
+                if i < self.enemy_shake.len() {
+                    self.enemy_shake[i] = 5;
+                }
+
+                if self.enemies[i].hp == 0 {
+                    self.add_message("敵を倒した！".to_string());
+                    self.enemies.remove(i);
+                    self.enemy_shake.remove(i);
+                }
+
+                attacked_enemy = true;
+                break;
+            }
+        }
+
+        if attacked_enemy {
+            // 敵の反撃
+            let enemy_positions: Vec<(i32, i32)> = self.enemies.iter().map(|e| (e.x, e.y)).collect();
+            for (ex, ey) in enemy_positions {
+                if (ex - self.player_x).abs() + (ey - self.player_y).abs() <= 1 {
+                    self.hp = (self.hp as i32 - 5).max(0) as u32;
+                    self.add_message("敵の反撃を受けた！".to_string());
+                    self.player_shake = 5;
+                }
+            }
+
+            if self.hp == 0 {
+                self.scene = RogueScene::GameOver;
+                self.add_message("ゲームオーバー".to_string());
+            }
+
+            self.mark_visible();
+            return;
+        }
+
+        // マップの壁判定と階段チェック
+        let tile = self.map[new_y as usize][new_x as usize];
+
+        if tile == TileType::StairDown && self.depth < 30 {
+            // 下り階段
+            self.next_floor();
+            return;
+        }
+
+        if tile == TileType::StairUp && self.depth > 1 {
+            // 上り階段
+            self.prev_floor();
+            return;
+        }
+
         if self.is_walkable(new_x, new_y) {
             self.player_x = new_x;
             self.player_y = new_y;
@@ -250,15 +344,26 @@ impl RoguelikeGame {
                 .collect();
 
             for (i, new_ex, new_ey) in enemy_moves {
-                if self.is_walkable(new_ex, new_ey) {
-                    self.enemies[i].x = new_ex;
-                    self.enemies[i].y = new_ey;
+                if self.is_walkable(new_ex, new_ey) && new_ex != self.player_x || new_ey != self.player_y {
+                    // 他の敵との重複チェック
+                    let mut occupied = false;
+                    for (j, other_enemy) in self.enemies.iter().enumerate() {
+                        if i != j && other_enemy.x == new_ex && other_enemy.y == new_ey {
+                            occupied = true;
+                            break;
+                        }
+                    }
+
+                    if !occupied {
+                        self.enemies[i].x = new_ex;
+                        self.enemies[i].y = new_ey;
+                    }
                 }
             }
 
-            // 敵との衝突判定
+            // 敵の反撃
             let mut hit = false;
-            for enemy in &self.enemies {
+            for enemy in self.enemies.iter() {
                 if self.player_x == enemy.x && self.player_y == enemy.y {
                     hit = true;
                     break;
@@ -268,6 +373,8 @@ impl RoguelikeGame {
             if hit {
                 self.hp = (self.hp as i32 - 10).max(0) as u32;
                 self.add_message("敵に攻撃された！".to_string());
+                self.player_shake = 5;
+
                 if self.hp == 0 {
                     self.scene = RogueScene::GameOver;
                     self.add_message("ゲームオーバー".to_string());
@@ -297,7 +404,16 @@ impl RoguelikeGame {
     }
 
     pub fn tick(&mut self, _ts: f64) {
-        // ゲームループ（フレーム更新）
+        // 震える時間を減らす
+        if self.player_shake > 0 {
+            self.player_shake -= 1;
+        }
+
+        for shake in self.enemy_shake.iter_mut() {
+            if *shake > 0 {
+                *shake -= 1;
+            }
+        }
     }
 
     pub fn add_message(&mut self, msg: String) {
@@ -313,6 +429,11 @@ impl RoguelikeGame {
     }
 
     pub fn next_floor(&mut self) {
+        if self.depth >= 30 {
+            self.add_message("最下階です".to_string());
+            return;
+        }
+
         self.depth += 1;
         self.level += 1;
         self.hp = self.max_hp;
@@ -337,6 +458,95 @@ impl RoguelikeGame {
             let room = &self.rooms[0];
             self.player_x = room.x + room.width / 2;
             self.player_y = room.y + room.height / 2;
+        }
+
+        // 敵を配置
+        self.enemies.clear();
+        self.enemy_shake.clear();
+
+        for i in 0..3.min(self.rooms.len()) {
+            let room = &self.rooms[i + 1];
+            let ex = room.x + room.width / 2;
+            let ey = room.y + room.height / 2;
+
+            let colors = [
+                [1.0, 0.2, 0.2],
+                [1.0, 0.5, 0.0],
+                [0.8, 0.2, 0.8],
+            ];
+            let names = ["ゴブリン", "オーク", "スケルトン"];
+            self.enemies.push(Enemy {
+                x: ex,
+                y: ey,
+                hp: 20 + (self.depth as u32 * 5),
+                color: colors[self.enemies.len() % 3],
+                name: names[self.enemies.len() % 3].to_string(),
+            });
+            self.enemy_shake.push(0);
+        }
+
+        // スタート位置を訪問済みに
+        if self.player_y >= 0 && self.player_y < self.map_height
+            && self.player_x >= 0 && self.player_x < self.map_width {
+            self.visited[self.player_y as usize][self.player_x as usize] = true;
+        }
+    }
+
+    pub fn prev_floor(&mut self) {
+        if self.depth <= 1 {
+            self.add_message("地上です".to_string());
+            return;
+        }
+
+        self.depth -= 1;
+        self.level = self.depth;
+        self.hp = self.max_hp;
+        self.mp = self.max_mp;
+        self.messages.clear();
+        self.messages.push(format!("F{} に戻った", self.depth));
+
+        // 新しいダンジョンを生成
+        let (map, rooms) = Self::generate_dungeon(self.map_width, self.map_height, self.depth);
+        self.map = map;
+        self.rooms = rooms;
+
+        // 訪問済みをリセット
+        for row in self.visited.iter_mut() {
+            for cell in row.iter_mut() {
+                *cell = false;
+            }
+        }
+
+        // プレイヤーを最後の部屋に配置
+        if self.rooms.len() > 1 {
+            let room = &self.rooms[self.rooms.len() - 1];
+            self.player_x = room.x + room.width / 2;
+            self.player_y = room.y + room.height / 2;
+        }
+
+        // 敵を配置
+        self.enemies.clear();
+        self.enemy_shake.clear();
+
+        for i in 0..3.min(self.rooms.len()) {
+            let room = &self.rooms[i + 1];
+            let ex = room.x + room.width / 2;
+            let ey = room.y + room.height / 2;
+
+            let colors = [
+                [1.0, 0.2, 0.2],
+                [1.0, 0.5, 0.0],
+                [0.8, 0.2, 0.8],
+            ];
+            let names = ["ゴブリン", "オーク", "スケルトン"];
+            self.enemies.push(Enemy {
+                x: ex,
+                y: ey,
+                hp: 20 + (self.depth as u32 * 5),
+                color: colors[self.enemies.len() % 3],
+                name: names[self.enemies.len() % 3].to_string(),
+            });
+            self.enemy_shake.push(0);
         }
 
         // スタート位置を訪問済みに
@@ -373,8 +583,12 @@ pub fn render_canvas(game: &RoguelikeGame, canvas_id: &str, width: i32, height: 
                 let view_width = 15i32;  // タイル数
                 let view_height = 10i32;
 
-                let cell_w = width as f64 / view_width as f64;
-                let cell_h = height as f64 / view_height as f64;
+                // Font and tile size settings
+                let font_size = 20.0;  // フォントサイズ（px）
+                let cell_size = 32.0;  // タイルサイズ（px）、フォント + 余白
+
+                let cell_w = cell_size;
+                let cell_h = cell_size;
 
                 // カメラはプレイヤーを中心に
                 let camera_x = (game.player_x - view_width / 2).max(0).min(game.map_width - view_width);
@@ -388,9 +602,11 @@ pub fn render_canvas(game: &RoguelikeGame, canvas_id: &str, width: i32, height: 
 
                         let tile_type = game.map[y as usize][x as usize];
                         let color = match tile_type {
-                            crate::state::TileType::Wall => "#222",
-                            crate::state::TileType::Floor => "#001",
-                            crate::state::TileType::Room => "#003",
+                            crate::state::TileType::Wall => "#444",
+                            crate::state::TileType::Floor => "#223",
+                            crate::state::TileType::Room => "#335",
+                            crate::state::TileType::StairDown => "#dd0",
+                            crate::state::TileType::StairUp => "#0dd",
                         };
 
                         ctx.set_fill_style(&color.into());
@@ -399,31 +615,148 @@ pub fn render_canvas(game: &RoguelikeGame, canvas_id: &str, width: i32, height: 
                         ctx.set_stroke_style(&"0ff".into());
                         ctx.set_line_width(0.3);
                         ctx.stroke_rect(screen_x, screen_y, cell_w, cell_h);
+
+                        // Draw stair icons
+                        if matches!(tile_type, crate::state::TileType::StairDown | crate::state::TileType::StairUp) {
+                            if let Ok(img_elem) = window.document().unwrap()
+                                .get_element_by_id("stairs-icon")
+                                .unwrap()
+                                .dyn_into::<web_sys::HtmlImageElement>()
+                            {
+                                let stair_x = screen_x + cell_w * 0.5;
+                                let stair_y = screen_y + cell_h * 0.5;
+                                let icon_size = cell_w * 0.6;
+
+                                ctx.save();
+                                ctx.translate(stair_x, stair_y).ok();
+                                ctx.draw_image_with_html_image_element_and_dw_and_dh(
+                                    &img_elem,
+                                    -icon_size * 0.5,
+                                    -icon_size * 0.5,
+                                    icon_size,
+                                    icon_size
+                                ).ok();
+                                ctx.restore();
+                            }
+                        }
                     }
                 }
 
                 // Draw enemies
-                for enemy in &game.enemies {
+                let enemy_icons = ["\u{e9a2}", "\u{ea43}", "\u{eaa1}"];  // dragon, monster-skull, skull
+                for (i, enemy) in game.enemies.iter().enumerate() {
                     if enemy.x >= camera_x && enemy.x < camera_x + view_width
                         && enemy.y >= camera_y && enemy.y < camera_y + view_height
                     {
-                        let screen_x = (enemy.x - camera_x) as f64 * cell_w + 2.0;
-                        let screen_y = (enemy.y - camera_y) as f64 * cell_h + 2.0;
+                        let screen_x = (enemy.x - camera_x) as f64 * cell_w;
+                        let screen_y = (enemy.y - camera_y) as f64 * cell_h;
+
+                        // 震えるアニメーション用のオフセット
+                        let mut shake_offset_x = 0.0;
+                        let mut shake_offset_y = 0.0;
+                        if i < game.enemy_shake.len() && game.enemy_shake[i] > 0 {
+                            let shake = ((game.enemy_shake[i] * 7) % 4) as f64 - 1.5;
+                            shake_offset_x = shake;
+                            shake_offset_y = shake;
+                        }
+
                         let color = format!("rgb({},{},{})",
                             (enemy.color[0] * 255.0) as i32,
                             (enemy.color[1] * 255.0) as i32,
                             (enemy.color[2] * 255.0) as i32
                         );
                         ctx.set_fill_style(&color.into());
-                        ctx.fill_rect(screen_x, screen_y, cell_w - 4.0, cell_h - 4.0);
+                        ctx.set_font(&format!("{}px 'RPGAwesome'", font_size as i32));
+                        let icon_x = screen_x + (cell_w - font_size) * 0.5 + shake_offset_x;
+                        let icon_y = screen_y + (cell_h + font_size * 0.7) * 0.5 + shake_offset_y;
+                        ctx.fill_text(enemy_icons[i % 3], icon_x, icon_y).ok();
                     }
                 }
 
                 // Draw player (always at center)
-                let player_screen_x = (game.player_x - camera_x) as f64 * cell_w + 2.0;
-                let player_screen_y = (game.player_y - camera_y) as f64 * cell_h + 2.0;
-                ctx.set_fill_style(&"#0f0".into());
-                ctx.fill_rect(player_screen_x, player_screen_y, cell_w - 4.0, cell_h - 4.0);
+                let player_screen_x = (game.player_x - camera_x) as f64 * cell_w;
+                let player_screen_y = (game.player_y - camera_y) as f64 * cell_h;
+
+                // 震えるアニメーション用のオフセット
+                let mut shake_offset_x = 0.0;
+                let mut shake_offset_y = 0.0;
+                if game.player_shake > 0 {
+                    let shake = ((game.player_shake * 7) % 4) as f64 - 1.5;
+                    shake_offset_x = shake;
+                    shake_offset_y = shake;
+                }
+
+                // Draw player icon
+                if let Ok(img_elem) = window.document().unwrap()
+                    .get_element_by_id("player-icon")
+                    .unwrap()
+                    .dyn_into::<web_sys::HtmlImageElement>()
+                {
+                    let icon_x = player_screen_x + cell_w * 0.5 + shake_offset_x;
+                    let icon_y = player_screen_y + cell_h * 0.5 + shake_offset_y;
+                    let icon_size = cell_w * 0.6;
+
+                    ctx.save();
+                    ctx.translate(icon_x, icon_y).ok();
+
+                    // 方向に応じて反転: left は反転、right は そのまま
+                    if game.player_direction == 1 {
+                        ctx.scale(-1.0, 1.0).ok();
+                    }
+
+                    ctx.draw_image_with_html_image_element_and_dw_and_dh(
+                        &img_elem,
+                        -icon_size * 0.5,
+                        -icon_size * 0.5,
+                        icon_size,
+                        icon_size
+                    ).ok();
+                    ctx.restore();
+                }
+
+                // Draw HP bar at top
+                ctx.set_fill_style(&"#333".into());
+                ctx.fill_rect(5.0, 5.0, 150.0, 30.0);
+
+                ctx.set_fill_style(&"#f00".into());
+                let hp_width = (game.hp as f64 / game.max_hp as f64) * 140.0;
+                ctx.fill_rect(10.0, 10.0, hp_width, 10.0);
+
+                ctx.set_fill_style(&"#fff".into());
+                ctx.set_font("12px monospace");
+                ctx.fill_text(
+                    &format!("HP: {}/{}", game.hp, game.max_hp),
+                    15.0,
+                    28.0,
+                ).ok();
+
+                // Draw enemy HP and name
+                for enemy in &game.enemies {
+                    if enemy.x >= camera_x && enemy.x < camera_x + view_width
+                        && enemy.y >= camera_y && enemy.y < camera_y + view_height
+                    {
+                        let screen_x = (enemy.x - camera_x) as f64 * cell_w;
+                        let screen_y = (enemy.y - camera_y) as f64 * cell_h;
+
+                        // HP above
+                        ctx.set_fill_style(&"#fff".into());
+                        ctx.set_font("8px monospace");
+                        ctx.fill_text(
+                            &format!("HP:{}", enemy.hp),
+                            screen_x + 2.0,
+                            screen_y - 5.0,
+                        ).ok();
+
+                        // Name below
+                        ctx.set_fill_style(&"#aaf".into());
+                        ctx.set_font("7px monospace");
+                        ctx.fill_text(
+                            &enemy.name,
+                            screen_x + 2.0,
+                            screen_y + cell_h + 10.0,
+                        ).ok();
+                    }
+                }
             }
         }
     }

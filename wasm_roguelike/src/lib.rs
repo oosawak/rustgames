@@ -35,6 +35,7 @@ pub fn move_roguelike(action: i32) {
     });
 }
 
+
 #[wasm_bindgen]
 pub fn tick_roguelike(ts: f64) {
     ROGUELIKE_STATE.with(|s| {
@@ -103,12 +104,14 @@ pub fn player_y_roguelike() -> i32 {
 pub fn map_data_roguelike() -> Vec<u8> {
     ROGUELIKE_STATE.with(|s| {
         if let Some(g) = s.borrow().as_ref() {
-            // Convert map to bytes (0=Floor, 1=Wall, 2=Room)
+            // Convert map to bytes (0=Floor, 1=Wall, 2=Room, 3=StairDown, 4=StairUp)
             g.map.iter().flat_map(|row| {
                 row.iter().map(|tile| match tile {
                     crate::state::TileType::Floor => 0u8,
                     crate::state::TileType::Wall => 1u8,
                     crate::state::TileType::Room => 2u8,
+                    crate::state::TileType::StairDown => 3u8,
+                    crate::state::TileType::StairUp => 4u8,
                 })
             }).collect()
         } else {
@@ -135,6 +138,29 @@ pub fn visited_data_roguelike() -> Vec<u8> {
             }).collect()
         } else {
             Vec::new()
+        }
+    })
+}
+
+#[wasm_bindgen]
+pub fn enemy_count_roguelike() -> usize {
+    ROGUELIKE_STATE.with(|s| {
+        s.borrow().as_ref().map(|g| g.enemies.len()).unwrap_or(0)
+    })
+}
+
+#[wasm_bindgen]
+pub fn enemy_data_roguelike(index: usize) -> Vec<i32> {
+    ROGUELIKE_STATE.with(|s| {
+        if let Some(g) = s.borrow().as_ref() {
+            if index < g.enemies.len() {
+                let e = &g.enemies[index];
+                vec![e.x, e.y, e.hp as i32]
+            } else {
+                vec![]
+            }
+        } else {
+            vec![]
         }
     })
 }

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Roguelike Dungeon – 3D ダンジョン</title>
 <link rel="stylesheet" href="../../engine.css">
+<link rel="stylesheet" href="./rpg-awesome/css/rpg-awesome.min.css">
 <style>
 * {
   box-sizing: border-box;
@@ -58,6 +59,15 @@ html, body {
   font-size: 0.75em;
   text-shadow: 0 0 6px #0ff;
   opacity: 0.7;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stat-label .ra {
+  font-size: 1.2em;
+  color: #0ff;
+  text-shadow: 0 0 4px #0ff;
 }
 
 .stat-value {
@@ -121,14 +131,7 @@ html, body {
 
 /* ── Swipe hints ── */
 #swipe-hint {
-  position: fixed;
-  bottom: 10%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 80px;
-  height: 80px;
-  pointer-events: none;
-  z-index: 10;
+  display: none;
 }
 
 #swipe-hint .sh-arrow {
@@ -303,6 +306,17 @@ html, body {
   transition: all 0.2s;
   border-bottom: 3px solid transparent;
   white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.nav-btn .ra {
+  font-size: 1.3em;
+  color: rgba(0, 200, 255, 0.6);
+  transition: color 0.2s;
 }
 
 .nav-btn:hover {
@@ -310,10 +324,19 @@ html, body {
   text-shadow: 0 0 8px #0ff;
 }
 
+.nav-btn:hover .ra {
+  color: #0ff;
+}
+
 .nav-btn.active {
   color: #0ff;
   text-shadow: 0 0 8px #0ff;
   border-bottom-color: #0ff;
+}
+
+.nav-btn.active .ra {
+  color: #0ff;
+}
   background: rgba(0, 255, 255, 0.05);
 }
 
@@ -446,6 +469,20 @@ html, body {
 </head>
 <body>
 
+<!-- Font preload for RPG-Awesome -->
+<div style="position: absolute; left: -9999px; font-family: RPGAwesome; font-size: 1px;">
+  <span class="ra ra-player"></span>
+  <span class="ra ra-dragon"></span>
+  <span class="ra ra-monster-skull"></span>
+  <span class="ra ra-skull"></span>
+</div>
+
+<!-- Icon preload for game-icons.net -->
+<div style="position: absolute; left: -9999px;">
+  <img id="player-icon" src="./icons/cathelineau/swordman.png" width="64" height="64">
+  <img id="stairs-icon" src="./icons/delapouite/3d-stairs.png" width="64" height="64">
+</div>
+
 <!-- Loading screen -->
 <div id="loading">
   <div>
@@ -474,7 +511,7 @@ html, body {
   <div id="ui-upper">
     <div id="status-panel">
       <div class="stat-item">
-        <span class="stat-label">HP</span>
+        <span class="stat-label"><i class="ra ra-heart"></i> HP</span>
         <div class="stat-bar">
           <div id="hp-bar" class="stat-bar-fill"></div>
         </div>
@@ -482,7 +519,7 @@ html, body {
       </div>
 
       <div class="stat-item">
-        <span class="stat-label">MP</span>
+        <span class="stat-label"><i class="ra ra-potion"></i> MP</span>
         <div class="stat-bar">
           <div id="mp-bar" class="stat-bar-fill"></div>
         </div>
@@ -512,10 +549,10 @@ html, body {
 
   <!-- Navigation bar (bottom) -->
   <div id="nav-bar">
-    <button class="nav-btn active" data-tab="status">📊 ステータス</button>
-    <button class="nav-btn" data-tab="equipment">⚔️ 装備</button>
-    <button class="nav-btn" data-tab="items">🎒 アイテム</button>
-    <button class="nav-btn" data-tab="map">🗺️ マップ</button>
+    <button class="nav-btn active" data-tab="status"><i class="ra ra-player"></i> ステータス</button>
+    <button class="nav-btn" data-tab="equipment"><i class="ra ra-broadsword"></i> 装備</button>
+    <button class="nav-btn" data-tab="items"><i class="ra ra-potion"></i> アイテム</button>
+    <button class="nav-btn" data-tab="map"><i class="ra ra-compass"></i> マップ</button>
   </div>
 
   <!-- Tab contents -->
@@ -728,29 +765,38 @@ function updateTabContent(tabName) {
 
   switch (tabName) {
     case 'status':
+      const hp = wasm.hp_roguelike();
+      const maxHp = wasm.max_hp_roguelike();
+      const mp = wasm.mp_roguelike();
+      const maxMp = wasm.max_mp_roguelike();
+      const level = wasm.level_roguelike();
+      const depth = wasm.depth_roguelike();
+      const hpPercent = maxHp > 0 ? (hp / maxHp) * 100 : 0;
+      const mpPercent = maxMp > 0 ? (mp / maxMp) * 100 : 0;
+
       panel.innerHTML = `
         <div style="padding: 16px;">
           <div class="stat-item">
             <span class="stat-label">HP</span>
             <div class="stat-bar">
-              <div id="hp-bar" class="stat-bar-fill"></div>
+              <div id="hp-bar" class="stat-bar-fill" style="width: ${hpPercent}%;"></div>
             </div>
-            <span class="stat-value"><span id="hp-current">50</span> / <span id="hp-max">50</span></span>
+            <span class="stat-value"><span id="hp-current">${hp}</span> / <span id="hp-max">${maxHp}</span></span>
           </div>
           <div class="stat-item">
             <span class="stat-label">MP</span>
             <div class="stat-bar">
-              <div id="mp-bar" class="stat-bar-fill"></div>
+              <div id="mp-bar" class="stat-bar-fill" style="width: ${mpPercent}%;"></div>
             </div>
-            <span class="stat-value"><span id="mp-current">30</span> / <span id="mp-max">30</span></span>
+            <span class="stat-value"><span id="mp-current">${mp}</span> / <span id="mp-max">${maxMp}</span></span>
           </div>
           <div class="stat-item">
             <span class="stat-label">LV</span>
-            <span class="stat-value" id="level-display">1</span>
+            <span class="stat-value" id="level-display">${level}</span>
           </div>
           <div class="stat-item">
             <span class="stat-label">DEPTH</span>
-            <span class="stat-value" id="depth-display">F1</span>
+            <span class="stat-value" id="depth-display">F${depth}</span>
           </div>
         </div>
       `;
@@ -836,9 +882,11 @@ function drawDungeonMap() {
       const tile = mapData[idx];
 
       let color;
-      if (tile === 1) color = '#222';      // Wall
-      else if (tile === 2) color = '#003'; // Room
-      else color = '#0a0a1a';              // Floor
+      if (tile === 1) color = '#444';      // Wall
+      else if (tile === 2) color = '#335'; // Room
+      else if (tile === 3) color = '#dd0'; // StairDown
+      else if (tile === 4) color = '#0dd'; // StairUp
+      else color = '#223';                 // Floor
 
       ctx.fillStyle = color;
       ctx.fillRect(x * cellW, y * cellH, cellW, cellH);
