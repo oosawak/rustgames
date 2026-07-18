@@ -1,0 +1,6 @@
+*
+!wasm_roguelike.js
+!wasm_roguelike_bg.wasm
+!wasm_roguelike.d.ts
+!wasm_roguelike_bg.wasm.d.ts
+!package.json

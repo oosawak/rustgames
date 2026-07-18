@@ -1,0 +1,18 @@
+{
+  "name": "wasm_roguelike",
+  "type": "module",
+  "collaborators": [
+    "Game Developer"
+  ],
+  "version": "0.1.0",
+  "files": [
+    "wasm_roguelike_bg.wasm",
+    "wasm_roguelike.js",
+    "wasm_roguelike.d.ts"
+  ],
+  "main": "wasm_roguelike.js",
+  "types": "wasm_roguelike.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
