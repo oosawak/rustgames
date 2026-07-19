@@ -169,3 +169,59 @@ pub fn enemy_data_roguelike(index: usize) -> Vec<i32> {
         }
     })
 }
+
+#[wasm_bindgen]
+pub fn player_atk_roguelike() -> u32 {
+    ROGUELIKE_STATE.with(|s| {
+        s.borrow().as_ref().map(|g| g.equipment.get_atk_bonus()).unwrap_or(0)
+    })
+}
+
+#[wasm_bindgen]
+pub fn player_def_roguelike() -> u32 {
+    ROGUELIKE_STATE.with(|s| {
+        s.borrow().as_ref().map(|g| g.equipment.get_def_bonus()).unwrap_or(0)
+    })
+}
+
+#[wasm_bindgen]
+pub fn player_equipped_weapon_roguelike() -> i32 {
+    ROGUELIKE_STATE.with(|s| {
+        if let Some(g) = s.borrow().as_ref() {
+            match g.equipment.weapon {
+                Some(w) => w as i32,
+                None => -1,
+            }
+        } else {
+            -1
+        }
+    })
+}
+
+#[wasm_bindgen]
+pub fn player_equipped_armor_roguelike() -> i32 {
+    ROGUELIKE_STATE.with(|s| {
+        if let Some(g) = s.borrow().as_ref() {
+            match g.equipment.armor {
+                Some(a) => a as i32,
+                None => -1,
+            }
+        } else {
+            -1
+        }
+    })
+}
+
+#[wasm_bindgen]
+pub fn player_equipped_accessory_roguelike() -> i32 {
+    ROGUELIKE_STATE.with(|s| {
+        if let Some(g) = s.borrow().as_ref() {
+            match g.equipment.accessory {
+                Some(a) => a as i32,
+                None => -1,
+            }
+        } else {
+            -1
+        }
+    })
+}

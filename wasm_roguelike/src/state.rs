@@ -28,6 +28,88 @@ pub struct Projectile {
     pub direction: i32, // 0=up, 1=left, 2=right, 3=down
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum WeaponType {
+    WoodenSword = 0,   // +3
+    IronSword = 1,     // +5
+    Axe = 2,           // +7
+    CursedBlade = 3,   // +9
+    DragonSlayer = 4,  // +12
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ArmorType {
+    LeatherArmor = 0,  // +2
+    ChainMail = 1,     // +4
+    SteelPlate = 2,    // +6
+    DragonScale = 3,   // +8
+    CursedMail = 4,    // +10
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum AccessoryType {
+    GoldRing = 0,          // ゴールド獲得+20%
+    VampireRing = 1,       // ダメージの10%HP回復
+    LuckyRing = 2,         // クリティカル率+10%
+    HealingNecklace = 3,   // MaxHP+10, HP自動回復
+    ManaEarrings = 4,      // MaxMP+15, MP自動回復
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Equipment {
+    pub weapon: Option<WeaponType>,
+    pub armor: Option<ArmorType>,
+    pub accessory: Option<AccessoryType>,
+}
+
+impl Equipment {
+    pub fn new() -> Self {
+        Self {
+            weapon: Some(WeaponType::WoodenSword),  // 初期装備
+            armor: None,
+            accessory: None,
+        }
+    }
+
+    pub fn get_atk_bonus(&self) -> u32 {
+        let weapon_bonus = match self.weapon {
+            Some(WeaponType::WoodenSword) => 3,
+            Some(WeaponType::IronSword) => 5,
+            Some(WeaponType::Axe) => 7,
+            Some(WeaponType::CursedBlade) => 9,
+            Some(WeaponType::DragonSlayer) => 12,
+            None => 0,
+        };
+        weapon_bonus
+    }
+
+    pub fn get_def_bonus(&self) -> u32 {
+        let armor_bonus = match self.armor {
+            Some(ArmorType::LeatherArmor) => 2,
+            Some(ArmorType::ChainMail) => 4,
+            Some(ArmorType::SteelPlate) => 6,
+            Some(ArmorType::DragonScale) => 8,
+            Some(ArmorType::CursedMail) => 10,
+            None => 0,
+        };
+        armor_bonus
+    }
+
+    pub fn get_max_hp_bonus(&self) -> u32 {
+        match self.accessory {
+            Some(AccessoryType::HealingNecklace) => 10,
+            _ => 0,
+        }
+    }
+
+    pub fn get_max_mp_bonus(&self) -> u32 {
+        match self.accessory {
+            Some(AccessoryType::ManaEarrings) => 15,
+            _ => 0,
+        }
+    }
+}
+
 pub struct RoguelikeGame {
     pub scene: RogueScene,
     pub depth: u32,
@@ -51,6 +133,7 @@ pub struct RoguelikeGame {
     pub projectiles: Vec<Projectile>,
     pub exp: u32,
     pub next_level_exp: u32,
+    pub equipment: Equipment,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -233,6 +316,7 @@ impl RoguelikeGame {
             projectiles: vec![],
             exp: 0,
             next_level_exp: 100,
+            equipment: Equipment::new(),
         }
     }
 
