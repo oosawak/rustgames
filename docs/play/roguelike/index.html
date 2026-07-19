@@ -1073,7 +1073,7 @@ function drawDungeonMap() {
   const mapData = wasm.map_data_roguelike();
 
   // Draw background
-  ctx.fillStyle = '#111';
+  ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // Calculate cell size
@@ -1097,11 +1097,11 @@ function drawDungeonMap() {
 
       const tile = mapData[idx];
       let color;
-      if (tile === 1) color = '#444';      // Wall
-      else if (tile === 2) color = '#335'; // Room
+      if (tile === 1) color = '#555';      // Wall
+      else if (tile === 2) color = '#3a5'; // Room
       else if (tile === 3) color = '#dd0'; // StairDown
       else if (tile === 4) color = '#0dd'; // StairUp
-      else color = '#223';                 // Floor
+      else color = '#4a6';                 // Floor
 
       ctx.fillStyle = color;
       ctx.fillRect(x * cellW, y * cellH, cellW, cellH);
