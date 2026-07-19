@@ -813,9 +813,6 @@ async function start() {
     // Setup navigation tabs
     setupNavigation();
 
-    // Initialize first tab content
-    updateTabContent('status');
-
     // Spacebar for magic
     document.addEventListener('keydown', (e) => {
       if (e.code === 'Space' && initialized) {
@@ -944,96 +941,10 @@ function setupNavigation() {
         tabPanel.classList.add('active');
       }
 
-      // Update tab content
-      updateTabContent(tabName);
     });
   });
 }
 
-function updateTabContent(tabName) {
-  const panel = document.getElementById(`tab-${tabName}`);
-
-  switch (tabName) {
-    case 'status':
-      const hp = wasm.hp_roguelike();
-      const maxHp = wasm.max_hp_roguelike();
-      const mp = wasm.mp_roguelike();
-      const maxMp = wasm.max_mp_roguelike();
-      const level = wasm.level_roguelike();
-      const depth = wasm.depth_roguelike();
-      const hpPercent = maxHp > 0 ? (hp / maxHp) * 100 : 0;
-      const mpPercent = maxMp > 0 ? (mp / maxMp) * 100 : 0;
-
-      panel.innerHTML = `
-        <div style="padding: 16px;">
-          <div class="stat-item">
-            <span class="stat-label">HP</span>
-            <div class="stat-bar">
-              <div id="hp-bar" class="stat-bar-fill" style="width: ${hpPercent}%;"></div>
-            </div>
-            <span class="stat-value"><span id="hp-current">${hp}</span> / <span id="hp-max">${maxHp}</span></span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">MP</span>
-            <div class="stat-bar">
-              <div id="mp-bar" class="stat-bar-fill" style="width: ${mpPercent}%;"></div>
-            </div>
-            <span class="stat-value"><span id="mp-current">${mp}</span> / <span id="mp-max">${maxMp}</span></span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">LV</span>
-            <span class="stat-value" id="level-display">${level}</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">DEPTH</span>
-            <span class="stat-value" id="depth-display">F${depth}</span>
-          </div>
-        </div>
-      `;
-      break;
-    case 'equipment':
-      panel.innerHTML = `
-        <div style="padding: 16px;">
-          <div class="stat-item">
-            <span class="stat-label">武器</span>
-            <span class="stat-value">なし</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">防具</span>
-            <span class="stat-value">なし</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">アクセサリ</span>
-            <span class="stat-value">なし</span>
-          </div>
-        </div>
-      `;
-      break;
-    case 'items':
-      panel.innerHTML = `
-        <div style="padding: 16px;">
-          <div class="stat-item">
-            <span class="stat-label">回復ポーション</span>
-            <span class="stat-value">0</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">鍵</span>
-            <span class="stat-value">0</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">宝石</span>
-            <span class="stat-value">0</span>
-          </div>
-        </div>
-      `;
-      break;
-    case 'map':
-      drawDungeonMap();
-      break;
-  }
-}
-
-// ── Draw dungeon map ──────────────────────────────
 // ── 3D Rendering with Three.js ──
 let scene, camera, renderer;
 let cubes = [];
