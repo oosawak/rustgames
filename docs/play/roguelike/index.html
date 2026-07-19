@@ -604,6 +604,9 @@ html, body {
     <button id="ui-toggle-btn" style="position: absolute; top: 50px; right: 10px; z-index: 30; padding: 6px 12px; background: rgba(0,200,255,0.2); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 4px; font-family: monospace; font-size: 0.8em; display: none;">▼ 非表示</button>
   </div>
 
+  <!-- Tab toggle button (top-left) -->
+  <button id="tab-toggle-btn" style="position: fixed; top: 10px; left: 10px; z-index: 50; display: none; width: 50px; height: 50px; background: rgba(0,200,255,0.2); border: 2px solid #0ff; border-radius: 4px; color: #0ff; font-weight: bold; cursor: pointer; font-size: 20px;">◀</button>
+
   <!-- Movement joystick (mobile) -->
   <!-- Magic button (left side) -->
   <button id="magic-button" style="position: fixed; bottom: 70px; left: 10px; z-index: 50; display: none; width: 90px; height: 90px; background: rgba(0,255,255,0.2); border: 2px solid #0ff; border-radius: 50%; color: #0ff; font-weight: bold; cursor: pointer; font-size: 32px;">✨</button>
@@ -705,6 +708,8 @@ async function start() {
         if (uiUpper) {
           uiUpper.style.display = 'flex';
         }
+        // Show tab toggle button in landscape mode
+        document.getElementById('tab-toggle-btn').style.display = 'block';
       }
 
       wasm.start_game_roguelike();
@@ -1495,6 +1500,40 @@ document.getElementById('ui-toggle-btn').addEventListener('click', () => {
     uiUpper.classList.add('hidden');
     canvasWrap.classList.add('expanded');
     btn.textContent = '▲ 表示';
+  }
+
+  // Resize 3D canvas if active
+  setTimeout(() => {
+    if (renderer) {
+      const wrap = document.getElementById('canvas-wrap');
+      const width = wrap.offsetWidth;
+      const height = wrap.offsetHeight;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    }
+  }, 300);
+});
+
+// Tab toggle button (landscape mode)
+let tabHidden = false;
+document.getElementById('tab-toggle-btn').addEventListener('click', () => {
+  const tabContent = document.getElementById('tab-content');
+  const canvasWrap = document.getElementById('canvas-wrap');
+  const btn = document.getElementById('tab-toggle-btn');
+
+  tabHidden = !tabHidden;
+
+  if (tabHidden) {
+    // Hide tab-content
+    tabContent.style.display = 'none';
+    canvasWrap.style.width = '100%';
+    btn.textContent = '▶';
+  } else {
+    // Show tab-content
+    tabContent.style.display = 'flex';
+    canvasWrap.style.width = '50%';
+    btn.textContent = '◀';
   }
 
   // Resize 3D canvas if active
