@@ -800,8 +800,7 @@ async function start() {
         if (uiUpper) {
           uiUpper.style.display = 'flex';
         }
-        // Show tab toggle button in landscape mode
-        document.getElementById('tab-toggle-btn').style.display = 'block';
+        // Tab toggle button removed
       }
 
       wasm.start_game_roguelike();
@@ -1640,39 +1639,7 @@ document.getElementById('ui-toggle-btn').addEventListener('click', () => {
   }, 300);
 });
 
-// Tab toggle button (landscape mode)
-let tabHidden = false;
-document.getElementById('tab-toggle-btn').addEventListener('click', () => {
-  const tabContent = document.getElementById('tab-content');
-  const canvasWrap = document.getElementById('canvas-wrap');
-  const btn = document.getElementById('tab-toggle-btn');
-
-  tabHidden = !tabHidden;
-
-  if (tabHidden) {
-    // Hide tab-content
-    tabContent.style.display = 'none';
-    canvasWrap.style.setProperty('width', '100%', 'important');
-    btn.textContent = 'Open';
-  } else {
-    // Show tab-content
-    tabContent.style.display = 'flex';
-    canvasWrap.style.setProperty('width', '50%', 'important');
-    btn.textContent = 'Close';
-  }
-
-  // Resize 3D canvas if active
-  setTimeout(() => {
-    if (renderer) {
-      const wrap = document.getElementById('canvas-wrap');
-      const width = wrap.offsetWidth;
-      const height = wrap.offsetHeight;
-      camera.aspect = width / height;
-      camera.updateProjectionMatrix();
-      renderer.setSize(width, height);
-    }
-  }, 300);
-});
+// Tab toggle button removed (Close button deleted)
 
 start();
 </script>
