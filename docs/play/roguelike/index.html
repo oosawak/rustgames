@@ -1197,10 +1197,12 @@ function init3d() {
   camera.position.set(0, 40, 80);
   camera.lookAt(0, 10, 0);
 
+  // Set canvas size explicitly
+  canvas3d.setAttribute('width', width);
+  canvas3d.setAttribute('height', height);
+
   renderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true });
   renderer.setSize(width, height, false);
-  canvas3d.width = width;
-  canvas3d.height = height;
   renderer.setPixelRatio(window.devicePixelRatio);
 
   // Add light
@@ -1396,10 +1398,12 @@ function init3d() {
   camera.position.set(0, 40, 80);
   camera.lookAt(0, 10, 0);
 
+  // Set canvas size explicitly
+  canvas3d.setAttribute('width', width);
+  canvas3d.setAttribute('height', height);
+
   renderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true });
   renderer.setSize(width, height, false);
-  canvas3d.width = width;
-  canvas3d.height = height;
   renderer.setPixelRatio(window.devicePixelRatio);
 
   // Add light
