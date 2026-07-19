@@ -1304,9 +1304,14 @@ function updateDungeon3d() {
 }
 
 function render3d() {
+  console.log(`render3d: renderer=${!!renderer}, scene=${!!scene}, camera=${!!camera}`);
   if (renderer) {
     updateDungeon3d();
     renderer.render(scene, camera);
+    console.log(`Rendered: scene has ${scene.children.length} objects`);
+  } else {
+    console.log('renderer is null');
+    init3d();
   }
 }
 
@@ -1495,9 +1500,14 @@ function updateDungeon3d() {
 }
 
 function render3d() {
+  console.log(`render3d: renderer=${!!renderer}, scene=${!!scene}, camera=${!!camera}`);
   if (renderer) {
     updateDungeon3d();
     renderer.render(scene, camera);
+    console.log(`Rendered: scene has ${scene.children.length} objects`);
+  } else {
+    console.log('renderer is null');
+    init3d();
   }
 }
 
