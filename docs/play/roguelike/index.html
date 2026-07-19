@@ -31,6 +31,15 @@ html, body {
 /* ── Upper HUD (50%) ── */
 #ui-upper {
   display: none;
+  flex: 0 0 50%;
+  overflow-y: auto;
+  position: relative;
+  transition: flex 0.3s ease;
+}
+
+#ui-upper.hidden {
+  flex: 0 0 0;
+  overflow: hidden;
 }
 
 /* ── Canvas area (50%) ── */
@@ -38,6 +47,28 @@ html, body {
   flex: 0 0 50%;
   position: relative;
   background: #000;
+  transition: flex 0.3s ease;
+}
+
+#canvas-wrap.expanded {
+  flex: 1;
+}
+
+/* UI toggle button */
+#ui-toggle-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 40;
+  padding: 6px 10px;
+  background: rgba(0,200,255,0.2);
+  border: 1px solid #0ff;
+  color: #0ff;
+  cursor: pointer;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 0.75em;
+  display: none;
 }
 
 /* ── Status panel ── */
@@ -513,6 +544,7 @@ html, body {
 <div id="container">
   <!-- Upper HUD (Status and Messages) -->
   <div id="ui-upper">
+    <button id="ui-toggle-btn" style="display: block;">▼ 非表示</button>
     <div id="status-panel">
       <div class="stat-item">
         <span class="stat-label"><i class="ra ra-heart"></i> HP</span>
@@ -662,8 +694,9 @@ async function start() {
       const tabContent = document.getElementById('tab-content');
 
       if (isLandscape) {
-        tabContent.style.display = 'flex';
         const uiUpper = document.getElementById('ui-upper');
+        uiUpper.style.display = 'flex';
+        tabContent.style.display = 'flex';
         const uiHeight = uiUpper.offsetHeight;
         tabContent.style.top = uiHeight + 'px';
         tabContent.style.height = `calc(100% - ${uiHeight}px - 50px)`;
@@ -1260,6 +1293,38 @@ document.getElementById('view-toggle').addEventListener('click', toggleViewMode)
 
 // Attach toggle to nav button
 document.getElementById('nav-view-toggle').addEventListener('click', toggleViewMode);
+
+// UI toggle button
+document.getElementById('ui-toggle-btn').addEventListener('click', () => {
+  const uiUpper = document.getElementById('ui-upper');
+  const canvasWrap = document.getElementById('canvas-wrap');
+  const btn = document.getElementById('ui-toggle-btn');
+  const isLandscape = window.innerHeight < window.innerWidth;
+
+  if (uiUpper.classList.contains('hidden')) {
+    // Show UI
+    uiUpper.classList.remove('hidden');
+    canvasWrap.classList.remove('expanded');
+    btn.textContent = '▼ 非表示';
+  } else {
+    // Hide UI
+    uiUpper.classList.add('hidden');
+    canvasWrap.classList.add('expanded');
+    btn.textContent = '▲ 表示';
+  }
+
+  // Resize 3D canvas if active
+  setTimeout(() => {
+    if (renderer) {
+      const wrap = document.getElementById('canvas-wrap');
+      const width = wrap.offsetWidth;
+      const height = wrap.offsetHeight;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    }
+  }, 300);
+});
 
 start();
 </script>
