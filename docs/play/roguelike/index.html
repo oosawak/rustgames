@@ -416,6 +416,8 @@ html, body {
     flex: 1;
     order: 0;
     min-height: 0;
+    /* container(40vh) と nav-bar(50px) を除いた残り */
+    height: calc(60vh - 50px);
   }
 
   #nav-bar {
@@ -1191,7 +1193,6 @@ function init3d() {
 
   let width = wrap.offsetWidth || 1280;
   let height = wrap.offsetHeight || 800;
-  console.log(`init3d: canvas size=${width}x${height}, canvas.width=${canvas3d.width}, canvas.height=${canvas3d.height}`);
 
   camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
   camera.position.set(0, 40, 80);
@@ -1225,10 +1226,7 @@ function init3d() {
 }
 
 function updateDungeon3d() {
-  if (!scene) {
-    console.log('Initializing 3D scene');
-    init3d();
-  }
+  if (!scene) init3d();
 
   // Clear existing cubes
   cubes.forEach(cube => scene.remove(cube));
@@ -1239,58 +1237,57 @@ function updateDungeon3d() {
 
   const mapWidth = wasm.map_width_roguelike();
   const mapHeight = wasm.map_height_roguelike();
-  console.log(`3D: Map ${mapWidth}x${mapHeight}`);
   const playerX = wasm.player_x_roguelike();
   const playerY = wasm.player_y_roguelike();
   const mapData = wasm.map_data_roguelike();
-  const visitedData = wasm.visited_data_roguelike();
 
-  const tileSize = 1;
-  const offsetX = -mapWidth / 2;
-  const offsetZ = -mapHeight / 2;
+  // Draw only the viewport around the player (same idea as the 2D canvas)
+  const viewRadius = 12;
+  const minX = Math.max(0, playerX - viewRadius);
+  const maxX = Math.min(mapWidth - 1, playerX + viewRadius);
+  const minY = Math.max(0, playerY - viewRadius);
+  const maxY = Math.min(mapHeight - 1, playerY + viewRadius);
 
-  // Draw dungeon tiles
-  for (let y = 0; y < mapHeight; y++) {
-    for (let x = 0; x < mapWidth; x++) {
+  for (let y = minY; y <= maxY; y++) {
+    for (let x = minX; x <= maxX; x++) {
       const idx = y * mapWidth + x;
-      const isVisited = visitedData[idx] === 1;
-      if (!isVisited) continue;
-
       const tile = mapData[idx];
-      let color = 0x222233;  // Floor
-      let height = 1;
+
+      let color = 0x555577;  // Floor (corridor)
+      let h = 0.2;
 
       if (tile === 1) { // Wall
         color = 0x333344;
-        height = 3;
+        h = 2.0;
       } else if (tile === 2) { // Room
-        color = 0x335533;
-        height = 0.8;
+        color = 0x446688;
+        h = 0.2;
       } else if (tile === 3) { // StairDown
         color = 0xdddd00;
-        height = 1.2;
+        h = 0.5;
       } else if (tile === 4) { // StairUp
         color = 0x00dddd;
-        height = 1.2;
+        h = 0.5;
       }
 
-      const geom = new THREE.BoxGeometry(tileSize, height, tileSize);
+      const geom = new THREE.BoxGeometry(1, h, 1);
       const mat = new THREE.MeshLambertMaterial({ color });
       const cube = new THREE.Mesh(geom, mat);
-      cube.position.set(offsetX + x * tileSize + tileSize/2, height/2, offsetZ + y * tileSize + tileSize/2);
+      // World coords: tile x -> world X, tile y -> world Z
+      cube.position.set(x, h / 2, y);
       scene.add(cube);
       cubes.push(cube);
     }
   }
 
-  // Draw player
-  const playerGeom = new THREE.BoxGeometry(0.8, 1.5, 0.8);
+  // Draw player (green box standing on the floor)
+  const playerGeom = new THREE.BoxGeometry(0.7, 1.4, 0.7);
   const playerMat = new THREE.MeshLambertMaterial({ color: 0x00ff00 });
   playerCube = new THREE.Mesh(playerGeom, playerMat);
-  playerCube.position.set(offsetX + playerX * tileSize + tileSize/2, 0.75, offsetZ + playerY * tileSize + tileSize/2);
+  playerCube.position.set(playerX, 0.9, playerY);
   scene.add(playerCube);
 
-  // Draw enemies
+  // Draw enemies (red boxes)
   const enemyCount = wasm.enemy_count_roguelike();
   for (let i = 0; i < enemyCount; i++) {
     const data = wasm.enemy_data_roguelike(i);
@@ -1298,230 +1295,39 @@ function updateDungeon3d() {
 
     const ex = data[0];
     const ey = data[1];
+    // Only draw enemies inside the viewport
+    if (ex < minX || ex > maxX || ey < minY || ey > maxY) continue;
 
-    const enemyGeom = new THREE.BoxGeometry(0.7, 1.2, 0.7);
+    const enemyGeom = new THREE.BoxGeometry(0.6, 1.1, 0.6);
     const enemyMat = new THREE.MeshLambertMaterial({ color: 0xff4444 });
     const enemyCube = new THREE.Mesh(enemyGeom, enemyMat);
-    enemyCube.position.set(offsetX + ex * tileSize + tileSize/2, 0.6, offsetZ + ey * tileSize + tileSize/2);
+    enemyCube.position.set(ex, 0.75, ey);
     scene.add(enemyCube);
     enemies3d.push(enemyCube);
   }
+
+  // Camera follows the player: above and behind, looking ahead of the player
+  camera.position.set(playerX, 12, playerY + 10);
+  camera.lookAt(playerX, 0, playerY - 3);
 }
 
 function render3d() {
-  console.log(`render3d: renderer=${!!renderer}, scene=${!!scene}, camera=${!!camera}`);
-  if (renderer) {
-    updateDungeon3d();
-    renderer.render(scene, camera);
-    console.log(`Rendered: scene has ${scene.children.length} objects`);
-  } else {
-    console.log('renderer is null');
-    init3d();
-  }
-}
+  if (!renderer) init3d();
 
-// 2D/3D toggle function
-function toggleViewMode() {
-  is3dMode = !is3dMode;
-  const canvas2d = document.getElementById('game-canvas');
-  const canvas3d = document.getElementById('game-canvas-3d');
-  const btn = document.getElementById('view-toggle');
-
-  if (is3dMode) {
-    canvas2d.style.display = 'none';
-    canvas3d.style.display = 'block';
-    btn.textContent = '2D';
-    // Reset 3D state
-    scene = null;
-    renderer = null;
-    init3d();
-    render3d();
-  } else {
-    canvas2d.style.display = 'block';
-    canvas3d.style.display = 'none';
-    btn.textContent = '3D';
-  }
-}
-
-// Attach toggle to canvas button
-document.getElementById('view-toggle').addEventListener('click', toggleViewMode);
-
-// UI toggle button
-document.getElementById('ui-toggle-btn').addEventListener('click', () => {
-  const uiUpper = document.getElementById('ui-upper');
-  const canvasWrap = document.getElementById('canvas-wrap');
-  const btn = document.getElementById('ui-toggle-btn');
-  const isLandscape = window.innerHeight < window.innerWidth;
-
-  if (uiUpper.classList.contains('hidden')) {
-    // Show UI
-    uiUpper.classList.remove('hidden');
-    canvasWrap.classList.remove('expanded');
-    btn.textContent = '▼ 非表示';
-  } else {
-    // Hide UI
-    uiUpper.classList.add('hidden');
-    canvasWrap.classList.add('expanded');
-    btn.textContent = '▲ 表示';
-  }
-
-  // Resize 3D canvas if active
-  setTimeout(() => {
-    if (renderer) {
-      const wrap = document.getElementById('canvas-wrap');
-      const width = wrap.offsetWidth;
-      const height = wrap.offsetHeight;
-      camera.aspect = width / height;
-      camera.updateProjectionMatrix();
-      renderer.setSize(width, height);
-    }
-  }, 300);
-});
-
-start();
-</script>
-</body>
-let scene, camera, renderer;
-let cubes = [];
-let playerCube, enemies3d = [];
-let is3dMode = false;
-
-function init3d() {
-  const canvas3d = document.getElementById('game-canvas-3d');
+  // Keep renderer size in sync with the visible canvas area
   const wrap = document.getElementById('canvas-wrap');
-
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x000008);
-
-  let width = wrap.offsetWidth || 1280;
-  let height = wrap.offsetHeight || 800;
-  console.log(`init3d: canvas size=${width}x${height}, canvas.width=${canvas3d.width}, canvas.height=${canvas3d.height}`);
-
-  camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-  camera.position.set(0, 40, 80);
-  camera.lookAt(0, 10, 0);
-
-  // Set canvas size explicitly
-  canvas3d.setAttribute('width', width);
-  canvas3d.setAttribute('height', height);
-
-  renderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true });
-  renderer.setSize(width, height, false);
-  renderer.setPixelRatio(window.devicePixelRatio);
-
-  // Add light
-  const light = new THREE.DirectionalLight(0xffffff, 0.8);
-  light.position.set(50, 50, 50);
-  scene.add(light);
-
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-  scene.add(ambientLight);
-
-  // Handle window resize
-  window.addEventListener('resize', () => {
-    if (!renderer) return;
-    const newWidth = wrap.offsetWidth;
-    const newHeight = wrap.offsetHeight;
-    camera.aspect = newWidth / newHeight;
+  const w = wrap.offsetWidth || 1280;
+  const h = wrap.offsetHeight || 800;
+  const size = new THREE.Vector2();
+  renderer.getSize(size);
+  if (size.x !== w || size.y !== h) {
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
     camera.updateProjectionMatrix();
-    renderer.setSize(newWidth, newHeight);
-  });
-}
-
-function updateDungeon3d() {
-  if (!scene) {
-    console.log('Initializing 3D scene');
-    init3d();
   }
 
-  // Clear existing cubes
-  cubes.forEach(cube => scene.remove(cube));
-  cubes = [];
-  if (playerCube) scene.remove(playerCube);
-  enemies3d.forEach(e => scene.remove(e));
-  enemies3d = [];
-
-  const mapWidth = wasm.map_width_roguelike();
-  const mapHeight = wasm.map_height_roguelike();
-  console.log(`3D: Map ${mapWidth}x${mapHeight}`);
-  const playerX = wasm.player_x_roguelike();
-  const playerY = wasm.player_y_roguelike();
-  const mapData = wasm.map_data_roguelike();
-  const visitedData = wasm.visited_data_roguelike();
-
-  const tileSize = 1;
-  const offsetX = -mapWidth / 2;
-  const offsetZ = -mapHeight / 2;
-
-  // Draw dungeon tiles
-  for (let y = 0; y < mapHeight; y++) {
-    for (let x = 0; x < mapWidth; x++) {
-      const idx = y * mapWidth + x;
-      const isVisited = visitedData[idx] === 1;
-      if (!isVisited) continue;
-
-      const tile = mapData[idx];
-      let color = 0x222233;  // Floor
-      let height = 1;
-
-      if (tile === 1) { // Wall
-        color = 0x333344;
-        height = 3;
-      } else if (tile === 2) { // Room
-        color = 0x335533;
-        height = 0.8;
-      } else if (tile === 3) { // StairDown
-        color = 0xdddd00;
-        height = 1.2;
-      } else if (tile === 4) { // StairUp
-        color = 0x00dddd;
-        height = 1.2;
-      }
-
-      const geom = new THREE.BoxGeometry(tileSize, height, tileSize);
-      const mat = new THREE.MeshLambertMaterial({ color });
-      const cube = new THREE.Mesh(geom, mat);
-      cube.position.set(offsetX + x * tileSize + tileSize/2, height/2, offsetZ + y * tileSize + tileSize/2);
-      scene.add(cube);
-      cubes.push(cube);
-    }
-  }
-
-  // Draw player
-  const playerGeom = new THREE.BoxGeometry(0.8, 1.5, 0.8);
-  const playerMat = new THREE.MeshLambertMaterial({ color: 0x00ff00 });
-  playerCube = new THREE.Mesh(playerGeom, playerMat);
-  playerCube.position.set(offsetX + playerX * tileSize + tileSize/2, 0.75, offsetZ + playerY * tileSize + tileSize/2);
-  scene.add(playerCube);
-
-  // Draw enemies
-  const enemyCount = wasm.enemy_count_roguelike();
-  for (let i = 0; i < enemyCount; i++) {
-    const data = wasm.enemy_data_roguelike(i);
-    if (data.length < 3) continue;
-
-    const ex = data[0];
-    const ey = data[1];
-
-    const enemyGeom = new THREE.BoxGeometry(0.7, 1.2, 0.7);
-    const enemyMat = new THREE.MeshLambertMaterial({ color: 0xff4444 });
-    const enemyCube = new THREE.Mesh(enemyGeom, enemyMat);
-    enemyCube.position.set(offsetX + ex * tileSize + tileSize/2, 0.6, offsetZ + ey * tileSize + tileSize/2);
-    scene.add(enemyCube);
-    enemies3d.push(enemyCube);
-  }
-}
-
-function render3d() {
-  console.log(`render3d: renderer=${!!renderer}, scene=${!!scene}, camera=${!!camera}`);
-  if (renderer) {
-    updateDungeon3d();
-    renderer.render(scene, camera);
-    console.log(`Rendered: scene has ${scene.children.length} objects`);
-  } else {
-    console.log('renderer is null');
-    init3d();
-  }
+  updateDungeon3d();
+  renderer.render(scene, camera);
 }
 
 // 2D/3D toggle function
@@ -1535,10 +1341,6 @@ function toggleViewMode() {
     canvas2d.style.display = 'none';
     canvas3d.style.display = 'block';
     btn.textContent = '2D';
-    // Reset 3D state
-    scene = null;
-    renderer = null;
-    init3d();
     render3d();
   } else {
     canvas2d.style.display = 'block';
