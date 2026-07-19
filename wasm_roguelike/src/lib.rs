@@ -241,3 +241,10 @@ pub fn clear_messages_roguelike() {
         }
     });
 }
+
+#[wasm_bindgen]
+pub fn inventory_roguelike() -> Vec<u32> {
+    ROGUELIKE_STATE.with(|s| {
+        s.borrow().as_ref().map(|g| g.inventory.to_vec()).unwrap_or_default()
+    })
+}

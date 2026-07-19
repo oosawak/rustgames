@@ -13,6 +13,8 @@ export function hp_roguelike(): number;
 
 export function init_roguelike(): void;
 
+export function inventory_roguelike(): Uint32Array;
+
 export function level_roguelike(): number;
 
 export function map_data_roguelike(): Uint8Array;
@@ -67,6 +69,7 @@ export interface InitOutput {
     readonly enemy_data_roguelike: (a: number) => [number, number];
     readonly hp_roguelike: () => number;
     readonly init_roguelike: () => void;
+    readonly inventory_roguelike: () => [number, number];
     readonly level_roguelike: () => number;
     readonly map_data_roguelike: () => [number, number];
     readonly map_height_roguelike: () => number;

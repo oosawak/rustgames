@@ -7,6 +7,7 @@ export const enemy_count_roguelike: () => number;
 export const enemy_data_roguelike: (a: number) => [number, number];
 export const hp_roguelike: () => number;
 export const init_roguelike: () => void;
+export const inventory_roguelike: () => [number, number];
 export const level_roguelike: () => number;
 export const map_data_roguelike: () => [number, number];
 export const map_height_roguelike: () => number;

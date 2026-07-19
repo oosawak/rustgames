@@ -999,7 +999,7 @@ function gameLoop() {
   // Update message log
   updateMessageLog();
 
-  // Update MAP or EQUIPMENT if open
+  // Update MAP, EQUIPMENT, or ITEMS if open
   const activeTab = document.querySelector('.nav-btn.active');
   if (activeTab) {
     const tabName = activeTab.getAttribute('data-tab');
@@ -1007,6 +1007,8 @@ function gameLoop() {
       drawDungeonMap();
     } else if (tabName === 'equipment') {
       updateEquipmentDisplay();
+    } else if (tabName === 'items') {
+      updateItemsDisplay();
     }
   }
 
@@ -1146,6 +1148,30 @@ function updateEquipmentDisplay() {
   `;
 }
 
+// ── Update items display (for live updates) ────────────────────────────
+function updateItemsDisplay() {
+  const panel = document.getElementById('tab-items');
+  if (!panel) return;
+
+  const inventory = wasm.inventory_roguelike();
+  const itemNames = ['回復ポーション', 'マナポーション', '毒ポーション', 'エナジードリンク', '宝石', '鍵', 'スクロール', '金貨'];
+  const itemEmojis = ['💚', '💙', '☠️', '⚡', '💎', '🔑', '📜', '🪙'];
+
+  let itemsHtml = '<div style="padding: 16px;">';
+  for (let i = 0; i < Math.min(inventory.length, itemNames.length); i++) {
+    if (inventory[i] > 0 || i < 5) {
+      itemsHtml += `
+        <div class="stat-item">
+          <span class="stat-label">${itemEmojis[i]} ${itemNames[i]}</span>
+          <span class="stat-value">${inventory[i] || 0}</span>
+        </div>
+      `;
+    }
+  }
+  itemsHtml += '</div>';
+  panel.innerHTML = itemsHtml;
+}
+
 // ── Update message log ────────────────────────────
 function updateMessageLog() {
   const scene = wasm.scene_roguelike();
@@ -1271,22 +1297,23 @@ function updateTabContent(tabName) {
       `;
       break;
     case 'items':
-      panel.innerHTML = `
-        <div style="padding: 16px;">
-          <div class="stat-item">
-            <span class="stat-label">回復ポーション</span>
-            <span class="stat-value">0</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">鍵</span>
-            <span class="stat-value">0</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">宝石</span>
-            <span class="stat-value">0</span>
-          </div>
-        </div>
-      `;
+      const inventory = wasm.inventory_roguelike();
+      const itemNames = ['回復ポーション', 'マナポーション', '毒ポーション', 'エナジードリンク', '宝石', '鍵', 'スクロール', '金貨'];
+      const itemEmojis = ['💚', '💙', '☠️', '⚡', '💎', '🔑', '📜', '🪙'];
+
+      let itemsHtml = '<div style="padding: 16px;">';
+      for (let i = 0; i < Math.min(inventory.length, itemNames.length); i++) {
+        if (inventory[i] > 0 || i < 5) {  // 最初の5つは常に表示
+          itemsHtml += `
+            <div class="stat-item">
+              <span class="stat-label">${itemEmojis[i]} ${itemNames[i]}</span>
+              <span class="stat-value">${inventory[i] || 0}</span>
+            </div>
+          `;
+        }
+      }
+      itemsHtml += '</div>';
+      panel.innerHTML = itemsHtml;
       break;
     case 'map':
       drawDungeonMap();

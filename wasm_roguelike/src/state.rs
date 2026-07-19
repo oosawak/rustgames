@@ -55,6 +55,18 @@ pub enum AccessoryType {
     ManaEarrings = 4,      // MaxMP+15, MP自動回復
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ItemType {
+    HealthPotion = 0,      // HP +50
+    ManaPotion = 1,        // MP +30
+    PoisonPotion = 2,      // 敵に毒ダメージ
+    EnergyDrink = 3,       // HP+Max+5
+    Gem = 4,               // 売却アイテム
+    SkeletonKey = 5,       // ドア開錠
+    Scroll = 6,            // 魔法書
+    GoldenCoin = 7,        // お金
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct Equipment {
     pub weapon: Option<WeaponType>,
@@ -135,6 +147,7 @@ pub struct RoguelikeGame {
     pub next_level_exp: u32,
     pub equipment: Equipment,
     pub current_room: Option<usize>,  // 現在いる部屋のインデックス
+    pub inventory: [u32; 8],  // ItemType ごとの数量（8 種類）
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -326,6 +339,7 @@ impl RoguelikeGame {
             next_level_exp: 100,
             equipment: Equipment::new(),
             current_room: None,
+            inventory: [0; 8],  // HealthPotion, ManaPotion, PoisonPotion, EnergyDrink, Gem, SkeletonKey, Scroll, GoldenCoin
         }
     }
 
@@ -655,10 +669,52 @@ impl RoguelikeGame {
 
                     self.add_message(format!("{} を倒した！ +{} EXP", enemy_name, exp_gain));
 
+                    // 敵からのドロップ（アイテム）
+                    let mut rng = LcgRng::new((self.depth as u32).wrapping_mul(12345).wrapping_add(self.enemies[i].x as u32));
+                    let item_roll = rng.next() % 100;
+
+                    if item_roll < 30 {
+                        // ポーション系（30%）
+                        let potion_type = rng.next() % 4;
+                        match potion_type {
+                            0 => {
+                                self.inventory[ItemType::HealthPotion as usize] += 1;
+                                self.add_message("💚 回復ポーションを入手した！".to_string());
+                            }
+                            1 => {
+                                self.inventory[ItemType::ManaPotion as usize] += 1;
+                                self.add_message("💙 マナポーションを入手した！".to_string());
+                            }
+                            2 => {
+                                self.inventory[ItemType::PoisonPotion as usize] += 1;
+                                self.add_message("☠️ 毒ポーションを入手した！".to_string());
+                            }
+                            _ => {
+                                self.inventory[ItemType::EnergyDrink as usize] += 1;
+                                self.add_message("⚡ エナジードリンクを入手した！".to_string());
+                            }
+                        }
+                    } else if item_roll < 60 {
+                        // 宝石（30%）
+                        self.inventory[ItemType::Gem as usize] += rng.next() % 3 + 1;
+                        self.add_message("💎 宝石を入手した！".to_string());
+                    } else if item_roll < 80 {
+                        // 鍵（20%）
+                        self.inventory[ItemType::SkeletonKey as usize] += 1;
+                        self.add_message("🔑 鍵を入手した！".to_string());
+                    } else if item_roll < 90 {
+                        // スクロール（10%）
+                        self.inventory[ItemType::Scroll as usize] += 1;
+                        self.add_message("📜 スクロールを入手した！".to_string());
+                    } else {
+                        // コイン（10%）
+                        self.inventory[ItemType::GoldenCoin as usize] += rng.next() % 5 + 1;
+                        self.add_message("🪙 金貨を入手した！".to_string());
+                    }
+
                     // ボス撃破時の装備ドロップ
                     if is_boss {
                         // ランダムに装備をドロップ
-                        let mut rng = LcgRng::new((self.depth as u32).wrapping_mul(12345));
                         let drop_type = rng.next() % 3;  // 武器、防具、アクセサリーから選択
 
                         match drop_type {
