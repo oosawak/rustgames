@@ -518,6 +518,50 @@ html, body {
     display: block;
   }
 }
+
+/* ── Message Log ── */
+#message-log {
+  position: fixed;
+  bottom: 60px;
+  left: 120px;
+  right: 120px;
+  z-index: 40;
+  max-height: 140px;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid rgba(0, 200, 255, 0.6);
+  border-radius: 4px;
+  padding: 12px;
+  font-family: monospace;
+  font-size: 0.8em;
+  color: #0ff;
+  display: none;
+  text-shadow: 0 0 6px #0ff;
+  line-height: 1.4;
+  text-align: left;
+}
+
+/* ── Responsive Message Log (Portrait) ── */
+@media (max-aspect-ratio: 1/1), (max-width: 768px) {
+  #message-log {
+    left: 100px;
+    right: 100px;
+    max-height: 120px;
+    font-size: 0.75em;
+    padding: 10px;
+  }
+}
+
+/* ── Very narrow screens (small phones) ── */
+@media (max-width: 480px) {
+  #message-log {
+    left: 20px;
+    right: 20px;
+    max-height: 100px;
+    font-size: 0.7em;
+    padding: 8px;
+  }
+}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -654,9 +698,8 @@ html, body {
   <!-- Tab toggle button (top-left) -->
   <button id="tab-toggle-btn" style="position: fixed; top: 10px; left: 10px; z-index: 50; display: none; padding: 8px 16px; background: rgba(0,200,255,0.2); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 4px; font-family: monospace; font-size: 0.8em;">Close</button>
 
-  <!-- Message log (center bottom, wide) -->
-  <div id="message-log" style="position: fixed; bottom: 60px; left: 120px; right: 120px; z-index: 40; max-height: 140px; overflow-y: auto; background: rgba(0,0,0,0.85); border: 1px solid rgba(0,200,255,0.6); border-radius: 4px; padding: 12px; font-family: monospace; font-size: 0.8em; color: #0ff; display: none; text-shadow: 0 0 6px #0ff; line-height: 1.4;">
-  </div>
+  <!-- Message log (responsive width) -->
+  <div id="message-log"></div>
 
   <!-- Movement joystick (mobile) -->
   <!-- Magic button (left side) -->
