@@ -1069,26 +1069,43 @@ function updateStatus() {
   const atkBonus = wasm.player_atk_roguelike();
   const defBonus = wasm.player_def_roguelike();
 
-  if (weaponIdx >= 0 && weaponIdx < weaponNames.length) {
-    document.getElementById('weapon-display').textContent = weaponNames[weaponIdx] + ' (+' + weaponBonuses[weaponIdx] + ')';
-  } else {
-    document.getElementById('weapon-display').textContent = 'なし';
+  // 要素が存在するかチェックしてから更新
+  const weaponDisplay = document.getElementById('weapon-display');
+  if (weaponDisplay) {
+    if (weaponIdx >= 0 && weaponIdx < weaponNames.length) {
+      weaponDisplay.textContent = weaponNames[weaponIdx] + ' (+' + weaponBonuses[weaponIdx] + ')';
+    } else {
+      weaponDisplay.textContent = 'なし';
+    }
   }
 
-  if (armorIdx >= 0 && armorIdx < armorNames.length) {
-    document.getElementById('armor-display').textContent = armorNames[armorIdx] + ' (+' + armorBonuses[armorIdx] + ')';
-  } else {
-    document.getElementById('armor-display').textContent = 'なし';
+  const armorDisplay = document.getElementById('armor-display');
+  if (armorDisplay) {
+    if (armorIdx >= 0 && armorIdx < armorNames.length) {
+      armorDisplay.textContent = armorNames[armorIdx] + ' (+' + armorBonuses[armorIdx] + ')';
+    } else {
+      armorDisplay.textContent = 'なし';
+    }
   }
 
-  if (accessoryIdx >= 0 && accessoryIdx < accessoryNames.length) {
-    document.getElementById('accessory-display').textContent = accessoryNames[accessoryIdx];
-  } else {
-    document.getElementById('accessory-display').textContent = 'なし';
+  const accessoryDisplay = document.getElementById('accessory-display');
+  if (accessoryDisplay) {
+    if (accessoryIdx >= 0 && accessoryIdx < accessoryNames.length) {
+      accessoryDisplay.textContent = accessoryNames[accessoryIdx];
+    } else {
+      accessoryDisplay.textContent = 'なし';
+    }
   }
 
-  document.getElementById('atk-bonus-display').textContent = '+' + atkBonus;
-  document.getElementById('def-bonus-display').textContent = '+' + defBonus;
+  const atkDisplay = document.getElementById('atk-bonus-display');
+  if (atkDisplay) {
+    atkDisplay.textContent = '+' + atkBonus;
+  }
+
+  const defDisplay = document.getElementById('def-bonus-display');
+  if (defDisplay) {
+    defDisplay.textContent = '+' + defBonus;
+  }
 }
 
 // ── Update message log ────────────────────────────
