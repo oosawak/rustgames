@@ -702,7 +702,9 @@ async function start() {
 
       if (isLandscape) {
         const uiUpper = document.getElementById('ui-upper');
-        uiUpper.style.display = 'flex';
+        if (uiUpper) {
+          uiUpper.style.display = 'flex';
+        }
       }
 
       wasm.start_game_roguelike();
