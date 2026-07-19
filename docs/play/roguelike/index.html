@@ -1103,7 +1103,7 @@ function updateMessageLog() {
 
     // メッセージをHTML化して表示
     msgLogEl.innerHTML = messages
-      .slice(-5)  // 最新5件のみ表示
+      .slice(-4)  // 最新4件のみ表示
       .map(msg => '<div style="margin: 2px 0; word-break: break-word;">' + msg + '</div>')
       .join('');
 
