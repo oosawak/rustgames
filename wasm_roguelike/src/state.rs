@@ -928,7 +928,6 @@ pub fn render_canvas(game: &RoguelikeGame, canvas_id: &str, width: i32, height: 
                 }
 
                 // Draw enemies
-                let enemy_icon_ids = ["goblin-icon", "troll-icon", "ghost-icon"];
                 for (i, enemy) in game.enemies.iter().enumerate() {
                     if enemy.x >= camera_x && enemy.x < camera_x + view_width
                         && enemy.y >= camera_y && enemy.y < camera_y + view_height
@@ -945,9 +944,10 @@ pub fn render_canvas(game: &RoguelikeGame, canvas_id: &str, width: i32, height: 
                             shake_offset_y = shake;
                         }
 
-                        // Draw enemy icon
+                        // Draw enemy icon - select by enemy type (0-29)
+                        let icon_id = format!("enemy-{}", enemy.enemy_type);
                         if let Ok(img_elem) = window.document().unwrap()
-                            .get_element_by_id(enemy_icon_ids[i % 3])
+                            .get_element_by_id(&icon_id)
                             .unwrap()
                             .dyn_into::<web_sys::HtmlImageElement>()
                         {
