@@ -481,12 +481,18 @@ impl RoguelikeGame {
                     boss_name = format!("☆{}", boss_name);
                 }
 
+                let color = if is_boss {
+                    [1.0, 0.85, 0.0]  // ボスは金色
+                } else {
+                    Self::apply_variant_color(data.base_color, variant)  // バリアントで色を変更
+                };
+
                 self.enemies.push(Enemy {
                     x: ex,
                     y: ey,
                     hp,
                     max_hp: hp,
-                    color: if is_boss { [1.0, 0.85, 0.0] } else { [data.base_color.0, data.base_color.1, data.base_color.2] },
+                    color,
                     name: boss_name,
                     enemy_type,
                     variant,
@@ -514,6 +520,28 @@ impl RoguelikeGame {
             }
         }
         None
+    }
+
+    fn apply_variant_color(base_color: (f32, f32, f32), variant: EnemyVariant) -> [f32; 3] {
+        let (r, g, b) = base_color;
+        match variant {
+            EnemyVariant::Weak => {
+                // 薄い色（0.6倍）
+                [(r * 0.6).min(1.0), (g * 0.6).min(1.0), (b * 0.6).min(1.0)]
+            }
+            EnemyVariant::Normal => {
+                // 通常色
+                [r, g, b]
+            }
+            EnemyVariant::Strong => {
+                // 濃い色（1.2倍）
+                [(r * 1.2).min(1.0), (g * 1.2).min(1.0), (b * 1.2).min(1.0)]
+            }
+            EnemyVariant::Boss => {
+                // ボスは別で処理するので、ここでは使わない
+                [r, g, b]
+            }
+        }
     }
 
     pub fn move_player(&mut self, action: i32) {
@@ -904,12 +932,18 @@ impl RoguelikeGame {
                     boss_name = format!("☆{}", boss_name);
                 }
 
+                let color = if is_boss {
+                    [1.0, 0.85, 0.0]  // ボスは金色
+                } else {
+                    Self::apply_variant_color(data.base_color, variant)  // バリアントで色を変更
+                };
+
                 self.enemies.push(Enemy {
                     x: ex,
                     y: ey,
                     hp,
                     max_hp: hp,
-                    color: if is_boss { [1.0, 0.85, 0.0] } else { [data.base_color.0, data.base_color.1, data.base_color.2] },
+                    color,
                     name: boss_name,
                     enemy_type,
                     variant,
@@ -990,12 +1024,18 @@ impl RoguelikeGame {
                     boss_name = format!("☆{}", boss_name);
                 }
 
+                let color = if is_boss {
+                    [1.0, 0.85, 0.0]  // ボスは金色
+                } else {
+                    Self::apply_variant_color(data.base_color, variant)  // バリアントで色を変更
+                };
+
                 self.enemies.push(Enemy {
                     x: ex,
                     y: ey,
                     hp,
                     max_hp: hp,
-                    color: if is_boss { [1.0, 0.85, 0.0] } else { [data.base_color.0, data.base_color.1, data.base_color.2] },
+                    color,
                     name: boss_name,
                     enemy_type,
                     variant,
