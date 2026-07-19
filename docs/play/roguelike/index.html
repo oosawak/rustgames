@@ -466,6 +466,7 @@ html, body {
   }
 }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
@@ -547,7 +548,9 @@ html, body {
 
   <!-- Canvas area (Map/3D viewport) -->
   <div id="canvas-wrap">
-    <canvas id="game-canvas"></canvas>
+    <canvas id="game-canvas" style="display: block;"></canvas>
+    <canvas id="game-canvas-3d" style="display: none;"></canvas>
+    <button id="view-toggle" style="position: absolute; top: 10px; right: 10px; z-index: 30; padding: 8px 16px; background: rgba(0,200,255,0.2); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 4px; font-family: monospace; font-size: 0.8em;">2D/3D</button>
   </div>
 
   <!-- Movement joystick (mobile) -->
@@ -837,8 +840,13 @@ function gameLoop() {
   // Get canvas dimensions
   const wrap = document.getElementById('canvas-wrap');
   if (wrap && wrap.offsetWidth > 0 && wrap.offsetHeight > 0) {
-    // Render via WASM
-    wasm.render_roguelike('game-canvas', wrap.offsetWidth, wrap.offsetHeight);
+    if (is3dMode) {
+      // Render 3D
+      render3d();
+    } else {
+      // Render 2D via WASM
+      wasm.render_roguelike('game-canvas', wrap.offsetWidth, wrap.offsetHeight);
+    }
   }
 
   // Update UI
@@ -1092,6 +1100,153 @@ function drawDungeonMap() {
   ctx.font = '12px monospace';
   ctx.fillText(`F${wasm.depth_roguelike()}`, 8, 20);
 }
+
+// ── 3D Rendering with Three.js ──
+let scene, camera, renderer;
+let cubes = [];
+let playerCube, enemies3d = [];
+let is3dMode = false;
+
+function init3d() {
+  const canvas3d = document.getElementById('game-canvas-3d');
+  const wrap = document.getElementById('canvas-wrap');
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x000008);
+
+  const width = wrap.offsetWidth;
+  const height = wrap.offsetHeight;
+
+  camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+  camera.position.set(0, 20, 25);
+  camera.lookAt(0, 5, 0);
+
+  renderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true });
+  renderer.setSize(width, height);
+  renderer.setPixelRatio(window.devicePixelRatio);
+
+  // Add light
+  const light = new THREE.DirectionalLight(0xffffff, 0.8);
+  light.position.set(50, 50, 50);
+  scene.add(light);
+
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+  scene.add(ambientLight);
+
+  // Handle window resize
+  window.addEventListener('resize', () => {
+    if (!renderer) return;
+    const newWidth = wrap.offsetWidth;
+    const newHeight = wrap.offsetHeight;
+    camera.aspect = newWidth / newHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(newWidth, newHeight);
+  });
+}
+
+function updateDungeon3d() {
+  if (!scene) init3d();
+
+  // Clear existing cubes
+  cubes.forEach(cube => scene.remove(cube));
+  cubes = [];
+  if (playerCube) scene.remove(playerCube);
+  enemies3d.forEach(e => scene.remove(e));
+  enemies3d = [];
+
+  const mapWidth = wasm.map_width_roguelike();
+  const mapHeight = wasm.map_height_roguelike();
+  const playerX = wasm.player_x_roguelike();
+  const playerY = wasm.player_y_roguelike();
+  const mapData = wasm.map_data_roguelike();
+  const visitedData = wasm.visited_data_roguelike();
+
+  const tileSize = 1;
+  const offsetX = -mapWidth / 2;
+  const offsetZ = -mapHeight / 2;
+
+  // Draw dungeon tiles
+  for (let y = 0; y < mapHeight; y++) {
+    for (let x = 0; x < mapWidth; x++) {
+      const idx = y * mapWidth + x;
+      const isVisited = visitedData[idx] === 1;
+      if (!isVisited) continue;
+
+      const tile = mapData[idx];
+      let color = 0x222233;  // Floor
+      let height = 1;
+
+      if (tile === 1) { // Wall
+        color = 0x333344;
+        height = 3;
+      } else if (tile === 2) { // Room
+        color = 0x335533;
+        height = 0.8;
+      } else if (tile === 3) { // StairDown
+        color = 0xdddd00;
+        height = 1.2;
+      } else if (tile === 4) { // StairUp
+        color = 0x00dddd;
+        height = 1.2;
+      }
+
+      const geom = new THREE.BoxGeometry(tileSize, height, tileSize);
+      const mat = new THREE.MeshLambertMaterial({ color });
+      const cube = new THREE.Mesh(geom, mat);
+      cube.position.set(offsetX + x * tileSize + tileSize/2, height/2, offsetZ + y * tileSize + tileSize/2);
+      scene.add(cube);
+      cubes.push(cube);
+    }
+  }
+
+  // Draw player
+  const playerGeom = new THREE.BoxGeometry(0.8, 1.5, 0.8);
+  const playerMat = new THREE.MeshLambertMaterial({ color: 0x00ff00 });
+  playerCube = new THREE.Mesh(playerGeom, playerMat);
+  playerCube.position.set(offsetX + playerX * tileSize + tileSize/2, 0.75, offsetZ + playerY * tileSize + tileSize/2);
+  scene.add(playerCube);
+
+  // Draw enemies
+  const enemyCount = wasm.enemy_count_roguelike();
+  for (let i = 0; i < enemyCount; i++) {
+    const data = wasm.enemy_data_roguelike(i);
+    if (data.length < 3) continue;
+
+    const ex = data[0];
+    const ey = data[1];
+
+    const enemyGeom = new THREE.BoxGeometry(0.7, 1.2, 0.7);
+    const enemyMat = new THREE.MeshLambertMaterial({ color: 0xff4444 });
+    const enemyCube = new THREE.Mesh(enemyGeom, enemyMat);
+    enemyCube.position.set(offsetX + ex * tileSize + tileSize/2, 0.6, offsetZ + ey * tileSize + tileSize/2);
+    scene.add(enemyCube);
+    enemies3d.push(enemyCube);
+  }
+}
+
+function render3d() {
+  if (renderer) {
+    updateDungeon3d();
+    renderer.render(scene, camera);
+  }
+}
+
+// 2D/3D toggle
+document.getElementById('view-toggle').addEventListener('click', () => {
+  is3dMode = !is3dMode;
+  const canvas2d = document.getElementById('game-canvas');
+  const canvas3d = document.getElementById('game-canvas-3d');
+
+  if (is3dMode) {
+    canvas2d.style.display = 'none';
+    canvas3d.style.display = 'block';
+    if (!scene) init3d();
+    render3d();
+  } else {
+    canvas2d.style.display = 'block';
+    canvas3d.style.display = 'none';
+  }
+});
 
 start();
 </script>
