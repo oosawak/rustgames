@@ -810,9 +810,6 @@ async function start() {
       toggleSwap();
     });
 
-    // Setup navigation tabs
-    setupNavigation();
-
     // Spacebar for magic
     document.addEventListener('keydown', (e) => {
       if (e.code === 'Space' && initialized) {
@@ -921,30 +918,6 @@ function flashHint(action) {
 }
 
 // ── Navigation setup ──────────────────────────────
-function setupNavigation() {
-  const navBtns = document.querySelectorAll('.nav-btn[data-tab]');
-
-  navBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tabName = btn.getAttribute('data-tab');
-
-      // Update active button
-      navBtns.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-
-      // Update active tab panel
-      document.querySelectorAll('.tab-panel').forEach(panel => {
-        panel.classList.remove('active');
-      });
-      const tabPanel = document.getElementById(`tab-${tabName}`);
-      if (tabPanel) {
-        tabPanel.classList.add('active');
-      }
-
-    });
-  });
-}
-
 // ── 3D Rendering with Three.js ──
 let scene, camera, renderer;
 let cubes = [];
