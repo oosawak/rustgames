@@ -134,6 +134,7 @@ pub struct RoguelikeGame {
     pub exp: u32,
     pub next_level_exp: u32,
     pub equipment: Equipment,
+    pub current_room: Option<usize>,  // 現在いる部屋のインデックス
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -317,6 +318,7 @@ impl RoguelikeGame {
             exp: 0,
             next_level_exp: 100,
             equipment: Equipment::new(),
+            current_room: None,
         }
     }
 
@@ -425,6 +427,8 @@ impl RoguelikeGame {
             let room = &self.rooms[0];
             self.player_x = room.x + room.width / 2;
             self.player_y = room.y + room.height / 2;
+            self.current_room = Some(0);
+            self.add_message("📍 部屋 #1 に入った".to_string());
         }
 
         self.hp = self.max_hp;
@@ -479,6 +483,15 @@ impl RoguelikeGame {
         }
         matches!(self.map[y as usize][x as usize],
             TileType::Floor | TileType::Room | TileType::StairDown | TileType::StairUp)
+    }
+
+    fn get_room_at(&self, x: i32, y: i32) -> Option<usize> {
+        for (idx, room) in self.rooms.iter().enumerate() {
+            if x >= room.x && x < room.x + room.width && y >= room.y && y < room.y + room.height {
+                return Some(idx);
+            }
+        }
+        None
     }
 
     pub fn move_player(&mut self, action: i32) {
@@ -603,6 +616,20 @@ impl RoguelikeGame {
         if self.is_walkable(new_x, new_y) {
             self.player_x = new_x;
             self.player_y = new_y;
+
+            // 部屋の出入り判定
+            let new_room = self.get_room_at(new_x, new_y);
+            if new_room != self.current_room {
+                match new_room {
+                    Some(room_idx) => {
+                        self.add_message(format!("📍 部屋 #{} に入った", room_idx + 1));
+                    }
+                    None => {
+                        self.add_message("通路に出た".to_string());
+                    }
+                }
+                self.current_room = new_room;
+            }
 
             // 敵を移動（簡易AI）
             let enemy_moves: Vec<(usize, i32, i32)> = self.enemies.iter().enumerate()
@@ -824,6 +851,7 @@ impl RoguelikeGame {
             let room = &self.rooms[0];
             self.player_x = (room.x + 1).max(0).min(self.map_width - 1);
             self.player_y = (room.y + 1).max(0).min(self.map_height - 1);
+            self.current_room = Some(0);
         }
 
         // 敵を配置
@@ -893,6 +921,7 @@ impl RoguelikeGame {
             let room = &self.rooms[self.rooms.len() - 1];
             self.player_x = (room.x + room.width - 2).max(0).min(self.map_width - 1);
             self.player_y = (room.y + room.height - 2).max(0).min(self.map_height - 1);
+            self.current_room = Some(self.rooms.len() - 1);
         }
 
         // 敵を配置
