@@ -1217,8 +1217,8 @@ function loadPlayerVrm() {
       setupPlayerModel(gltf.scene);
     }
   }, undefined, (e) => {
-    vrmLoading = false;
     console.warn('VRM load failed, keeping box player:', e);
+    // Don't retry: once failed, consider it done
   });
 }
 
@@ -1337,7 +1337,11 @@ function updateDungeon3d() {
 
   // Draw player: VRM model if loaded, otherwise a green box
   if (playerModel) {
-    if (playerModel.parent !== scene) scene.add(playerModel);
+    // Ensure model is in scene exactly once
+    if (playerModel.parent !== scene) {
+      if (playerModel.parent) playerModel.parent.remove(playerModel);
+      scene.add(playerModel);
+    }
     playerModel.position.set(playerX, 0.2 + playerModelYOffset, playerY);
     // Face the direction of movement (0=up/-Z, 1=left/-X, 2=right/+X, 3=down/+Z)
     const dir = wasm.player_direction_roguelike();
