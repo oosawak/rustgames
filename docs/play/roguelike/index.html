@@ -581,6 +581,7 @@ html, body {
     <button class="nav-btn" data-tab="equipment"><i class="ra ra-broadsword"></i> 装備</button>
     <button class="nav-btn" data-tab="items"><i class="ra ra-potion"></i> アイテム</button>
     <button class="nav-btn" data-tab="map"><i class="ra ra-compass"></i> マップ</button>
+    <button class="nav-btn" id="nav-view-toggle"><i class="ra ra-cube"></i> <span id="view-mode-text">3D</span></button>
   </div>
 
   <!-- Tab contents -->
@@ -1231,22 +1232,31 @@ function render3d() {
   }
 }
 
-// 2D/3D toggle
-document.getElementById('view-toggle').addEventListener('click', () => {
+// 2D/3D toggle function
+function toggleViewMode() {
   is3dMode = !is3dMode;
   const canvas2d = document.getElementById('game-canvas');
   const canvas3d = document.getElementById('game-canvas-3d');
+  const modeText = document.getElementById('view-mode-text');
 
   if (is3dMode) {
     canvas2d.style.display = 'none';
     canvas3d.style.display = 'block';
+    modeText.textContent = '2D';
     if (!scene) init3d();
     render3d();
   } else {
     canvas2d.style.display = 'block';
     canvas3d.style.display = 'none';
+    modeText.textContent = '3D';
   }
-});
+}
+
+// Attach toggle to canvas button
+document.getElementById('view-toggle').addEventListener('click', toggleViewMode);
+
+// Attach toggle to nav button
+document.getElementById('nav-view-toggle').addEventListener('click', toggleViewMode);
 
 start();
 </script>
