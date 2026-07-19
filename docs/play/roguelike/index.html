@@ -520,6 +520,8 @@ html, body {
 }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@0.6.11/lib/three-vrm.min.js"></script>
 </head>
 <body>
 
@@ -1183,6 +1185,42 @@ let scene, camera, renderer;
 let cubes = [];
 let playerCube, enemies3d = [];
 let is3dMode = false;
+let playerModel = null;   // VRM model (loaded async)
+let playerVrm = null;     // VRM instance (for update)
+let playerModelYOffset = 0;
+let vrmLoading = false;
+
+function setupPlayerModel(obj) {
+  // Normalize model height to ~1.4 tiles and put its feet on the floor
+  const box = new THREE.Box3().setFromObject(obj);
+  const size = box.getSize(new THREE.Vector3());
+  const s = size.y > 0 ? 1.4 / size.y : 1;
+  obj.scale.setScalar(s);
+  playerModelYOffset = -box.min.y * s;
+  playerModel = obj;
+}
+
+function loadPlayerVrm() {
+  if (playerModel || vrmLoading || typeof THREE.GLTFLoader === 'undefined') return;
+  vrmLoading = true;
+  const loader = new THREE.GLTFLoader();
+  loader.load('./vrm/standard.vrm', (gltf) => {
+    if (window.THREE_VRM && THREE_VRM.VRM) {
+      THREE_VRM.VRM.from(gltf).then((vrm) => {
+        playerVrm = vrm;
+        setupPlayerModel(vrm.scene);
+      }).catch(() => {
+        // VRM 1.0 file: three-vrm 0.x can't parse it, but the raw glTF renders fine
+        setupPlayerModel(gltf.scene);
+      });
+    } else {
+      setupPlayerModel(gltf.scene);
+    }
+  }, undefined, (e) => {
+    vrmLoading = false;
+    console.warn('VRM load failed, keeping box player:', e);
+  });
+}
 
 function init3d() {
   const canvas3d = document.getElementById('game-canvas-3d');
@@ -1213,6 +1251,9 @@ function init3d() {
 
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
   scene.add(ambientLight);
+
+  // Start loading the player VRM model (async, box shown until ready)
+  loadPlayerVrm();
 
   // Handle window resize
   window.addEventListener('resize', () => {
@@ -1280,12 +1321,22 @@ function updateDungeon3d() {
     }
   }
 
-  // Draw player (green box standing on the floor)
-  const playerGeom = new THREE.BoxGeometry(0.7, 1.4, 0.7);
-  const playerMat = new THREE.MeshLambertMaterial({ color: 0x00ff00 });
-  playerCube = new THREE.Mesh(playerGeom, playerMat);
-  playerCube.position.set(playerX, 0.9, playerY);
-  scene.add(playerCube);
+  // Draw player: VRM model if loaded, otherwise a green box
+  if (playerModel) {
+    if (playerModel.parent !== scene) scene.add(playerModel);
+    playerModel.position.set(playerX, 0.2 + playerModelYOffset, playerY);
+    // Face the direction of movement (0=up/-Z, 1=left/-X, 2=right/+X, 3=down/+Z)
+    const dir = wasm.player_direction_roguelike();
+    const dirToRot = { 0: Math.PI, 1: -Math.PI / 2, 2: Math.PI / 2, 3: 0 };
+    playerModel.rotation.y = dirToRot[dir] ?? 0;
+    if (playerVrm) playerVrm.update(1 / 60);
+  } else {
+    const playerGeom = new THREE.BoxGeometry(0.7, 1.4, 0.7);
+    const playerMat = new THREE.MeshLambertMaterial({ color: 0x00ff00 });
+    playerCube = new THREE.Mesh(playerGeom, playerMat);
+    playerCube.position.set(playerX, 0.9, playerY);
+    scene.add(playerCube);
+  }
 
   // Draw enemies (red boxes)
   const enemyCount = wasm.enemy_count_roguelike();
@@ -1307,8 +1358,8 @@ function updateDungeon3d() {
   }
 
   // Camera follows the player: above and behind, looking ahead of the player
-  camera.position.set(playerX, 12, playerY + 10);
-  camera.lookAt(playerX, 0, playerY - 3);
+  camera.position.set(playerX, 7, playerY + 6);
+  camera.lookAt(playerX, 0.8, playerY - 2);
 }
 
 function render3d() {
