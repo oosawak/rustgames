@@ -1226,21 +1226,22 @@ function init3d() {
   const canvas3d = document.getElementById('game-canvas-3d');
   const wrap = document.getElementById('canvas-wrap');
 
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x000008);
-
   let width = wrap.offsetWidth || 1280;
   let height = wrap.offsetHeight || 800;
-
-  camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-  camera.position.set(0, 40, 80);
-  camera.lookAt(0, 10, 0);
 
   // Set canvas size explicitly
   canvas3d.setAttribute('width', width);
   canvas3d.setAttribute('height', height);
 
   renderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true });
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x000008);
+
+  camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+  camera.position.set(0, 40, 80);
+  camera.lookAt(0, 10, 0);
+
   renderer.setSize(width, height, false);
   renderer.setPixelRatio(window.devicePixelRatio);
 
@@ -1362,8 +1363,15 @@ function updateDungeon3d() {
   camera.lookAt(playerX, 0.8, playerY - 2);
 }
 
+let init3dAttempted = false;
+
 function render3d() {
-  if (!renderer) init3d();
+  if (!renderer) {
+    if (init3dAttempted) return;  // already tried once this session, don't hammer context creation every frame
+    init3dAttempted = true;
+    init3d();
+  }
+  if (!renderer) return;
 
   // Keep renderer size in sync with the visible canvas area
   const wrap = document.getElementById('canvas-wrap');
