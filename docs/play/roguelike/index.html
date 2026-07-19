@@ -1083,13 +1083,19 @@ function drawDungeonMap() {
   // Get visited data
   const visitedData = wasm.visited_data_roguelike();
 
-  // Draw tiles
+  // Draw tiles (only within 3 tiles of player)
+  const viewRadius = 3;
   for (let y = 0; y < mapHeight; y++) {
     for (let x = 0; x < mapWidth; x++) {
       const idx = y * mapWidth + x;
       const isVisited = visitedData[idx] === 1;
 
       if (!isVisited) continue; // Skip unvisited tiles
+
+      // Only show tiles within view radius of player
+      const dx = Math.abs(x - playerX);
+      const dy = Math.abs(y - playerY);
+      if (dx > viewRadius || dy > viewRadius) continue;
 
       const tile = mapData[idx];
 
