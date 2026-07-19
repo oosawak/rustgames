@@ -875,13 +875,15 @@ function gameLoop() {
 
   // Get canvas dimensions
   const wrap = document.getElementById('canvas-wrap');
-  if (wrap && wrap.offsetWidth > 0 && wrap.offsetHeight > 0) {
+  if (wrap) {
     if (is3dMode) {
       // Render 3D
       render3d();
     } else {
       // Render 2D via WASM
-      wasm.render_roguelike('game-canvas', wrap.offsetWidth, wrap.offsetHeight);
+      const w = wrap.offsetWidth || 1280;
+      const h = wrap.offsetHeight || 800;
+      wasm.render_roguelike('game-canvas', w, h);
     }
   }
 
@@ -1218,7 +1220,10 @@ function init3d() {
 }
 
 function updateDungeon3d() {
-  if (!scene) init3d();
+  if (!scene) {
+    console.log('Initializing 3D scene');
+    init3d();
+  }
 
   // Clear existing cubes
   cubes.forEach(cube => scene.remove(cube));
@@ -1229,6 +1234,7 @@ function updateDungeon3d() {
 
   const mapWidth = wasm.map_width_roguelike();
   const mapHeight = wasm.map_height_roguelike();
+  console.log(`3D: Map ${mapWidth}x${mapHeight}`);
   const playerX = wasm.player_x_roguelike();
   const playerY = wasm.player_y_roguelike();
   const mapData = wasm.map_data_roguelike();
@@ -1405,7 +1411,10 @@ function init3d() {
 }
 
 function updateDungeon3d() {
-  if (!scene) init3d();
+  if (!scene) {
+    console.log('Initializing 3D scene');
+    init3d();
+  }
 
   // Clear existing cubes
   cubes.forEach(cube => scene.remove(cube));
@@ -1416,6 +1425,7 @@ function updateDungeon3d() {
 
   const mapWidth = wasm.map_width_roguelike();
   const mapHeight = wasm.map_height_roguelike();
+  console.log(`3D: Map ${mapWidth}x${mapHeight}`);
   const playerX = wasm.player_x_roguelike();
   const playerY = wasm.player_y_roguelike();
   const mapData = wasm.map_data_roguelike();
