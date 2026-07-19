@@ -640,7 +640,7 @@ html, body {
 <div id="container">
   <!-- Tab contents -->
   <div id="tab-content">
-    <div id="tab-status" class="tab-panel active">
+    <div id="tab-status" class="tab-panel">
       <div style="padding: 16px;">
         <div class="stat-item">
           <span class="stat-label">LV</span>
@@ -681,7 +681,7 @@ html, body {
       </div>
     </div>
     <div id="tab-items" class="tab-panel"></div>
-    <div id="tab-map" class="tab-panel">
+    <div id="tab-map" class="tab-panel active">
       <canvas id="dungeon-map" style="width: 100%; height: 100%; display: block;"></canvas>
     </div>
   </div>
@@ -722,10 +722,10 @@ html, body {
 
   <!-- Navigation bar (bottom) -->
   <div id="nav-bar">
-    <button class="nav-btn active" data-tab="status"><i class="ra ra-player"></i> Status</button>
+    <button class="nav-btn" data-tab="status"><i class="ra ra-player"></i> Status</button>
     <button class="nav-btn" data-tab="equipment"><i class="ra ra-broadsword"></i> Equipment</button>
     <button class="nav-btn" data-tab="items"><i class="ra ra-potion"></i> Items</button>
-    <button class="nav-btn" data-tab="map"><i class="ra ra-compass"></i> Map</button>
+    <button class="nav-btn active" data-tab="map"><i class="ra ra-compass"></i> Map</button>
     <button class="nav-btn" id="nav-swap-button" style="cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;">←<br>→</button>
   </div>
 
