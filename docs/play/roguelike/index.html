@@ -932,7 +932,7 @@ function flashHint(action) {
 
 // ── Navigation setup ──────────────────────────────
 function setupNavigation() {
-  const navBtns = document.querySelectorAll('.nav-btn');
+  const navBtns = document.querySelectorAll('.nav-btn[data-tab]');
 
   navBtns.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -946,7 +946,10 @@ function setupNavigation() {
       document.querySelectorAll('.tab-panel').forEach(panel => {
         panel.classList.remove('active');
       });
-      document.getElementById(`tab-${tabName}`).classList.add('active');
+      const tabPanel = document.getElementById(`tab-${tabName}`);
+      if (tabPanel) {
+        tabPanel.classList.add('active');
+      }
 
       // Update tab content
       updateTabContent(tabName);
