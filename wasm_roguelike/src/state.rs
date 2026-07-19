@@ -180,6 +180,7 @@ pub struct Enemy {
     pub variant: EnemyVariant,
     pub atk: u32,
     pub drop_rate: u32,
+    pub is_boss: bool,  // ボス敵フラグ
 }
 
 // 敵マスターテーブル（敵タイプの定義）
@@ -287,6 +288,11 @@ impl RoguelikeGame {
         };
 
         Some((enemy_type, variant))
+    }
+
+    // F1, F10, F20, F30 でボス敵を生成
+    fn should_spawn_boss(depth: u32) -> bool {
+        depth == 1 || depth == 10 || depth == 20 || depth == 30
     }
 
     pub fn new() -> Self {
@@ -452,25 +458,41 @@ impl RoguelikeGame {
         self.enemy_shake.clear();
         let mut rng = LcgRng::new(self.depth);
 
+        let is_boss_floor = Self::should_spawn_boss(self.depth);
+
         for i in 0..3.min(self.rooms.len()) {
             if let Some((enemy_type, variant)) = Self::spawn_random_enemy_for_floor(self.depth, &mut rng) {
                 let room = &self.rooms[i + 1];
                 let ex = room.x + room.width / 2;
                 let ey = room.y + room.height / 2;
-                let (hp, atk) = Self::get_enemy_stats(enemy_type, variant);
+
+                let is_boss = is_boss_floor && i == 0;  // 最初の敵がボス
+                let (mut hp, mut atk) = Self::get_enemy_stats(enemy_type, variant);
+
+                // ボス敵は大幅に強化
+                if is_boss {
+                    hp = (hp as f32 * 3.0) as u32;
+                    atk = (atk as f32 * 2.0) as u32;
+                }
+
                 let data = &ENEMY_MASTER[enemy_type as usize];
+                let mut boss_name = data.name.to_string();
+                if is_boss {
+                    boss_name = format!("☆{}", boss_name);
+                }
 
                 self.enemies.push(Enemy {
                     x: ex,
                     y: ey,
                     hp,
                     max_hp: hp,
-                    color: [data.base_color.0, data.base_color.1, data.base_color.2],
-                    name: data.name.to_string(),
+                    color: if is_boss { [1.0, 0.85, 0.0] } else { [data.base_color.0, data.base_color.1, data.base_color.2] },
+                    name: boss_name,
                     enemy_type,
                     variant,
                     atk,
-                    drop_rate: data.drop_rate,
+                    drop_rate: if is_boss { 100 } else { data.drop_rate },
+                    is_boss,
                 });
                 self.enemy_shake.push(0);
             }
@@ -859,25 +881,41 @@ impl RoguelikeGame {
         self.enemy_shake.clear();
         let mut rng = LcgRng::new(self.depth);
 
+        let is_boss_floor = Self::should_spawn_boss(self.depth);
+
         for i in 0..3.min(self.rooms.len()) {
             if let Some((enemy_type, variant)) = Self::spawn_random_enemy_for_floor(self.depth, &mut rng) {
                 let room = &self.rooms[i + 1];
                 let ex = room.x + room.width / 2;
                 let ey = room.y + room.height / 2;
-                let (hp, atk) = Self::get_enemy_stats(enemy_type, variant);
+
+                let is_boss = is_boss_floor && i == 0;  // 最初の敵がボス
+                let (mut hp, mut atk) = Self::get_enemy_stats(enemy_type, variant);
+
+                // ボス敵は大幅に強化
+                if is_boss {
+                    hp = (hp as f32 * 3.0) as u32;
+                    atk = (atk as f32 * 2.0) as u32;
+                }
+
                 let data = &ENEMY_MASTER[enemy_type as usize];
+                let mut boss_name = data.name.to_string();
+                if is_boss {
+                    boss_name = format!("☆{}", boss_name);
+                }
 
                 self.enemies.push(Enemy {
                     x: ex,
                     y: ey,
                     hp,
                     max_hp: hp,
-                    color: [data.base_color.0, data.base_color.1, data.base_color.2],
-                    name: data.name.to_string(),
+                    color: if is_boss { [1.0, 0.85, 0.0] } else { [data.base_color.0, data.base_color.1, data.base_color.2] },
+                    name: boss_name,
                     enemy_type,
                     variant,
                     atk,
-                    drop_rate: data.drop_rate,
+                    drop_rate: if is_boss { 100 } else { data.drop_rate },
+                    is_boss,
                 });
                 self.enemy_shake.push(0);
             }
@@ -929,25 +967,41 @@ impl RoguelikeGame {
         self.enemy_shake.clear();
         let mut rng = LcgRng::new(self.depth);
 
+        let is_boss_floor = Self::should_spawn_boss(self.depth);
+
         for i in 0..3.min(self.rooms.len()) {
             if let Some((enemy_type, variant)) = Self::spawn_random_enemy_for_floor(self.depth, &mut rng) {
                 let room = &self.rooms[i + 1];
                 let ex = room.x + room.width / 2;
                 let ey = room.y + room.height / 2;
-                let (hp, atk) = Self::get_enemy_stats(enemy_type, variant);
+
+                let is_boss = is_boss_floor && i == 0;  // 最初の敵がボス
+                let (mut hp, mut atk) = Self::get_enemy_stats(enemy_type, variant);
+
+                // ボス敵は大幅に強化
+                if is_boss {
+                    hp = (hp as f32 * 3.0) as u32;
+                    atk = (atk as f32 * 2.0) as u32;
+                }
+
                 let data = &ENEMY_MASTER[enemy_type as usize];
+                let mut boss_name = data.name.to_string();
+                if is_boss {
+                    boss_name = format!("☆{}", boss_name);
+                }
 
                 self.enemies.push(Enemy {
                     x: ex,
                     y: ey,
                     hp,
                     max_hp: hp,
-                    color: [data.base_color.0, data.base_color.1, data.base_color.2],
-                    name: data.name.to_string(),
+                    color: if is_boss { [1.0, 0.85, 0.0] } else { [data.base_color.0, data.base_color.1, data.base_color.2] },
+                    name: boss_name,
                     enemy_type,
                     variant,
                     atk,
-                    drop_rate: data.drop_rate,
+                    drop_rate: if is_boss { 100 } else { data.drop_rate },
+                    is_boss,
                 });
                 self.enemy_shake.push(0);
             }
@@ -1072,10 +1126,22 @@ pub fn render_canvas(game: &RoguelikeGame, canvas_id: &str, width: i32, height: 
                         {
                             let icon_x = screen_x + cell_w * 0.5 + shake_offset_x;
                             let icon_y = screen_y + cell_h * 0.5 + shake_offset_y;
-                            let icon_size = cell_w * 0.6;
+                            let icon_size = if enemy.is_boss {
+                                cell_w * 1.8  // ボスは2×2マスで表示（1.8倍）
+                            } else {
+                                cell_w * 0.6  // 通常敵
+                            };
 
                             ctx.save();
                             ctx.translate(icon_x, icon_y).ok();
+
+                            // ボス敵は金色の枠を描画
+                            if enemy.is_boss {
+                                ctx.set_stroke_style(&"gold".into());
+                                ctx.set_line_width(2.0);
+                                ctx.stroke_rect(-icon_size * 0.5, -icon_size * 0.5, icon_size, icon_size);
+                            }
+
                             ctx.draw_image_with_html_image_element_and_dw_and_dh(
                                 &img_elem,
                                 -icon_size * 0.5,
