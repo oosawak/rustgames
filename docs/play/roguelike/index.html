@@ -1084,33 +1084,38 @@ function drawDungeonMap() {
   const visitedData = wasm.visited_data_roguelike();
 
   // Check if player is in a room
-  const playerIdx = playerY * mapWidth + playerX;
-  const playerTile = mapData[playerIdx];
+  console.log(`Map size: ${mapWidth}x${mapHeight}, playerX: ${playerX}, playerY: ${playerY}`);
+  console.log(`mapData length: ${mapData.length}, expected: ${mapWidth * mapHeight}`);
+
   let roomTiles = new Set();
 
-  console.log(`Player at (${playerX},${playerY}), tile value: ${playerTile}`);
+  if (playerX >= 0 && playerX < mapWidth && playerY >= 0 && playerY < mapHeight) {
+    const playerIdx = playerY * mapWidth + playerX;
+    const playerTile = mapData[playerIdx];
+    console.log(`Player at (${playerX},${playerY}), idx: ${playerIdx}, tile value: ${playerTile}`);
 
-  if (playerTile === 2) {
-    // Player is in a room, find all room tiles connected to player
-    const queue = [[playerX, playerY]];
-    const visited = new Set();
-    visited.add(`${playerX},${playerY}`);
+    if (playerTile === 2) {
+      // Player is in a room, find all room tiles connected to player
+      const queue = [[playerX, playerY]];
+      const visited = new Set();
+      visited.add(`${playerX},${playerY}`);
 
-    while (queue.length > 0) {
-      const [x, y] = queue.shift();
-      roomTiles.add(`${x},${y}`);
+      while (queue.length > 0) {
+        const [x, y] = queue.shift();
+        roomTiles.add(`${x},${y}`);
 
-      // Check 4 adjacent tiles
-      for (const [dx, dy] of [[0,1], [0,-1], [1,0], [-1,0]]) {
-        const nx = x + dx;
-        const ny = y + dy;
-        const key = `${nx},${ny}`;
+        // Check 4 adjacent tiles
+        for (const [dx, dy] of [[0,1], [0,-1], [1,0], [-1,0]]) {
+          const nx = x + dx;
+          const ny = y + dy;
+          const key = `${nx},${ny}`;
 
-        if (nx >= 0 && nx < mapWidth && ny >= 0 && ny < mapHeight && !visited.has(key)) {
-          const idx = ny * mapWidth + nx;
-          if (mapData[idx] === 2) {
-            visited.add(key);
-            queue.push([nx, ny]);
+          if (nx >= 0 && nx < mapWidth && ny >= 0 && ny < mapHeight && !visited.has(key)) {
+            const idx = ny * mapWidth + nx;
+            if (mapData[idx] === 2) {
+              visited.add(key);
+              queue.push([nx, ny]);
+            }
           }
         }
       }
