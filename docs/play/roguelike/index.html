@@ -888,6 +888,12 @@ function gameLoop() {
   // Update UI
   updateStatus();
 
+  // Update MAP if it's open
+  const activeTab = document.querySelector('.nav-btn.active');
+  if (activeTab && activeTab.getAttribute('data-tab') === 'map') {
+    drawDungeonMap();
+  }
+
   requestAnimationFrame(gameLoop);
 }
 
