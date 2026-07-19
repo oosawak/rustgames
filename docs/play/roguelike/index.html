@@ -1083,6 +1083,38 @@ function drawDungeonMap() {
   // Get visited data
   const visitedData = wasm.visited_data_roguelike();
 
+  // Check if player is in a room
+  const playerIdx = playerY * mapWidth + playerX;
+  const playerTile = mapData[playerIdx];
+  let roomTiles = new Set();
+
+  if (playerTile === 2) {
+    // Player is in a room, find all room tiles connected to player
+    const queue = [[playerX, playerY]];
+    const visited = new Set();
+    visited.add(`${playerX},${playerY}`);
+
+    while (queue.length > 0) {
+      const [x, y] = queue.shift();
+      roomTiles.add(`${x},${y}`);
+
+      // Check 4 adjacent tiles
+      for (const [dx, dy] of [[0,1], [0,-1], [1,0], [-1,0]]) {
+        const nx = x + dx;
+        const ny = y + dy;
+        const key = `${nx},${ny}`;
+
+        if (nx >= 0 && nx < mapWidth && ny >= 0 && ny < mapHeight && !visited.has(key)) {
+          const idx = ny * mapWidth + nx;
+          if (mapData[idx] === 2) {
+            visited.add(key);
+            queue.push([nx, ny]);
+          }
+        }
+      }
+    }
+  }
+
   // Draw all visited tiles
   for (let y = 0; y < mapHeight; y++) {
     for (let x = 0; x < mapWidth; x++) {
@@ -1097,6 +1129,15 @@ function drawDungeonMap() {
       else if (tile === 3) color = '#dd0'; // StairDown
       else if (tile === 4) color = '#0dd'; // StairUp
       else color = '#4a6';                 // Floor
+
+      // Brighten room tiles if player is in a room
+      if (roomTiles.has(`${x},${y}`)) {
+        if (tile === 1) color = '#888';
+        else if (tile === 2) color = '#6e8';
+        else if (tile === 3) color = '#ff0';
+        else if (tile === 4) color = '#0ff';
+        else color = '#7b9';
+      }
 
       ctx.fillStyle = color;
       ctx.fillRect(x * cellW, y * cellH, cellW, cellH);
