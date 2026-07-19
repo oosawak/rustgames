@@ -1198,7 +1198,9 @@ function init3d() {
   camera.lookAt(0, 10, 0);
 
   renderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true });
-  renderer.setSize(width, height);
+  renderer.setSize(width, height, false);
+  canvas3d.width = width;
+  canvas3d.height = height;
   renderer.setPixelRatio(window.devicePixelRatio);
 
   // Add light
@@ -1395,7 +1397,9 @@ function init3d() {
   camera.lookAt(0, 10, 0);
 
   renderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true });
-  renderer.setSize(width, height);
+  renderer.setSize(width, height, false);
+  canvas3d.width = width;
+  canvas3d.height = height;
   renderer.setPixelRatio(window.devicePixelRatio);
 
   // Add light
