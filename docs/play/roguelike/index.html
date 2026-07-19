@@ -1088,6 +1088,8 @@ function drawDungeonMap() {
   const playerTile = mapData[playerIdx];
   let roomTiles = new Set();
 
+  console.log(`Player at (${playerX},${playerY}), tile value: ${playerTile}`);
+
   if (playerTile === 2) {
     // Player is in a room, find all room tiles connected to player
     const queue = [[playerX, playerY]];
