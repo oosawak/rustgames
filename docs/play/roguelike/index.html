@@ -611,16 +611,13 @@ html, body {
     </div>
   </div>
 
-  <!-- Toggle button to swap positions -->
-  <button id="swap-button" style="position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%); z-index: 50; width: 60px; height: 60px; background: rgba(0,200,255,0.6); border: 2px solid #0ff; border-radius: 5px; color: #0ff; font-weight: bold; cursor: pointer; font-size: 24px; display: flex; align-items: center; justify-content: center;">⇆</button>
-
   <!-- Navigation bar (bottom) -->
   <div id="nav-bar">
     <button class="nav-btn active" data-tab="status"><i class="ra ra-player"></i> ステータス</button>
     <button class="nav-btn" data-tab="equipment"><i class="ra ra-broadsword"></i> 装備</button>
     <button class="nav-btn" data-tab="items"><i class="ra ra-potion"></i> アイテム</button>
     <button class="nav-btn" data-tab="map"><i class="ra ra-compass"></i> マップ</button>
-    <button class="nav-btn" id="nav-view-toggle"><i class="ra ra-cube"></i> <span id="view-mode-text">3D</span></button>
+    <button class="nav-btn" id="nav-swap-button" style="cursor: pointer;"><i class="ra ra-arrows-alt-h"></i> 入替</button>
   </div>
 
   <!-- Tab contents -->
@@ -695,7 +692,6 @@ async function start() {
       document.getElementById('nav-bar').style.display = 'flex';
       document.getElementById('movement-joystick').style.display = 'flex';
       document.getElementById('magic-button').style.display = 'block';
-      document.getElementById('swap-button').style.display = 'block';
 
       const isLandscape = window.innerHeight < window.innerWidth;
       const tabContent = document.getElementById('tab-content');
@@ -718,7 +714,6 @@ async function start() {
       document.getElementById('game-over').style.display = 'none';
       document.getElementById('movement-joystick').style.display = 'flex';
       document.getElementById('magic-button').style.display = 'block';
-      document.getElementById('swap-button').style.display = 'block';
       document.getElementById('ui-toggle-btn').classList.add('show');
       wasm.start_game_roguelike();
     });
@@ -832,9 +827,8 @@ async function start() {
     });
 
     // Swap buttons position
-    const swapButton = document.getElementById('swap-button');
     let swapped = false;
-    swapButton.addEventListener('click', () => {
+    function toggleSwap() {
       swapped = !swapped;
       const joystick = document.getElementById('movement-joystick');
       const magic = document.getElementById('magic-button');
@@ -850,6 +844,12 @@ async function start() {
         magic.style.left = '10px';
         magic.style.right = 'auto';
       }
+    }
+
+    const navSwapButton = document.getElementById('nav-swap-button');
+    navSwapButton.addEventListener('click', (e) => {
+      e.preventDefault();
+      toggleSwap();
     });
 
     // Setup navigation tabs
