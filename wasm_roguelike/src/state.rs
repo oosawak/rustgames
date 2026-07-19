@@ -162,19 +162,23 @@ impl RoguelikeGame {
                 rooms[i].y + rooms[i].height / 2,
             );
 
-            // 水平通路
+            // 水平通路（既に Room なら上書きしない）
             let (start, end) = if x1 < x2 { (x1, x2) } else { (x2, x1) };
             for x in start..=end {
                 if x >= 0 && x < width && y1 >= 0 && y1 < height {
-                    map[y1 as usize][x as usize] = TileType::Floor;
+                    if map[y1 as usize][x as usize] != TileType::Room {
+                        map[y1 as usize][x as usize] = TileType::Floor;
+                    }
                 }
             }
 
-            // 垂直通路
+            // 垂直通路（既に Room なら上書きしない）
             let (start, end) = if y1 < y2 { (y1, y2) } else { (y2, y1) };
             for y in start..=end {
                 if x2 >= 0 && x2 < width && y >= 0 && y < height {
-                    map[y as usize][x2 as usize] = TileType::Floor;
+                    if map[y as usize][x2 as usize] != TileType::Room {
+                        map[y as usize][x2 as usize] = TileType::Floor;
+                    }
                 }
             }
         }
