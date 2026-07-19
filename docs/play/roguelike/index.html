@@ -560,44 +560,34 @@ html, body {
 
 <!-- Main container -->
 <div id="container">
-  <!-- Upper HUD (Status and Messages) -->
-  <div id="ui-upper">
-    <div id="status-panel">
-      <div class="stat-item">
-        <span class="stat-label"><i class="ra ra-heart"></i> HP</span>
-        <div class="stat-bar">
-          <div id="hp-bar" class="stat-bar-fill"></div>
-        </div>
-        <span class="stat-value"><span id="hp-current">50</span> / <span id="hp-max">50</span></span>
-      </div>
-
-      <div class="stat-item">
-        <span class="stat-label"><i class="ra ra-potion"></i> MP</span>
-        <div class="stat-bar">
-          <div id="mp-bar" class="stat-bar-fill"></div>
-        </div>
-        <span class="stat-value"><span id="mp-current">30</span> / <span id="mp-max">30</span></span>
-      </div>
-
-      <div class="stat-item">
-        <span class="stat-label">LV</span>
-        <span class="stat-value" id="level-display">1</span>
-      </div>
-
-      <div class="stat-item">
-        <span class="stat-label">DEPTH</span>
-        <span class="stat-value" id="depth-display">F1</span>
-      </div>
-    </div>
-
-    <div id="message-log">
-      <div class="msg-text">ダンジョンに入った...</div>
-    </div>
-  </div>
-
   <!-- Tab contents -->
   <div id="tab-content">
-    <div id="tab-status" class="tab-panel active"></div>
+    <div id="tab-status" class="tab-panel active">
+      <div style="padding: 16px;">
+        <div class="stat-item">
+          <span class="stat-label">HP</span>
+          <div class="stat-bar">
+            <div id="hp-bar" class="stat-bar-fill" style="width: 100%;"></div>
+          </div>
+          <span class="stat-value"><span id="hp-current">50</span> / <span id="hp-max">50</span></span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">MP</span>
+          <div class="stat-bar">
+            <div id="mp-bar" class="stat-bar-fill" style="width: 100%;"></div>
+          </div>
+          <span class="stat-value"><span id="mp-current">30</span> / <span id="mp-max">30</span></span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">LV</span>
+          <span class="stat-value" id="level-display">1</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">DEPTH</span>
+          <span class="stat-value" id="depth-display">F1</span>
+        </div>
+      </div>
+    </div>
     <div id="tab-equipment" class="tab-panel"></div>
     <div id="tab-items" class="tab-panel"></div>
     <div id="tab-map" class="tab-panel">
