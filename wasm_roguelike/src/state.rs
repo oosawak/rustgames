@@ -526,6 +526,36 @@ impl RoguelikeGame {
         None
     }
 
+    fn weapon_name(weapon: WeaponType) -> &'static str {
+        match weapon {
+            WeaponType::WoodenSword => "Wooden Sword",
+            WeaponType::IronSword => "Iron Sword",
+            WeaponType::Axe => "Axe",
+            WeaponType::CursedBlade => "Cursed Blade",
+            WeaponType::DragonSlayer => "Dragon Slayer",
+        }
+    }
+
+    fn armor_name(armor: ArmorType) -> &'static str {
+        match armor {
+            ArmorType::LeatherArmor => "Leather Armor",
+            ArmorType::ChainMail => "Chain Mail",
+            ArmorType::SteelPlate => "Steel Plate",
+            ArmorType::DragonScale => "Dragon Scale",
+            ArmorType::CursedMail => "Cursed Mail",
+        }
+    }
+
+    fn accessory_name(accessory: AccessoryType) -> &'static str {
+        match accessory {
+            AccessoryType::GoldRing => "Gold Ring",
+            AccessoryType::VampireRing => "Vampire Ring",
+            AccessoryType::LuckyRing => "Lucky Ring",
+            AccessoryType::HealingNecklace => "Healing Necklace",
+            AccessoryType::ManaEarrings => "Mana Earrings",
+        }
+    }
+
     fn apply_variant_color(base_color: (f32, f32, f32), variant: EnemyVariant) -> [f32; 3] {
         let (r, g, b) = base_color;
         match variant {
@@ -620,8 +650,43 @@ impl RoguelikeGame {
                 }
 
                 if self.enemies[i].hp == 0 {
-                    self.add_message(format!("{} を倒した！ +10 EXP", enemy_name));
-                    self.gain_exp(10);
+                    let is_boss = self.enemies[i].is_boss;
+                    let exp_gain = if is_boss { 500 } else { 10 };
+
+                    self.add_message(format!("{} を倒した！ +{} EXP", enemy_name, exp_gain));
+
+                    // ボス撃破時の装備ドロップ
+                    if is_boss {
+                        // ランダムに装備をドロップ
+                        let mut rng = LcgRng::new((self.depth as u32).wrapping_mul(12345));
+                        let drop_type = rng.next() % 3;  // 武器、防具、アクセサリーから選択
+
+                        match drop_type {
+                            0 => {
+                                // 武器ドロップ
+                                let weapons = [WeaponType::IronSword, WeaponType::Axe, WeaponType::CursedBlade];
+                                let weapon = weapons[(rng.next() as usize) % weapons.len()];
+                                self.equipment.weapon = Some(weapon);
+                                self.add_message(format!("⚔️ {} を手に入れた！", Self::weapon_name(weapon)));
+                            }
+                            1 => {
+                                // 防具ドロップ
+                                let armors = [ArmorType::LeatherArmor, ArmorType::ChainMail, ArmorType::SteelPlate];
+                                let armor = armors[(rng.next() as usize) % armors.len()];
+                                self.equipment.armor = Some(armor);
+                                self.add_message(format!("🛡️ {} を手に入れた！", Self::armor_name(armor)));
+                            }
+                            _ => {
+                                // アクセサリードロップ
+                                let accessories = [AccessoryType::GoldRing, AccessoryType::LuckyRing, AccessoryType::HealingNecklace];
+                                let accessory = accessories[(rng.next() as usize) % accessories.len()];
+                                self.equipment.accessory = Some(accessory);
+                                self.add_message(format!("💍 {} を手に入れた！", Self::accessory_name(accessory)));
+                            }
+                        }
+                    }
+
+                    self.gain_exp(exp_gain);
                     self.enemies.remove(i);
                     self.enemy_shake.remove(i);
                 }
