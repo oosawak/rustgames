@@ -1056,6 +1056,8 @@ function updateTabContent(tabName) {
 }
 
 // ── Draw dungeon map ──────────────────────────────
+let lastPlayerTile = -1;  // Track previous tile value for room entry/exit detection
+
 function drawDungeonMap() {
   const canvas = document.getElementById('dungeon-map');
   if (!canvas) return;
@@ -1086,9 +1088,21 @@ function drawDungeonMap() {
   // Check if player is in a room
   // Check if player is in a room
   let roomTiles = new Set();
+  let currentPlayerTile = -1;
+
   if (playerX >= 0 && playerX < mapWidth && playerY >= 0 && playerY < mapHeight) {
     const playerIdx = playerY * mapWidth + playerX;
     const playerTile = mapData[playerIdx];
+    currentPlayerTile = playerTile;
+
+    // Detect room entry/exit
+    if (lastPlayerTile !== currentPlayerTile) {
+      if (playerTile === 2 && lastPlayerTile !== 2) {
+        console.log('部屋に入った');
+      } else if (playerTile !== 2 && lastPlayerTile === 2) {
+        console.log('部屋から出た');
+      }
+    }
 
     if (playerTile === 2) {
       // Player is in a room, find all room tiles connected to player
@@ -1155,6 +1169,9 @@ function drawDungeonMap() {
   ctx.fillStyle = '#0ff';
   ctx.font = '12px monospace';
   ctx.fillText(`F${wasm.depth_roguelike()}`, 8, 20);
+
+  // Update last player tile for next frame
+  lastPlayerTile = currentPlayerTile;
 }
 
 // ── 3D Rendering with Three.js ──
