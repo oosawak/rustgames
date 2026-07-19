@@ -179,6 +179,7 @@ pub struct Enemy {
     pub enemy_type: u32,  // 敵のマスターテーブルインデックス
     pub variant: EnemyVariant,
     pub atk: u32,
+    pub def: u32,  // 防御力
     pub drop_rate: u32,
     pub is_boss: bool,  // ボス敵フラグ
 }
@@ -487,6 +488,8 @@ impl RoguelikeGame {
                     Self::apply_variant_color(data.base_color, variant)  // バリアントで色を変更
                 };
 
+                let def = if is_boss { 10 } else { 0 };  // ボスは高いDEF
+
                 self.enemies.push(Enemy {
                     x: ex,
                     y: ey,
@@ -497,6 +500,7 @@ impl RoguelikeGame {
                     enemy_type,
                     variant,
                     atk,
+                    def,
                     drop_rate: if is_boss { 100 } else { data.drop_rate },
                     is_boss,
                 });
@@ -600,8 +604,10 @@ impl RoguelikeGame {
         let mut attacked_enemy = false;
         for i in 0..self.enemies.len() {
             if self.enemies[i].x == new_x && self.enemies[i].y == new_y {
-                // 敵に攻撃
-                let damage = 15u32;
+                // 敵に攻撃（DEFを考慮）
+                let base_damage = 15u32;
+                let enemy_def = self.enemies[i].def as i32;
+                let damage = ((base_damage as i32) - enemy_def).max(1) as u32;  // 最小1ダメージ
                 let old_hp = self.enemies[i].hp;
                 self.enemies[i].hp = (self.enemies[i].hp as i32 - damage as i32).max(0) as u32;
                 let enemy_name = self.enemies[i].name.clone();
@@ -626,13 +632,15 @@ impl RoguelikeGame {
         }
 
         if attacked_enemy {
-            // 敵の反撃
-            let enemy_positions: Vec<(i32, i32, String)> = self.enemies.iter().map(|e| (e.x, e.y, e.name.clone())).collect();
-            for (ex, ey, enemy_name) in enemy_positions {
+            // 敵の反撃（プレイヤーDEFを考慮）
+            let player_def = self.equipment.get_def_bonus() as i32;
+            let enemy_positions: Vec<(i32, i32, String, u32)> = self.enemies.iter().map(|e| (e.x, e.y, e.name.clone(), e.atk)).collect();
+            for (ex, ey, enemy_name, enemy_atk) in enemy_positions {
                 if (ex - self.player_x).abs() + (ey - self.player_y).abs() <= 1 {
-                    let enemy_damage = 5u32;
-                    self.hp = (self.hp as i32 - enemy_damage as i32).max(0) as u32;
-                    self.add_message(format!("{} の反撃で {} ダメージ!", enemy_name, enemy_damage));
+                    let base_enemy_damage = (enemy_atk as i32 + 3) as i32;  // 敵ATK + 基本ダメージ
+                    let damage = (base_enemy_damage - (player_def * 80 / 100)).max(1) as u32;  // DEFで20%軽減
+                    self.hp = (self.hp as i32 - damage as i32).max(0) as u32;
+                    self.add_message(format!("{} の反撃で {} ダメージ!", enemy_name, damage));
                     self.player_shake = 5;
                 }
             }
@@ -938,6 +946,8 @@ impl RoguelikeGame {
                     Self::apply_variant_color(data.base_color, variant)  // バリアントで色を変更
                 };
 
+                let def = if is_boss { 10 } else { 0 };  // ボスは高いDEF
+
                 self.enemies.push(Enemy {
                     x: ex,
                     y: ey,
@@ -948,6 +958,7 @@ impl RoguelikeGame {
                     enemy_type,
                     variant,
                     atk,
+                    def,
                     drop_rate: if is_boss { 100 } else { data.drop_rate },
                     is_boss,
                 });
@@ -1030,6 +1041,8 @@ impl RoguelikeGame {
                     Self::apply_variant_color(data.base_color, variant)  // バリアントで色を変更
                 };
 
+                let def = if is_boss { 10 } else { 0 };  // ボスは高いDEF
+
                 self.enemies.push(Enemy {
                     x: ex,
                     y: ey,
@@ -1040,6 +1053,7 @@ impl RoguelikeGame {
                     enemy_type,
                     variant,
                     atk,
+                    def,
                     drop_rate: if is_boss { 100 } else { data.drop_rate },
                     is_boss,
                 });
