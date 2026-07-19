@@ -999,10 +999,15 @@ function gameLoop() {
   // Update message log
   updateMessageLog();
 
-  // Update MAP if it's open
+  // Update MAP or EQUIPMENT if open
   const activeTab = document.querySelector('.nav-btn.active');
-  if (activeTab && activeTab.getAttribute('data-tab') === 'map') {
-    drawDungeonMap();
+  if (activeTab) {
+    const tabName = activeTab.getAttribute('data-tab');
+    if (tabName === 'map') {
+      drawDungeonMap();
+    } else if (tabName === 'equipment') {
+      updateEquipmentDisplay();
+    }
   }
 
   requestAnimationFrame(gameLoop);
@@ -1103,6 +1108,42 @@ function updateStatus() {
   if (defDisplay) {
     defDisplay.textContent = '+' + defBonus;
   }
+}
+
+// ── Update equipment display (for live updates) ────────────────────────────
+function updateEquipmentDisplay() {
+  const panel = document.getElementById('tab-equipment');
+  if (!panel) return;
+
+  const weaponNames = ['Wooden Sword', 'Iron Sword', 'Axe', 'Cursed Blade', 'Dragon Slayer'];
+  const weaponBonuses = [3, 5, 7, 9, 12];
+  const armorNames = ['Leather Armor', 'Chain Mail', 'Steel Plate', 'Dragon Scale', 'Cursed Mail'];
+  const armorBonuses = [2, 4, 6, 8, 10];
+  const accessoryNames = ['Gold Ring', 'Vampire Ring', 'Lucky Ring', 'Healing Necklace', 'Mana Earrings'];
+
+  const wepIdx = wasm.player_equipped_weapon_roguelike();
+  const armIdx = wasm.player_equipped_armor_roguelike();
+  const accIdx = wasm.player_equipped_accessory_roguelike();
+  const wepText = wepIdx >= 0 ? weaponNames[wepIdx] + ' (+' + weaponBonuses[wepIdx] + ')' : 'なし';
+  const armText = armIdx >= 0 ? armorNames[armIdx] + ' (+' + armorBonuses[armIdx] + ')' : 'なし';
+  const accText = accIdx >= 0 ? accessoryNames[accIdx] : 'なし';
+
+  panel.innerHTML = `
+    <div style="padding: 16px;">
+      <div class="stat-item">
+        <span class="stat-label">武器</span>
+        <span class="stat-value">${wepText}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">防具</span>
+        <span class="stat-value">${armText}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">アクセサリ</span>
+        <span class="stat-value">${accText}</span>
+      </div>
+    </div>
+  `;
 }
 
 // ── Update message log ────────────────────────────
