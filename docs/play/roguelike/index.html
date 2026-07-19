@@ -1270,11 +1270,24 @@ function init3d() {
 function updateDungeon3d() {
   if (!scene) init3d();
 
-  // Clear existing cubes
-  cubes.forEach(cube => scene.remove(cube));
+  // Clear existing cubes (dispose geometry and material)
+  cubes.forEach(cube => {
+    scene.remove(cube);
+    cube.geometry.dispose();
+    cube.material.dispose();
+  });
   cubes = [];
-  if (playerCube) scene.remove(playerCube);
-  enemies3d.forEach(e => scene.remove(e));
+  if (playerCube) {
+    scene.remove(playerCube);
+    playerCube.geometry.dispose();
+    playerCube.material.dispose();
+    playerCube = null;
+  }
+  enemies3d.forEach(e => {
+    scene.remove(e);
+    e.geometry.dispose();
+    e.material.dispose();
+  });
   enemies3d = [];
 
   const mapWidth = wasm.map_width_roguelike();
