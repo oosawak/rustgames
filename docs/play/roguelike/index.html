@@ -1331,7 +1331,10 @@ function toggleViewMode() {
     canvas2d.style.display = 'none';
     canvas3d.style.display = 'block';
     btn.textContent = '2D';
-    if (!scene) init3d();
+    // Reset 3D state
+    scene = null;
+    renderer = null;
+    init3d();
     render3d();
   } else {
     canvas2d.style.display = 'block';
@@ -1532,7 +1535,10 @@ function toggleViewMode() {
     canvas2d.style.display = 'none';
     canvas3d.style.display = 'block';
     btn.textContent = '2D';
-    if (!scene) init3d();
+    // Reset 3D state
+    scene = null;
+    renderer = null;
+    init3d();
     render3d();
   } else {
     canvas2d.style.display = 'block';
