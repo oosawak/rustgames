@@ -682,7 +682,7 @@ html, body {
     </div>
     <div id="tab-items" class="tab-panel"></div>
     <div id="tab-map" class="tab-panel active">
-      <canvas id="dungeon-map" style="width: 100%; height: 100%; display: block;"></canvas>
+      <canvas id="dungeon-map" style="width: 100%; height: 100%; display: block; max-height: calc(100vh - 200px); object-fit: contain;"></canvas>
     </div>
   </div>
 </div>
@@ -695,8 +695,6 @@ html, body {
     <button id="ui-toggle-btn" style="position: absolute; top: 50px; right: 10px; z-index: 30; padding: 6px 12px; background: rgba(0,200,255,0.2); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 4px; font-family: monospace; font-size: 0.8em; display: none;">▼ 非表示</button>
   </div>
 
-  <!-- Tab toggle button (top-left) -->
-  <button id="tab-toggle-btn" style="position: fixed; top: 10px; left: 10px; z-index: 50; display: none; padding: 8px 16px; background: rgba(0,200,255,0.2); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 4px; font-family: monospace; font-size: 0.8em;">Close</button>
 
   <!-- Message log (responsive width) -->
   <div id="message-log"></div>
