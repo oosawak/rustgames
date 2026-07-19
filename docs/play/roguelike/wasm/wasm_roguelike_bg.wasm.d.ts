@@ -1,6 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
+export const clear_messages_roguelike: () => void;
 export const depth_roguelike: () => number;
 export const enemy_count_roguelike: () => number;
 export const enemy_data_roguelike: (a: number) => [number, number];
@@ -12,9 +13,15 @@ export const map_height_roguelike: () => number;
 export const map_width_roguelike: () => number;
 export const max_hp_roguelike: () => number;
 export const max_mp_roguelike: () => number;
+export const messages_roguelike: () => [number, number];
 export const move_roguelike: (a: number) => void;
 export const mp_roguelike: () => number;
+export const player_atk_roguelike: () => number;
+export const player_def_roguelike: () => number;
 export const player_direction_roguelike: () => number;
+export const player_equipped_accessory_roguelike: () => number;
+export const player_equipped_armor_roguelike: () => number;
+export const player_equipped_weapon_roguelike: () => number;
 export const player_x_roguelike: () => number;
 export const player_y_roguelike: () => number;
 export const render_roguelike: (a: number, b: number, c: number, d: number) => void;
@@ -28,4 +35,5 @@ export const __wbindgen_exn_store: (a: number) => void;
 export const __externref_table_alloc: () => number;
 export const __wbindgen_externrefs: WebAssembly.Table;
 export const __wbindgen_free: (a: number, b: number, c: number) => void;
+export const __externref_drop_slice: (a: number, b: number) => void;
 export const __wbindgen_start: () => void;

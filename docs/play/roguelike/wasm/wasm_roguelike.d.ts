@@ -1,6 +1,8 @@
 /* tslint:disable */
 /* eslint-disable */
 
+export function clear_messages_roguelike(): void;
+
 export function depth_roguelike(): number;
 
 export function enemy_count_roguelike(): number;
@@ -23,11 +25,23 @@ export function max_hp_roguelike(): number;
 
 export function max_mp_roguelike(): number;
 
+export function messages_roguelike(): string[];
+
 export function move_roguelike(action: number): void;
 
 export function mp_roguelike(): number;
 
+export function player_atk_roguelike(): number;
+
+export function player_def_roguelike(): number;
+
 export function player_direction_roguelike(): number;
+
+export function player_equipped_accessory_roguelike(): number;
+
+export function player_equipped_armor_roguelike(): number;
+
+export function player_equipped_weapon_roguelike(): number;
 
 export function player_x_roguelike(): number;
 
@@ -47,6 +61,7 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
+    readonly clear_messages_roguelike: () => void;
     readonly depth_roguelike: () => number;
     readonly enemy_count_roguelike: () => number;
     readonly enemy_data_roguelike: (a: number) => [number, number];
@@ -58,9 +73,15 @@ export interface InitOutput {
     readonly map_width_roguelike: () => number;
     readonly max_hp_roguelike: () => number;
     readonly max_mp_roguelike: () => number;
+    readonly messages_roguelike: () => [number, number];
     readonly move_roguelike: (a: number) => void;
     readonly mp_roguelike: () => number;
+    readonly player_atk_roguelike: () => number;
+    readonly player_def_roguelike: () => number;
     readonly player_direction_roguelike: () => number;
+    readonly player_equipped_accessory_roguelike: () => number;
+    readonly player_equipped_armor_roguelike: () => number;
+    readonly player_equipped_weapon_roguelike: () => number;
     readonly player_x_roguelike: () => number;
     readonly player_y_roguelike: () => number;
     readonly render_roguelike: (a: number, b: number, c: number, d: number) => void;
@@ -74,6 +95,7 @@ export interface InitOutput {
     readonly __externref_table_alloc: () => number;
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_free: (a: number, b: number, c: number) => void;
+    readonly __externref_drop_slice: (a: number, b: number) => void;
     readonly __wbindgen_start: () => void;
 }
 

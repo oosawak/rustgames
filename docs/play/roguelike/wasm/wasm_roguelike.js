@@ -1,5 +1,9 @@
 /* @ts-self-types="./wasm_roguelike.d.ts" */
 
+export function clear_messages_roguelike() {
+    wasm.clear_messages_roguelike();
+}
+
 /**
  * @returns {number}
  */
@@ -90,6 +94,16 @@ export function max_mp_roguelike() {
 }
 
 /**
+ * @returns {string[]}
+ */
+export function messages_roguelike() {
+    const ret = wasm.messages_roguelike();
+    var v1 = getArrayJsValueFromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+    return v1;
+}
+
+/**
  * @param {number} action
  */
 export function move_roguelike(action) {
@@ -107,8 +121,48 @@ export function mp_roguelike() {
 /**
  * @returns {number}
  */
+export function player_atk_roguelike() {
+    const ret = wasm.player_atk_roguelike();
+    return ret >>> 0;
+}
+
+/**
+ * @returns {number}
+ */
+export function player_def_roguelike() {
+    const ret = wasm.player_def_roguelike();
+    return ret >>> 0;
+}
+
+/**
+ * @returns {number}
+ */
 export function player_direction_roguelike() {
     const ret = wasm.player_direction_roguelike();
+    return ret;
+}
+
+/**
+ * @returns {number}
+ */
+export function player_equipped_accessory_roguelike() {
+    const ret = wasm.player_equipped_accessory_roguelike();
+    return ret;
+}
+
+/**
+ * @returns {number}
+ */
+export function player_equipped_armor_roguelike() {
+    const ret = wasm.player_equipped_armor_roguelike();
+    return ret;
+}
+
+/**
+ * @returns {number}
+ */
+export function player_equipped_weapon_roguelike() {
+    const ret = wasm.player_equipped_weapon_roguelike();
     return ret;
 }
 
@@ -423,6 +477,17 @@ function debugString(val) {
 function getArrayI32FromWasm0(ptr, len) {
     ptr = ptr >>> 0;
     return getInt32ArrayMemory0().subarray(ptr / 4, ptr / 4 + len);
+}
+
+function getArrayJsValueFromWasm0(ptr, len) {
+    ptr = ptr >>> 0;
+    const mem = getDataViewMemory0();
+    const result = [];
+    for (let i = ptr; i < ptr + 4 * len; i += 4) {
+        result.push(wasm.__wbindgen_externrefs.get(mem.getUint32(i, true)));
+    }
+    wasm.__externref_drop_slice(ptr, len);
+    return result;
 }
 
 function getArrayU8FromWasm0(ptr, len) {
