@@ -66,19 +66,143 @@ impl RogueScene {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum EnemyVariant {
+    Weak = 0,    // 薄い色：HP×0.6, ATK×0.7
+    Normal = 1,  // 標準：HP×1.0, ATK×1.0
+    Strong = 2,  // 濃い色：HP×1.2, ATK×1.2
+    Boss = 3,    // ボス：HP×2.0, ATK×1.5
+}
+
+#[derive(Clone)]
+pub struct EnemyData {
+    pub name: &'static str,
+    pub base_hp: u32,
+    pub base_atk: u32,
+    pub base_color: (f32, f32, f32),  // RGB
+    pub drop_rate: u32,               // 0-100
+    pub min_depth: u32,
+    pub max_depth: u32,
+}
+
 pub struct Enemy {
     pub x: i32,
     pub y: i32,
     pub hp: u32,
+    pub max_hp: u32,
     pub color: [f32; 3],
     pub name: String,
+    pub enemy_type: u32,  // 敵のマスターテーブルインデックス
+    pub variant: EnemyVariant,
+    pub atk: u32,
+    pub drop_rate: u32,
 }
+
+// 敵マスターテーブル（敵タイプの定義）
+const ENEMY_MASTER: &[EnemyData] = &[
+    // Goblin (0-2)
+    EnemyData { name: "Young Goblin", base_hp: 12, base_atk: 3, base_color: (0.6, 1.0, 0.6), drop_rate: 20, min_depth: 1, max_depth: 3 },
+    EnemyData { name: "Goblin", base_hp: 20, base_atk: 5, base_color: (1.0, 1.0, 0.3), drop_rate: 30, min_depth: 1, max_depth: 5 },
+    EnemyData { name: "Hobgoblin", base_hp: 28, base_atk: 7, base_color: (0.3, 0.8, 0.3), drop_rate: 40, min_depth: 3, max_depth: 7 },
+
+    // Bat (3-5)
+    EnemyData { name: "Young Bat", base_hp: 10, base_atk: 2, base_color: (0.7, 0.7, 0.7), drop_rate: 15, min_depth: 1, max_depth: 4 },
+    EnemyData { name: "Bat", base_hp: 18, base_atk: 4, base_color: (0.5, 0.3, 0.8), drop_rate: 25, min_depth: 2, max_depth: 6 },
+    EnemyData { name: "Giant Bat", base_hp: 26, base_atk: 6, base_color: (0.3, 0.1, 0.6), drop_rate: 35, min_depth: 5, max_depth: 10 },
+
+    // Skeleton (6-8)
+    EnemyData { name: "Skeleton", base_hp: 18, base_atk: 4, base_color: (0.9, 0.9, 0.9), drop_rate: 25, min_depth: 3, max_depth: 6 },
+    EnemyData { name: "Skeleton Warrior", base_hp: 25, base_atk: 6, base_color: (1.0, 1.0, 1.0), drop_rate: 35, min_depth: 4, max_depth: 8 },
+    EnemyData { name: "Skeleton Knight", base_hp: 35, base_atk: 9, base_color: (0.7, 0.7, 0.8), drop_rate: 45, min_depth: 6, max_depth: 12 },
+
+    // Spider (9-11)
+    EnemyData { name: "Young Spider", base_hp: 22, base_atk: 5, base_color: (0.8, 0.6, 0.2), drop_rate: 30, min_depth: 5, max_depth: 10 },
+    EnemyData { name: "Spider", base_hp: 30, base_atk: 7, base_color: (1.0, 0.6, 0.1), drop_rate: 40, min_depth: 7, max_depth: 12 },
+    EnemyData { name: "Giant Spider", base_hp: 40, base_atk: 10, base_color: (0.9, 0.4, 0.0), drop_rate: 50, min_depth: 10, max_depth: 15 },
+
+    // Troll (12-14)
+    EnemyData { name: "Young Troll", base_hp: 25, base_atk: 6, base_color: (0.5, 0.5, 0.5), drop_rate: 30, min_depth: 4, max_depth: 8 },
+    EnemyData { name: "Troll", base_hp: 35, base_atk: 8, base_color: (0.7, 0.4, 0.7), drop_rate: 40, min_depth: 6, max_depth: 12 },
+    EnemyData { name: "Troll King", base_hp: 48, base_atk: 12, base_color: (0.5, 0.2, 0.5), drop_rate: 50, min_depth: 10, max_depth: 18 },
+
+    // Zombie (15-17)
+    EnemyData { name: "Zombie", base_hp: 24, base_atk: 5, base_color: (0.3, 0.6, 0.3), drop_rate: 30, min_depth: 8, max_depth: 15 },
+    EnemyData { name: "Zombie Warrior", base_hp: 32, base_atk: 7, base_color: (0.2, 0.5, 0.2), drop_rate: 40, min_depth: 10, max_depth: 18 },
+    EnemyData { name: "Zombie Lord", base_hp: 44, base_atk: 11, base_color: (0.1, 0.3, 0.1), drop_rate: 50, min_depth: 15, max_depth: 25 },
+
+    // Ghost (18-20)
+    EnemyData { name: "Spirit", base_hp: 22, base_atk: 5, base_color: (0.6, 0.8, 1.0), drop_rate: 35, min_depth: 10, max_depth: 16 },
+    EnemyData { name: "Ghost", base_hp: 30, base_atk: 7, base_color: (0.7, 0.9, 1.0), drop_rate: 45, min_depth: 11, max_depth: 20 },
+    EnemyData { name: "Phantom", base_hp: 42, base_atk: 11, base_color: (0.4, 0.6, 0.9), drop_rate: 55, min_depth: 16, max_depth: 26 },
+
+    // Mummy (21-23)
+    EnemyData { name: "Mummy", base_hp: 32, base_atk: 7, base_color: (0.8, 0.7, 0.5), drop_rate: 40, min_depth: 12, max_depth: 18 },
+    EnemyData { name: "Mummy Priest", base_hp: 40, base_atk: 9, base_color: (0.9, 0.8, 0.6), drop_rate: 45, min_depth: 14, max_depth: 22 },
+    EnemyData { name: "Pharaoh", base_hp: 52, base_atk: 13, base_color: (0.7, 0.6, 0.3), drop_rate: 55, min_depth: 18, max_depth: 28 },
+
+    // Ogre (24-26)
+    EnemyData { name: "Young Ogre", base_hp: 35, base_atk: 8, base_color: (0.7, 0.6, 0.4), drop_rate: 40, min_depth: 14, max_depth: 20 },
+    EnemyData { name: "Ogre", base_hp: 45, base_atk: 10, base_color: (0.8, 0.6, 0.3), drop_rate: 50, min_depth: 16, max_depth: 25 },
+    EnemyData { name: "Ogre Warlord", base_hp: 58, base_atk: 14, base_color: (0.6, 0.4, 0.1), drop_rate: 60, min_depth: 20, max_depth: 30 },
+
+    // Wyvern (27-29)
+    EnemyData { name: "Young Wyvern", base_hp: 38, base_atk: 9, base_color: (1.0, 0.5, 0.3), drop_rate: 45, min_depth: 18, max_depth: 24 },
+    EnemyData { name: "Wyvern", base_hp: 50, base_atk: 12, base_color: (1.0, 0.3, 0.1), drop_rate: 50, min_depth: 20, max_depth: 29 },
+    EnemyData { name: "Hell Wyvern", base_hp: 65, base_atk: 16, base_color: (0.8, 0.1, 0.0), drop_rate: 60, min_depth: 24, max_depth: 30 },
+];
 
 impl RoguelikeGame {
     fn calc_map_size(depth: u32) -> (i32, i32) {
         let width = 120 + ((depth.saturating_sub(1)) as i32 * 4);
         let height = 80 + ((depth.saturating_sub(1)) as i32 * 2);
         (width, height)
+    }
+
+    // 敵タイプから敵のステータスを計算
+    fn get_enemy_stats(enemy_type: u32, variant: EnemyVariant) -> (u32, u32) {
+        if enemy_type >= ENEMY_MASTER.len() as u32 {
+            return (1, 1);
+        }
+        let data = &ENEMY_MASTER[enemy_type as usize];
+        let (hp_mul, atk_mul) = match variant {
+            EnemyVariant::Weak => (0.6, 0.7),
+            EnemyVariant::Normal => (1.0, 1.0),
+            EnemyVariant::Strong => (1.2, 1.2),
+            EnemyVariant::Boss => (2.0, 1.5),
+        };
+        let hp = (data.base_hp as f32 * hp_mul) as u32;
+        let atk = (data.base_atk as f32 * atk_mul) as u32;
+        (hp.max(1), atk.max(1))
+    }
+
+    // 指定された深さから敵を生成
+    fn spawn_random_enemy_for_floor(depth: u32, rng: &mut LcgRng) -> Option<(u32, EnemyVariant)> {
+        let available: Vec<u32> = (0..ENEMY_MASTER.len() as u32)
+            .filter(|&i| {
+                let data = &ENEMY_MASTER[i as usize];
+                depth >= data.min_depth && depth <= data.max_depth
+            })
+            .collect();
+
+        if available.is_empty() {
+            return None;
+        }
+
+        let enemy_type = available[(rng.next() as usize) % available.len()];
+
+        // 敵のバリアント決定: 70% Normal, 20% Strong, 5% Boss, 5% Weak
+        let roll = rng.next() % 100;
+        let variant = if roll < 5 {
+            EnemyVariant::Weak
+        } else if roll < 25 {
+            EnemyVariant::Strong
+        } else if roll < 30 {
+            EnemyVariant::Boss
+        } else {
+            EnemyVariant::Normal
+        };
+
+        Some((enemy_type, variant))
     }
 
     pub fn new() -> Self {
@@ -241,24 +365,27 @@ impl RoguelikeGame {
         let mut rng = LcgRng::new(self.depth);
 
         for i in 0..3.min(self.rooms.len()) {
-            let room = &self.rooms[i + 1];
-            let ex = room.x + room.width / 2;
-            let ey = room.y + room.height / 2;
+            if let Some((enemy_type, variant)) = Self::spawn_random_enemy_for_floor(self.depth, &mut rng) {
+                let room = &self.rooms[i + 1];
+                let ex = room.x + room.width / 2;
+                let ey = room.y + room.height / 2;
+                let (hp, atk) = Self::get_enemy_stats(enemy_type, variant);
+                let data = &ENEMY_MASTER[enemy_type as usize];
 
-            let colors = [
-                [1.0, 0.2, 0.2],
-                [1.0, 0.5, 0.0],
-                [0.8, 0.2, 0.8],
-            ];
-            let names = ["Goblin", "Troll", "Ghost"];
-            self.enemies.push(Enemy {
-                x: ex,
-                y: ey,
-                hp: 20,
-                color: colors[self.enemies.len() % 3],
-                name: names[self.enemies.len() % 3].to_string(),
-            });
-            self.enemy_shake.push(0);
+                self.enemies.push(Enemy {
+                    x: ex,
+                    y: ey,
+                    hp,
+                    max_hp: hp,
+                    color: [data.base_color.0, data.base_color.1, data.base_color.2],
+                    name: data.name.to_string(),
+                    enemy_type,
+                    variant,
+                    atk,
+                    drop_rate: data.drop_rate,
+                });
+                self.enemy_shake.push(0);
+            }
         }
     }
 
@@ -612,26 +739,30 @@ impl RoguelikeGame {
         // 敵を配置
         self.enemies.clear();
         self.enemy_shake.clear();
+        let mut rng = LcgRng::new(self.depth);
 
         for i in 0..3.min(self.rooms.len()) {
-            let room = &self.rooms[i + 1];
-            let ex = room.x + room.width / 2;
-            let ey = room.y + room.height / 2;
+            if let Some((enemy_type, variant)) = Self::spawn_random_enemy_for_floor(self.depth, &mut rng) {
+                let room = &self.rooms[i + 1];
+                let ex = room.x + room.width / 2;
+                let ey = room.y + room.height / 2;
+                let (hp, atk) = Self::get_enemy_stats(enemy_type, variant);
+                let data = &ENEMY_MASTER[enemy_type as usize];
 
-            let colors = [
-                [1.0, 0.2, 0.2],
-                [1.0, 0.5, 0.0],
-                [0.8, 0.2, 0.8],
-            ];
-            let names = ["Goblin", "Troll", "Ghost"];
-            self.enemies.push(Enemy {
-                x: ex,
-                y: ey,
-                hp: 20 + (self.depth as u32 * 5),
-                color: colors[self.enemies.len() % 3],
-                name: names[self.enemies.len() % 3].to_string(),
-            });
-            self.enemy_shake.push(0);
+                self.enemies.push(Enemy {
+                    x: ex,
+                    y: ey,
+                    hp,
+                    max_hp: hp,
+                    color: [data.base_color.0, data.base_color.1, data.base_color.2],
+                    name: data.name.to_string(),
+                    enemy_type,
+                    variant,
+                    atk,
+                    drop_rate: data.drop_rate,
+                });
+                self.enemy_shake.push(0);
+            }
         }
 
         // スタート位置を訪問済みに
@@ -677,26 +808,30 @@ impl RoguelikeGame {
         // 敵を配置
         self.enemies.clear();
         self.enemy_shake.clear();
+        let mut rng = LcgRng::new(self.depth);
 
         for i in 0..3.min(self.rooms.len()) {
-            let room = &self.rooms[i + 1];
-            let ex = room.x + room.width / 2;
-            let ey = room.y + room.height / 2;
+            if let Some((enemy_type, variant)) = Self::spawn_random_enemy_for_floor(self.depth, &mut rng) {
+                let room = &self.rooms[i + 1];
+                let ex = room.x + room.width / 2;
+                let ey = room.y + room.height / 2;
+                let (hp, atk) = Self::get_enemy_stats(enemy_type, variant);
+                let data = &ENEMY_MASTER[enemy_type as usize];
 
-            let colors = [
-                [1.0, 0.2, 0.2],
-                [1.0, 0.5, 0.0],
-                [0.8, 0.2, 0.8],
-            ];
-            let names = ["Goblin", "Troll", "Ghost"];
-            self.enemies.push(Enemy {
-                x: ex,
-                y: ey,
-                hp: 20 + (self.depth as u32 * 5),
-                color: colors[self.enemies.len() % 3],
-                name: names[self.enemies.len() % 3].to_string(),
-            });
-            self.enemy_shake.push(0);
+                self.enemies.push(Enemy {
+                    x: ex,
+                    y: ey,
+                    hp,
+                    max_hp: hp,
+                    color: [data.base_color.0, data.base_color.1, data.base_color.2],
+                    name: data.name.to_string(),
+                    enemy_type,
+                    variant,
+                    atk,
+                    drop_rate: data.drop_rate,
+                });
+                self.enemy_shake.push(0);
+            }
         }
 
         // スタート位置を訪問済みに
