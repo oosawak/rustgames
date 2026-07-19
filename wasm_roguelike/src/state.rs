@@ -538,8 +538,12 @@ impl RoguelikeGame {
         for i in 0..self.enemies.len() {
             if self.enemies[i].x == new_x && self.enemies[i].y == new_y {
                 // 敵に攻撃
-                self.enemies[i].hp = (self.enemies[i].hp as i32 - 15).max(0) as u32;
-                self.add_message("敵を攻撃した！".to_string());
+                let damage = 15u32;
+                let old_hp = self.enemies[i].hp;
+                self.enemies[i].hp = (self.enemies[i].hp as i32 - damage as i32).max(0) as u32;
+                let enemy_name = self.enemies[i].name.clone();
+
+                self.add_message(format!("{} に {} のダメージ！", enemy_name, damage));
 
                 // 敵を震わせる
                 if i < self.enemy_shake.len() {
@@ -547,7 +551,7 @@ impl RoguelikeGame {
                 }
 
                 if self.enemies[i].hp == 0 {
-                    self.add_message("敵を倒した！".to_string());
+                    self.add_message(format!("{} を倒した！ +10 EXP", enemy_name));
                     self.gain_exp(10);
                     self.enemies.remove(i);
                     self.enemy_shake.remove(i);
@@ -560,18 +564,19 @@ impl RoguelikeGame {
 
         if attacked_enemy {
             // 敵の反撃
-            let enemy_positions: Vec<(i32, i32)> = self.enemies.iter().map(|e| (e.x, e.y)).collect();
-            for (ex, ey) in enemy_positions {
+            let enemy_positions: Vec<(i32, i32, String)> = self.enemies.iter().map(|e| (e.x, e.y, e.name.clone())).collect();
+            for (ex, ey, enemy_name) in enemy_positions {
                 if (ex - self.player_x).abs() + (ey - self.player_y).abs() <= 1 {
-                    self.hp = (self.hp as i32 - 5).max(0) as u32;
-                    self.add_message("敵の反撃を受けた！".to_string());
+                    let enemy_damage = 5u32;
+                    self.hp = (self.hp as i32 - enemy_damage as i32).max(0) as u32;
+                    self.add_message(format!("{} の反撃で {} ダメージ!", enemy_name, enemy_damage));
                     self.player_shake = 5;
                 }
             }
 
             if self.hp == 0 {
                 self.scene = RogueScene::GameOver;
-                self.add_message("ゲームオーバー".to_string());
+                self.add_message("💀 ゲームオーバー".to_string());
             }
 
             self.mark_visible();
@@ -583,12 +588,14 @@ impl RoguelikeGame {
 
         if tile == TileType::StairDown && self.depth < 30 {
             // 下り階段
+            self.add_message(format!("⬇️ F{} へ下った...", self.depth + 1));
             self.next_floor();
             return;
         }
 
         if tile == TileType::StairUp && self.depth > 1 {
             // 上り階段
+            self.add_message(format!("⬆️ F{} へ上った...", self.depth - 1));
             self.prev_floor();
             return;
         }
@@ -596,7 +603,6 @@ impl RoguelikeGame {
         if self.is_walkable(new_x, new_y) {
             self.player_x = new_x;
             self.player_y = new_y;
-            self.add_message("移動した".to_string());
 
             // 敵を移動（簡易AI）
             let enemy_moves: Vec<(usize, i32, i32)> = self.enemies.iter().enumerate()

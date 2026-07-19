@@ -654,6 +654,10 @@ html, body {
   <!-- Tab toggle button (top-left) -->
   <button id="tab-toggle-btn" style="position: fixed; top: 10px; left: 10px; z-index: 50; display: none; padding: 8px 16px; background: rgba(0,200,255,0.2); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 4px; font-family: monospace; font-size: 0.8em;">Close</button>
 
+  <!-- Message log (center bottom) -->
+  <div id="message-log" style="position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%); z-index: 40; max-width: 400px; max-height: 120px; overflow-y: auto; background: rgba(0,0,0,0.8); border: 1px solid rgba(0,200,255,0.5); border-radius: 4px; padding: 8px; font-family: monospace; font-size: 0.75em; color: #0ff; display: none; text-shadow: 0 0 4px #0ff;">
+  </div>
+
   <!-- Movement joystick (mobile) -->
   <!-- Magic button (left side) -->
   <button id="magic-button" style="position: fixed; bottom: 70px; left: 10px; z-index: 50; display: none; width: 90px; height: 90px; background: rgba(0,255,255,0.2); border: 2px solid #0ff; border-radius: 50%; color: #0ff; font-weight: bold; cursor: pointer; font-size: 32px;">✨</button>
@@ -952,6 +956,9 @@ function gameLoop() {
   // Update UI
   updateStatus();
 
+  // Update message log
+  updateMessageLog();
+
   // Update MAP if it's open
   const activeTab = document.querySelector('.nav-btn.active');
   if (activeTab && activeTab.getAttribute('data-tab') === 'map') {
@@ -1039,6 +1046,29 @@ function updateStatus() {
 
   document.getElementById('atk-bonus-display').textContent = '+' + atkBonus;
   document.getElementById('def-bonus-display').textContent = '+' + defBonus;
+}
+
+// ── Update message log ────────────────────────────
+function updateMessageLog() {
+  const scene = wasm.scene_roguelike();
+  const msgLogEl = document.getElementById('message-log');
+
+  // ゲーム中のみ表示
+  if (scene === 1) {
+    msgLogEl.style.display = 'block';
+    const messages = wasm.messages_roguelike();
+
+    // メッセージをHTML化して表示
+    msgLogEl.innerHTML = messages
+      .slice(-5)  // 最新5件のみ表示
+      .map(msg => '<div style="margin: 2px 0; word-break: break-word;">' + msg + '</div>')
+      .join('');
+
+    // スクロール最下部
+    msgLogEl.scrollTop = msgLogEl.scrollHeight;
+  } else {
+    msgLogEl.style.display = 'none';
+  }
 }
 
 // ── Flash swipe hint ───────────────────────────────

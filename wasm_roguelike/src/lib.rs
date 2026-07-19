@@ -225,3 +225,19 @@ pub fn player_equipped_accessory_roguelike() -> i32 {
         }
     })
 }
+
+#[wasm_bindgen]
+pub fn messages_roguelike() -> Vec<String> {
+    ROGUELIKE_STATE.with(|s| {
+        s.borrow().as_ref().map(|g| g.messages.clone()).unwrap_or_default()
+    })
+}
+
+#[wasm_bindgen]
+pub fn clear_messages_roguelike() {
+    ROGUELIKE_STATE.with(|s| {
+        if let Some(g) = s.borrow_mut().as_mut() {
+            g.messages.clear();
+        }
+    });
+}
