@@ -1309,18 +1309,18 @@ function toggleViewMode() {
   is3dMode = !is3dMode;
   const canvas2d = document.getElementById('game-canvas');
   const canvas3d = document.getElementById('game-canvas-3d');
-  const modeText = document.getElementById('view-mode-text');
+  const btn = document.getElementById('view-toggle');
 
   if (is3dMode) {
     canvas2d.style.display = 'none';
     canvas3d.style.display = 'block';
-    modeText.textContent = '2D';
+    btn.textContent = '2D';
     if (!scene) init3d();
     render3d();
   } else {
     canvas2d.style.display = 'block';
     canvas3d.style.display = 'none';
-    modeText.textContent = '3D';
+    btn.textContent = '3D';
   }
 }
 
@@ -1496,18 +1496,18 @@ function toggleViewMode() {
   is3dMode = !is3dMode;
   const canvas2d = document.getElementById('game-canvas');
   const canvas3d = document.getElementById('game-canvas-3d');
-  const modeText = document.getElementById('view-mode-text');
+  const btn = document.getElementById('view-toggle');
 
   if (is3dMode) {
     canvas2d.style.display = 'none';
     canvas3d.style.display = 'block';
-    modeText.textContent = '2D';
+    btn.textContent = '2D';
     if (!scene) init3d();
     render3d();
   } else {
     canvas2d.style.display = 'block';
     canvas3d.style.display = 'none';
-    modeText.textContent = '3D';
+    btn.textContent = '3D';
   }
 }
 
