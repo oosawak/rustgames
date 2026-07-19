@@ -30,7 +30,8 @@ html, body {
 
 /* ── Upper HUD (50%) ── */
 #ui-upper {
-  display: none;
+  display: flex;
+  flex-direction: column;
   flex: 0 0 50%;
   overflow-y: auto;
   position: relative;
@@ -40,6 +41,7 @@ html, body {
 #ui-upper.hidden {
   flex: 0 0 0;
   overflow: hidden;
+  display: none;
 }
 
 /* ── Canvas area (50%) ── */
@@ -57,10 +59,10 @@ html, body {
 /* UI toggle button */
 #ui-toggle-btn {
   position: absolute;
-  top: 10px;
+  top: 50px;
   right: 10px;
   z-index: 40;
-  padding: 6px 10px;
+  padding: 6px 12px;
   background: rgba(0,200,255,0.2);
   border: 1px solid #0ff;
   color: #0ff;
@@ -69,6 +71,11 @@ html, body {
   font-family: monospace;
   font-size: 0.75em;
   display: none;
+  transition: top 0.3s ease;
+}
+
+#ui-toggle-btn.show {
+  display: block;
 }
 
 /* ── Status panel ── */
@@ -544,7 +551,6 @@ html, body {
 <div id="container">
   <!-- Upper HUD (Status and Messages) -->
   <div id="ui-upper">
-    <button id="ui-toggle-btn" style="display: block;">▼ 非表示</button>
     <div id="status-panel">
       <div class="stat-item">
         <span class="stat-label"><i class="ra ra-heart"></i> HP</span>
@@ -583,6 +589,7 @@ html, body {
     <canvas id="game-canvas" style="display: block;"></canvas>
     <canvas id="game-canvas-3d" style="display: none;"></canvas>
     <button id="view-toggle" style="position: absolute; top: 10px; right: 10px; z-index: 30; padding: 8px 16px; background: rgba(0,200,255,0.2); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 4px; font-family: monospace; font-size: 0.8em;">2D/3D</button>
+    <button id="ui-toggle-btn" style="position: absolute; top: 50px; right: 10px; z-index: 30; padding: 6px 12px; background: rgba(0,200,255,0.2); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 4px; font-family: monospace; font-size: 0.8em; display: none;">▼ 非表示</button>
   </div>
 
   <!-- Movement joystick (mobile) -->
@@ -712,6 +719,7 @@ async function start() {
       document.getElementById('movement-joystick').style.display = 'flex';
       document.getElementById('magic-button').style.display = 'block';
       document.getElementById('swap-button').style.display = 'block';
+      document.getElementById('ui-toggle-btn').classList.add('show');
       wasm.start_game_roguelike();
     });
 
