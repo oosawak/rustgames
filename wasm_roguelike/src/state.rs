@@ -75,9 +75,14 @@ pub struct Enemy {
 }
 
 impl RoguelikeGame {
+    fn calc_map_size(depth: u32) -> (i32, i32) {
+        let width = 120 + ((depth.saturating_sub(1)) as i32 * 4);
+        let height = 80 + ((depth.saturating_sub(1)) as i32 * 2);
+        (width, height)
+    }
+
     pub fn new() -> Self {
-        let map_width = 160i32;
-        let map_height = 100i32;
+        let (map_width, map_height) = Self::calc_map_size(1);
         let (map, rooms) = Self::generate_dungeon(map_width, map_height, 1);
         let visited = vec![vec![false; map_width as usize]; map_height as usize];
 
@@ -113,10 +118,10 @@ impl RoguelikeGame {
         let mut rng = LcgRng::new(seed);
 
         // 部屋を生成
-        let room_count = 6 + (rng.next() % 4) as i32;
+        let room_count = 8 + (rng.next() % 5) as i32;
         for _ in 0..room_count {
-            let room_width = 6 + (rng.next() % 5) as i32;
-            let room_height = 4 + (rng.next() % 4) as i32;
+            let room_width = 7 + (rng.next() % 5) as i32;
+            let room_height = 5 + (rng.next() % 4) as i32;
             let room_x = (rng.next() as i32 % (width - room_width - 5)) + 2;
             let room_y = (rng.next() as i32 % (height - room_height - 5)) + 2;
 
@@ -580,17 +585,18 @@ impl RoguelikeGame {
         self.messages.clear();
         self.messages.push(format!("F{} に到着した", self.depth));
 
+        // マップサイズを更新
+        let (map_width, map_height) = Self::calc_map_size(self.depth);
+        self.map_width = map_width;
+        self.map_height = map_height;
+
         // 新しいダンジョンを生成
-        let (map, rooms) = Self::generate_dungeon(self.map_width, self.map_height, self.depth);
+        let (map, rooms) = Self::generate_dungeon(map_width, map_height, self.depth);
         self.map = map;
         self.rooms = rooms;
 
-        // 訪問済みをリセット
-        for row in self.visited.iter_mut() {
-            for cell in row.iter_mut() {
-                *cell = false;
-            }
-        }
+        // 訪問済みを新しいサイズでリセット
+        self.visited = vec![vec![false; map_width as usize]; map_height as usize];
 
         // プレイヤーを上り階段の場所に配置
         if !self.rooms.is_empty() {
@@ -644,17 +650,18 @@ impl RoguelikeGame {
         self.messages.clear();
         self.messages.push(format!("F{} に戻った", self.depth));
 
+        // マップサイズを更新
+        let (map_width, map_height) = Self::calc_map_size(self.depth);
+        self.map_width = map_width;
+        self.map_height = map_height;
+
         // 新しいダンジョンを生成
-        let (map, rooms) = Self::generate_dungeon(self.map_width, self.map_height, self.depth);
+        let (map, rooms) = Self::generate_dungeon(map_width, map_height, self.depth);
         self.map = map;
         self.rooms = rooms;
 
-        // 訪問済みをリセット
-        for row in self.visited.iter_mut() {
-            for cell in row.iter_mut() {
-                *cell = false;
-            }
-        }
+        // 訪問済みを新しいサイズでリセット
+        self.visited = vec![vec![false; map_width as usize]; map_height as usize];
 
         // プレイヤーを下り階段の場所に配置
         if self.rooms.len() > 1 {
