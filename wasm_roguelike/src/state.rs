@@ -923,19 +923,19 @@ pub fn render_canvas(game: &RoguelikeGame, canvas_id: &str, width: i32, height: 
                     28.0,
                 ).ok();
 
-                // Draw MP bar at top (right side)
+                // Draw MP bar next to HP
                 ctx.set_fill_style(&"#333".into());
-                ctx.fill_rect(160.0, 5.0, 150.0, 30.0);
+                ctx.fill_rect(150.0, 5.0, 140.0, 30.0);
 
                 ctx.set_fill_style(&"#00f".into());
-                let mp_width = (game.mp as f64 / game.max_mp as f64) * 140.0;
-                ctx.fill_rect(165.0, 10.0, mp_width, 10.0);
+                let mp_width = (game.mp as f64 / game.max_mp as f64) * 130.0;
+                ctx.fill_rect(155.0, 10.0, mp_width, 10.0);
 
                 ctx.set_fill_style(&"#fff".into());
                 ctx.set_font("12px monospace");
                 ctx.fill_text(
                     &format!("MP: {}/{}", game.mp, game.max_mp),
-                    170.0,
+                    160.0,
                     28.0,
                 ).ok();
 
