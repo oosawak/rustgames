@@ -136,10 +136,10 @@ impl RoguelikeGame {
             }
 
             if !overlaps {
-                // 部屋を配置
+                // 部屋を配置（Room タイルとして）
                 for ry in room_y..(room_y + room_height).min(height) {
                     for rx in room_x..(room_x + room_width).min(width) {
-                        map[ry as usize][rx as usize] = TileType::Floor;
+                        map[ry as usize][rx as usize] = TileType::Room;
                     }
                 }
                 rooms.push(Room {
