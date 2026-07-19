@@ -380,23 +380,10 @@ html, body {
 }
 
 /* ── Tab panels ── */
-#tab-content {
-  background: rgba(0, 0, 20, 0.8);
-  border-bottom: 2px solid rgba(0, 200, 255, 0.3);
-  overflow-y: auto;
-  padding: 12px;
-  display: none;
-}
-
 /* ── Portrait mode (default) ── */
 @media (orientation: portrait) {
   #container {
     flex-direction: column;
-  }
-
-  #tab-content {
-    order: -1;
-    flex: 0 0 50%;
   }
 
   #canvas-wrap {
@@ -441,9 +428,6 @@ html, body {
     height: 45px;
   }
 
-  #tab-content {
-    bottom: 45px;
-  }
 }
 
 @media (orientation: landscape) {
@@ -457,19 +441,6 @@ html, body {
 
   #status-panel {
     grid-template-columns: 1fr;
-  }
-
-  #tab-content {
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: 50%;
-    height: 100%;
-    border-right: 2px solid rgba(0, 200, 255, 0.3);
-    display: flex;
-    flex-direction: column;
-    padding-top: 0;
-    order: auto;
   }
 
   #canvas-wrap {
@@ -621,14 +592,6 @@ html, body {
     <button class="nav-btn" id="nav-swap-button" style="cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;">←<br>→</button>
   </div>
 
-  <!-- Tab contents -->
-  <div id="tab-content">
-    <div id="tab-status" class="tab-panel active"></div>
-    <div id="tab-equipment" class="tab-panel"></div>
-    <div id="tab-items" class="tab-panel"></div>
-    <div id="tab-map" class="tab-panel">
-      <canvas id="dungeon-map" style="width: 100%; height: 100%; display: block;"></canvas>
-    </div>
   </div>
 </div>
 
@@ -696,17 +659,10 @@ async function start() {
       document.getElementById('ui-toggle-btn').classList.add('show');
 
       const isLandscape = window.innerHeight < window.innerWidth;
-      const tabContent = document.getElementById('tab-content');
 
       if (isLandscape) {
         const uiUpper = document.getElementById('ui-upper');
         uiUpper.style.display = 'flex';
-        tabContent.style.display = 'flex';
-        const uiHeight = uiUpper.offsetHeight;
-        tabContent.style.top = uiHeight + 'px';
-        tabContent.style.height = `calc(100% - ${uiHeight}px - 50px)`;
-      } else {
-        tabContent.style.display = 'flex';
       }
 
       wasm.start_game_roguelike();
@@ -896,12 +852,6 @@ function gameLoop() {
   // Update UI
   updateStatus();
 
-  // Update map if map tab is active
-  const mapTab = document.getElementById('tab-map');
-  if (mapTab && mapTab.classList.contains('active')) {
-    drawDungeonMap();
-  }
-
   requestAnimationFrame(gameLoop);
 }
 
@@ -996,11 +946,6 @@ function setupNavigation() {
 
       // Update tab content
       updateTabContent(tabName);
-
-      // Draw map if map tab
-      if (tabName === 'map') {
-        setTimeout(() => drawDungeonMap(), 100);
-      }
     });
   });
 }
@@ -1089,65 +1034,6 @@ function updateTabContent(tabName) {
 }
 
 // ── Draw dungeon map ──────────────────────────────
-function drawDungeonMap() {
-  const canvas = document.getElementById('dungeon-map');
-  if (!canvas) return;
-
-  const ctx = canvas.getContext('2d');
-  const rect = canvas.getBoundingClientRect();
-  canvas.width = rect.width;
-  canvas.height = rect.height;
-
-  // Get map data from WASM
-  const mapWidth = wasm.map_width_roguelike();
-  const mapHeight = wasm.map_height_roguelike();
-  const playerX = wasm.player_x_roguelike();
-  const playerY = wasm.player_y_roguelike();
-  const mapData = wasm.map_data_roguelike();
-
-  // Draw background
-  ctx.fillStyle = '#000';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // Calculate cell size
-  const cellW = canvas.width / mapWidth;
-  const cellH = canvas.height / mapHeight;
-
-  // Get visited data
-  const visitedData = wasm.visited_data_roguelike();
-
-  // Draw tiles
-  for (let y = 0; y < mapHeight; y++) {
-    for (let x = 0; x < mapWidth; x++) {
-      const idx = y * mapWidth + x;
-      const isVisited = visitedData[idx] === 1;
-
-      if (!isVisited) continue; // Skip unvisited tiles
-
-      const tile = mapData[idx];
-
-      let color;
-      if (tile === 1) color = '#444';      // Wall
-      else if (tile === 2) color = '#335'; // Room
-      else if (tile === 3) color = '#dd0'; // StairDown
-      else if (tile === 4) color = '#0dd'; // StairUp
-      else color = '#223';                 // Floor
-
-      ctx.fillStyle = color;
-      ctx.fillRect(x * cellW, y * cellH, cellW, cellH);
-    }
-  }
-
-  // Draw player
-  ctx.fillStyle = '#0f0';
-  ctx.fillRect(playerX * cellW + 2, playerY * cellH + 2, cellW - 4, cellH - 4);
-
-  // Draw label
-  ctx.fillStyle = '#0ff';
-  ctx.font = '12px monospace';
-  ctx.fillText(`F${wasm.depth_roguelike()}`, 8, 20);
-}
-
 // ── 3D Rendering with Three.js ──
 let scene, camera, renderer;
 let cubes = [];
