@@ -1098,19 +1098,6 @@ function drawDungeonMap() {
       else if (tile === 4) color = '#0dd'; // StairUp
       else color = '#4a6';                 // Floor
 
-      // Brighten tiles within 3 tiles of player
-      const dx = Math.abs(x - playerX);
-      const dy = Math.abs(y - playerY);
-      if (dx <= 3 && dy <= 3) {
-        color = color; // Keep bright color
-      } else {
-        // Dim distant tiles
-        color = color.replace(/./g, c => {
-          const val = parseInt(c, 16);
-          return Math.floor(val * 0.5).toString(16);
-        });
-      }
-
       ctx.fillStyle = color;
       ctx.fillRect(x * cellW, y * cellH, cellW, cellH);
     }
