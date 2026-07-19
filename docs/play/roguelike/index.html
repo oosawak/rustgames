@@ -1528,12 +1528,12 @@ document.getElementById('tab-toggle-btn').addEventListener('click', () => {
     // Hide tab-content
     tabContent.style.display = 'none';
     canvasWrap.style.setProperty('width', '100%', 'important');
-    btn.textContent = '▶';
+    btn.textContent = 'Open';
   } else {
     // Show tab-content
     tabContent.style.display = 'flex';
     canvasWrap.style.setProperty('width', '50%', 'important');
-    btn.textContent = '◀';
+    btn.textContent = 'Close';
   }
 
   // Resize 3D canvas if active
