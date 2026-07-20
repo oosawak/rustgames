@@ -751,7 +751,8 @@ const KEYMAP = {
 };
 
 // ── Engine instances ──────────────────────────────────
-const audio = new AudioEngine({ autoAmbient: false });
+// Disabled audio to prevent unwanted sound playback
+const audio = { ensure: () => {}, play: () => {}, startAmbient: () => {}, setAmbVolume: () => {}, setSeVolume: () => {} };
 const input = new InputManager({ swipeMin: 35 });
 
 // ── State ─────────────────────────────────────────────
