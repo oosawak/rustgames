@@ -780,13 +780,13 @@ async function start() {
 
     input.bindKeyboard(KEYMAP);
     input.bindSwipe(['#ui-upper', '#canvas-wrap'], {
-      onStart: () => audio.ensure(),
+      onStart: () => {}, // audio.ensure() disabled
       onHint: flashHint,
     });
 
     // Setup buttons
     document.getElementById('btn-start').addEventListener('click', () => {
-      audio.ensure();
+      // audio.ensure(); // disabled
       document.getElementById('title-screen').style.display = 'none';
       document.getElementById('nav-bar').style.display = 'flex';
       document.getElementById('movement-joystick').style.display = 'flex';
