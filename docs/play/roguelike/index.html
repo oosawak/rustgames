@@ -751,7 +751,7 @@ const KEYMAP = {
 };
 
 // ── Engine instances ──────────────────────────────────
-const audio = new AudioEngine();
+const audio = new AudioEngine({ autoAmbient: false });
 const input = new InputManager({ swipeMin: 35 });
 
 // ── State ─────────────────────────────────────────────
