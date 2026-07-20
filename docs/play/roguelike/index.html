@@ -1157,13 +1157,14 @@ function updateItemsDisplay() {
   const itemNames = ['回復ポーション', 'マナポーション', '毒ポーション', 'エナジードリンク', '宝石', '鍵', 'スクロール', '金貨'];
   const itemEmojis = ['💚', '💙', '☠️', '⚡', '💎', '🔑', '📜', '🪙'];
 
-  let itemsHtml = '<div style="padding: 16px;">';
+  let itemsHtml = '<div style="padding: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">';
   for (let i = 0; i < Math.min(inventory.length, itemNames.length); i++) {
     if (inventory[i] > 0 || i < 5) {
       itemsHtml += `
-        <div class="stat-item">
-          <span class="stat-label">${itemEmojis[i]} ${itemNames[i]}</span>
-          <span class="stat-value">${inventory[i] || 0}</span>
+        <div style="border: 1px solid rgba(0,200,255,0.3); border-radius: 4px; padding: 8px; text-align: center;">
+          <div style="font-size: 24px; margin-bottom: 4px;">${itemEmojis[i]}</div>
+          <div style="font-size: 11px; color: rgba(0,200,255,0.7); margin-bottom: 4px;">${itemNames[i]}</div>
+          <div style="font-size: 14px; color: #0ff; font-weight: bold;">×${inventory[i] || 0}</div>
         </div>
       `;
     }
@@ -1301,13 +1302,14 @@ function updateTabContent(tabName) {
       const itemNames = ['回復ポーション', 'マナポーション', '毒ポーション', 'エナジードリンク', '宝石', '鍵', 'スクロール', '金貨'];
       const itemEmojis = ['💚', '💙', '☠️', '⚡', '💎', '🔑', '📜', '🪙'];
 
-      let itemsHtml = '<div style="padding: 16px;">';
+      let itemsHtml = '<div style="padding: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">';
       for (let i = 0; i < Math.min(inventory.length, itemNames.length); i++) {
         if (inventory[i] > 0 || i < 5) {  // 最初の5つは常に表示
           itemsHtml += `
-            <div class="stat-item">
-              <span class="stat-label">${itemEmojis[i]} ${itemNames[i]}</span>
-              <span class="stat-value">${inventory[i] || 0}</span>
+            <div style="border: 1px solid rgba(0,200,255,0.3); border-radius: 4px; padding: 8px; text-align: center;">
+              <div style="font-size: 24px; margin-bottom: 4px;">${itemEmojis[i]}</div>
+              <div style="font-size: 11px; color: rgba(0,200,255,0.7); margin-bottom: 4px;">${itemNames[i]}</div>
+              <div style="font-size: 14px; color: #0ff; font-weight: bold;">×${inventory[i] || 0}</div>
             </div>
           `;
         }
