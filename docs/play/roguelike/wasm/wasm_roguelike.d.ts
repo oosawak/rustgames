@@ -1,6 +1,10 @@
 /* tslint:disable */
 /* eslint-disable */
 
+export function accessory_inventory_roguelike(): Int32Array;
+
+export function armor_inventory_roguelike(): Int32Array;
+
 export function clear_messages_roguelike(): void;
 
 export function depth_roguelike(): number;
@@ -8,6 +12,12 @@ export function depth_roguelike(): number;
 export function enemy_count_roguelike(): number;
 
 export function enemy_data_roguelike(index: number): Int32Array;
+
+export function equip_accessory_roguelike(idx: number): boolean;
+
+export function equip_armor_roguelike(idx: number): boolean;
+
+export function equip_weapon_roguelike(idx: number): boolean;
 
 export function hp_roguelike(): number;
 
@@ -57,16 +67,29 @@ export function start_game_roguelike(): void;
 
 export function tick_roguelike(ts: number): void;
 
+export function unequip_accessory_roguelike(): void;
+
+export function unequip_armor_roguelike(): void;
+
+export function unequip_weapon_roguelike(): void;
+
 export function visited_data_roguelike(): Uint8Array;
+
+export function weapon_inventory_roguelike(): Int32Array;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
+    readonly accessory_inventory_roguelike: () => [number, number];
+    readonly armor_inventory_roguelike: () => [number, number];
     readonly clear_messages_roguelike: () => void;
     readonly depth_roguelike: () => number;
     readonly enemy_count_roguelike: () => number;
     readonly enemy_data_roguelike: (a: number) => [number, number];
+    readonly equip_accessory_roguelike: (a: number) => number;
+    readonly equip_armor_roguelike: (a: number) => number;
+    readonly equip_weapon_roguelike: (a: number) => number;
     readonly hp_roguelike: () => number;
     readonly init_roguelike: () => void;
     readonly inventory_roguelike: () => [number, number];
@@ -91,7 +114,11 @@ export interface InitOutput {
     readonly scene_roguelike: () => number;
     readonly start_game_roguelike: () => void;
     readonly tick_roguelike: (a: number) => void;
+    readonly unequip_accessory_roguelike: () => void;
+    readonly unequip_armor_roguelike: () => void;
+    readonly unequip_weapon_roguelike: () => void;
     readonly visited_data_roguelike: () => [number, number];
+    readonly weapon_inventory_roguelike: () => [number, number];
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_exn_store: (a: number) => void;

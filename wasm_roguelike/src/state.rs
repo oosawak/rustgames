@@ -74,6 +74,13 @@ pub struct Equipment {
     pub accessory: Option<AccessoryType>,
 }
 
+#[derive(Clone, Debug)]
+pub struct EquipmentInventory {
+    pub weapons: Vec<WeaponType>,
+    pub armors: Vec<ArmorType>,
+    pub accessories: Vec<AccessoryType>,
+}
+
 impl Equipment {
     pub fn new() -> Self {
         Self {
@@ -148,6 +155,7 @@ pub struct RoguelikeGame {
     pub equipment: Equipment,
     pub current_room: Option<usize>,  // 現在いる部屋のインデックス
     pub inventory: [u32; 8],  // ItemType ごとの数量（8 種類）
+    pub eq_inventory: EquipmentInventory,  // ドロップした装備
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -342,6 +350,11 @@ impl RoguelikeGame {
             equipment: Equipment::new(),
             current_room: None,
             inventory: [0; 8],  // HealthPotion, ManaPotion, PoisonPotion, EnergyDrink, Gem, SkeletonKey, Scroll, GoldenCoin
+            eq_inventory: EquipmentInventory {
+                weapons: Vec::new(),
+                armors: Vec::new(),
+                accessories: Vec::new(),
+            },
         }
     }
 
@@ -797,21 +810,21 @@ impl RoguelikeGame {
                                 // 武器ドロップ
                                 let weapons = [WeaponType::IronSword, WeaponType::Axe, WeaponType::CursedBlade];
                                 let weapon = weapons[(rng.next() as usize) % weapons.len()];
-                                self.equipment.weapon = Some(weapon);
+                                self.eq_inventory.weapons.push(weapon);
                                 self.add_message(format!("⚔️ {} を手に入れた！", Self::weapon_name(weapon)));
                             }
                             1 => {
                                 // 防具ドロップ
                                 let armors = [ArmorType::LeatherArmor, ArmorType::ChainMail, ArmorType::SteelPlate];
                                 let armor = armors[(rng.next() as usize) % armors.len()];
-                                self.equipment.armor = Some(armor);
+                                self.eq_inventory.armors.push(armor);
                                 self.add_message(format!("🛡️ {} を手に入れた！", Self::armor_name(armor)));
                             }
                             _ => {
                                 // アクセサリードロップ
                                 let accessories = [AccessoryType::GoldRing, AccessoryType::LuckyRing, AccessoryType::HealingNecklace];
                                 let accessory = accessories[(rng.next() as usize) % accessories.len()];
-                                self.equipment.accessory = Some(accessory);
+                                self.eq_inventory.accessories.push(accessory);
                                 self.add_message(format!("💍 {} を手に入れた！", Self::accessory_name(accessory)));
                             }
                         }

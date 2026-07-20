@@ -1,5 +1,25 @@
 /* @ts-self-types="./wasm_roguelike.d.ts" */
 
+/**
+ * @returns {Int32Array}
+ */
+export function accessory_inventory_roguelike() {
+    const ret = wasm.accessory_inventory_roguelike();
+    var v1 = getArrayI32FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+    return v1;
+}
+
+/**
+ * @returns {Int32Array}
+ */
+export function armor_inventory_roguelike() {
+    const ret = wasm.armor_inventory_roguelike();
+    var v1 = getArrayI32FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+    return v1;
+}
+
 export function clear_messages_roguelike() {
     wasm.clear_messages_roguelike();
 }
@@ -29,6 +49,33 @@ export function enemy_data_roguelike(index) {
     var v1 = getArrayI32FromWasm0(ret[0], ret[1]).slice();
     wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
     return v1;
+}
+
+/**
+ * @param {number} idx
+ * @returns {boolean}
+ */
+export function equip_accessory_roguelike(idx) {
+    const ret = wasm.equip_accessory_roguelike(idx);
+    return ret !== 0;
+}
+
+/**
+ * @param {number} idx
+ * @returns {boolean}
+ */
+export function equip_armor_roguelike(idx) {
+    const ret = wasm.equip_armor_roguelike(idx);
+    return ret !== 0;
+}
+
+/**
+ * @param {number} idx
+ * @returns {boolean}
+ */
+export function equip_weapon_roguelike(idx) {
+    const ret = wasm.equip_weapon_roguelike(idx);
+    return ret !== 0;
 }
 
 /**
@@ -222,6 +269,18 @@ export function tick_roguelike(ts) {
     wasm.tick_roguelike(ts);
 }
 
+export function unequip_accessory_roguelike() {
+    wasm.unequip_accessory_roguelike();
+}
+
+export function unequip_armor_roguelike() {
+    wasm.unequip_armor_roguelike();
+}
+
+export function unequip_weapon_roguelike() {
+    wasm.unequip_weapon_roguelike();
+}
+
 /**
  * @returns {Uint8Array}
  */
@@ -229,6 +288,16 @@ export function visited_data_roguelike() {
     const ret = wasm.visited_data_roguelike();
     var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
     wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v1;
+}
+
+/**
+ * @returns {Int32Array}
+ */
+export function weapon_inventory_roguelike() {
+    const ret = wasm.weapon_inventory_roguelike();
+    var v1 = getArrayI32FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
     return v1;
 }
 function __wbg_get_imports() {

@@ -1113,11 +1113,11 @@ function updateStatus() {
   }
 }
 
-// ── Update equipment display (for live updates) ────────────────────────────
-function updateEquipmentDisplay() {
-  const panel = document.getElementById('tab-equipment');
-  if (!panel) return;
+// ── Global state for equipment tab ────────────────────────────
+let selectedEquipmentSlot = 'weapon';  // 'weapon', 'armor', 'accessory'
 
+// ── Update equipment tab with slot selection ────────────────────────────
+function updateEquipmentTab(panel) {
   const weaponNames = ['Wooden Sword', 'Iron Sword', 'Axe', 'Cursed Blade', 'Dragon Slayer'];
   const weaponBonuses = [3, 5, 7, 9, 12];
   const armorNames = ['Leather Armor', 'Chain Mail', 'Steel Plate', 'Dragon Scale', 'Cursed Mail'];
@@ -1127,26 +1127,87 @@ function updateEquipmentDisplay() {
   const wepIdx = wasm.player_equipped_weapon_roguelike();
   const armIdx = wasm.player_equipped_armor_roguelike();
   const accIdx = wasm.player_equipped_accessory_roguelike();
-  const wepText = wepIdx >= 0 ? weaponNames[wepIdx] + ' (+' + weaponBonuses[wepIdx] + ')' : 'なし';
-  const armText = armIdx >= 0 ? armorNames[armIdx] + ' (+' + armorBonuses[armIdx] + ')' : 'なし';
-  const accText = accIdx >= 0 ? accessoryNames[accIdx] : 'なし';
 
-  panel.innerHTML = `
-    <div style="padding: 16px;">
-      <div class="stat-item">
-        <span class="stat-label">武器</span>
-        <span class="stat-value">${wepText}</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">防具</span>
-        <span class="stat-value">${armText}</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">アクセサリ</span>
-        <span class="stat-value">${accText}</span>
-      </div>
-    </div>
-  `;
+  // 部位カード表示
+  let html = '<div style="padding: 16px;">';
+  html += '<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;">';
+
+  // 武器カード
+  html += `<div style="border: 2px ${selectedEquipmentSlot === 'weapon' ? '#0ff' : 'rgba(0,200,255,0.3)'}; border-radius: 4px; padding: 12px; text-align: center; cursor: pointer;" onclick="selectEquipmentSlot('weapon', event)">
+    <div style="font-size: 24px; margin-bottom: 4px;">⚔️</div>
+    <div style="font-size: 12px; color: rgba(0,200,255,0.7); margin-bottom: 4px;">武器</div>
+    <div style="font-size: 11px; color: #0ff;">${wepIdx >= 0 ? weaponNames[wepIdx] : 'なし'}</div>
+  </div>`;
+
+  // 防具カード
+  html += `<div style="border: 2px ${selectedEquipmentSlot === 'armor' ? '#0ff' : 'rgba(0,200,255,0.3)'}; border-radius: 4px; padding: 12px; text-align: center; cursor: pointer;" onclick="selectEquipmentSlot('armor', event)">
+    <div style="font-size: 24px; margin-bottom: 4px;">🛡️</div>
+    <div style="font-size: 12px; color: rgba(0,200,255,0.7); margin-bottom: 4px;">防具</div>
+    <div style="font-size: 11px; color: #0ff;">${armIdx >= 0 ? armorNames[armIdx] : 'なし'}</div>
+  </div>`;
+
+  // アクセサリカード
+  html += `<div style="border: 2px ${selectedEquipmentSlot === 'accessory' ? '#0ff' : 'rgba(0,200,255,0.3)'}; border-radius: 4px; padding: 12px; text-align: center; cursor: pointer;" onclick="selectEquipmentSlot('accessory', event)">
+    <div style="font-size: 24px; margin-bottom: 4px;">💍</div>
+    <div style="font-size: 12px; color: rgba(0,200,255,0.7); margin-bottom: 4px;">アクセサリ</div>
+    <div style="font-size: 11px; color: #0ff;">${accIdx >= 0 ? accessoryNames[accIdx] : 'なし'}</div>
+  </div>`;
+
+  html += '</div>';
+
+  // 選択された部位の装備一覧
+  if (selectedEquipmentSlot === 'weapon') {
+    const weapons = wasm.weapon_inventory_roguelike();
+    html += '<div style="border-top: 1px solid rgba(0,200,255,0.2); padding-top: 12px;"><div style="font-size: 12px; color: rgba(0,200,255,0.7); margin-bottom: 8px;">使用可能な武器</div>';
+    html += '<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">';
+    for (let i = 0; i < weapons.length; i++) {
+      html += `<div style="border: 1px solid rgba(0,200,255,0.3); border-radius: 4px; padding: 8px; text-align: center; cursor: pointer; font-size: 10px;" onclick="wasm.equip_weapon_roguelike(${i}); updateEquipmentTab(document.getElementById('tab-equipment')); updateEquipmentDisplay();">
+        <div>${weaponNames[weapons[i]]}</div>
+        <div style="color: rgba(0,200,255,0.5); font-size: 9px;">+${weaponBonuses[weapons[i]]}</div>
+      </div>`;
+    }
+    html += `<div style="border: 1px solid rgba(200,0,0,0.3); border-radius: 4px; padding: 8px; text-align: center; cursor: pointer; font-size: 10px; background: rgba(200,0,0,0.1);" onclick="wasm.unequip_weapon_roguelike(); updateEquipmentTab(document.getElementById('tab-equipment')); updateEquipmentDisplay();">解除</div>`;
+    html += '</div></div>';
+  } else if (selectedEquipmentSlot === 'armor') {
+    const armors = wasm.armor_inventory_roguelike();
+    html += '<div style="border-top: 1px solid rgba(0,200,255,0.2); padding-top: 12px;"><div style="font-size: 12px; color: rgba(0,200,255,0.7); margin-bottom: 8px;">使用可能な防具</div>';
+    html += '<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">';
+    for (let i = 0; i < armors.length; i++) {
+      html += `<div style="border: 1px solid rgba(0,200,255,0.3); border-radius: 4px; padding: 8px; text-align: center; cursor: pointer; font-size: 10px;" onclick="wasm.equip_armor_roguelike(${i}); updateEquipmentTab(document.getElementById('tab-equipment')); updateEquipmentDisplay();">
+        <div>${armorNames[armors[i]]}</div>
+        <div style="color: rgba(0,200,255,0.5); font-size: 9px;">+${armorBonuses[armors[i]]}</div>
+      </div>`;
+    }
+    html += `<div style="border: 1px solid rgba(200,0,0,0.3); border-radius: 4px; padding: 8px; text-align: center; cursor: pointer; font-size: 10px; background: rgba(200,0,0,0.1);" onclick="wasm.unequip_armor_roguelike(); updateEquipmentTab(document.getElementById('tab-equipment')); updateEquipmentDisplay();">解除</div>`;
+    html += '</div></div>';
+  } else if (selectedEquipmentSlot === 'accessory') {
+    const accessories = wasm.accessory_inventory_roguelike();
+    html += '<div style="border-top: 1px solid rgba(0,200,255,0.2); padding-top: 12px;"><div style="font-size: 12px; color: rgba(0,200,255,0.7); margin-bottom: 8px;">使用可能なアクセサリ</div>';
+    html += '<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">';
+    for (let i = 0; i < accessories.length; i++) {
+      html += `<div style="border: 1px solid rgba(0,200,255,0.3); border-radius: 4px; padding: 8px; text-align: center; cursor: pointer; font-size: 10px;" onclick="wasm.equip_accessory_roguelike(${i}); updateEquipmentTab(document.getElementById('tab-equipment')); updateEquipmentDisplay();">
+        <div>${accessoryNames[accessories[i]]}</div>
+      </div>`;
+    }
+    html += `<div style="border: 1px solid rgba(200,0,0,0.3); border-radius: 4px; padding: 8px; text-align: center; cursor: pointer; font-size: 10px; background: rgba(200,0,0,0.1);" onclick="wasm.unequip_accessory_roguelike(); updateEquipmentTab(document.getElementById('tab-equipment')); updateEquipmentDisplay();">解除</div>`;
+    html += '</div></div>';
+  }
+
+  html += '</div>';
+  panel.innerHTML = html;
+}
+
+function selectEquipmentSlot(slot, event) {
+  event.stopPropagation();
+  selectedEquipmentSlot = slot;
+  updateEquipmentTab(document.getElementById('tab-equipment'));
+}
+
+// ── Update equipment display (for live updates) ────────────────────────────
+function updateEquipmentDisplay() {
+  const panel = document.getElementById('tab-equipment');
+  if (!panel) return;
+  updateEquipmentTab(panel);
 }
 
 // ── Update items display (for live updates) ────────────────────────────
@@ -1268,35 +1329,7 @@ function updateTabContent(tabName) {
       `;
       break;
     case 'equipment':
-      const weaponNames = ['Wooden Sword', 'Iron Sword', 'Axe', 'Cursed Blade', 'Dragon Slayer'];
-      const weaponBonuses = [3, 5, 7, 9, 12];
-      const armorNames = ['Leather Armor', 'Chain Mail', 'Steel Plate', 'Dragon Scale', 'Cursed Mail'];
-      const armorBonuses = [2, 4, 6, 8, 10];
-      const accessoryNames = ['Gold Ring', 'Vampire Ring', 'Lucky Ring', 'Healing Necklace', 'Mana Earrings'];
-
-      const wepIdx = wasm.player_equipped_weapon_roguelike();
-      const armIdx = wasm.player_equipped_armor_roguelike();
-      const accIdx = wasm.player_equipped_accessory_roguelike();
-      const wepText = wepIdx >= 0 ? weaponNames[wepIdx] + ' (+' + weaponBonuses[wepIdx] + ')' : 'なし';
-      const armText = armIdx >= 0 ? armorNames[armIdx] + ' (+' + armorBonuses[armIdx] + ')' : 'なし';
-      const accText = accIdx >= 0 ? accessoryNames[accIdx] : 'なし';
-
-      panel.innerHTML = `
-        <div style="padding: 16px;">
-          <div class="stat-item">
-            <span class="stat-label">武器</span>
-            <span class="stat-value">${wepText}</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">防具</span>
-            <span class="stat-value">${armText}</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">アクセサリ</span>
-            <span class="stat-value">${accText}</span>
-          </div>
-        </div>
-      `;
+      updateEquipmentTab(panel);
       break;
     case 'items':
       const inventory = wasm.inventory_roguelike();

@@ -1,10 +1,15 @@
 /* tslint:disable */
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
+export const accessory_inventory_roguelike: () => [number, number];
+export const armor_inventory_roguelike: () => [number, number];
 export const clear_messages_roguelike: () => void;
 export const depth_roguelike: () => number;
 export const enemy_count_roguelike: () => number;
 export const enemy_data_roguelike: (a: number) => [number, number];
+export const equip_accessory_roguelike: (a: number) => number;
+export const equip_armor_roguelike: (a: number) => number;
+export const equip_weapon_roguelike: (a: number) => number;
 export const hp_roguelike: () => number;
 export const init_roguelike: () => void;
 export const inventory_roguelike: () => [number, number];
@@ -29,7 +34,11 @@ export const render_roguelike: (a: number, b: number, c: number, d: number) => v
 export const scene_roguelike: () => number;
 export const start_game_roguelike: () => void;
 export const tick_roguelike: (a: number) => void;
+export const unequip_accessory_roguelike: () => void;
+export const unequip_armor_roguelike: () => void;
+export const unequip_weapon_roguelike: () => void;
 export const visited_data_roguelike: () => [number, number];
+export const weapon_inventory_roguelike: () => [number, number];
 export const __wbindgen_malloc: (a: number, b: number) => number;
 export const __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
 export const __wbindgen_exn_store: (a: number) => void;

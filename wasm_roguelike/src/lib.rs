@@ -248,3 +248,90 @@ pub fn inventory_roguelike() -> Vec<u32> {
         s.borrow().as_ref().map(|g| g.inventory.to_vec()).unwrap_or_default()
     })
 }
+
+#[wasm_bindgen]
+pub fn weapon_inventory_roguelike() -> Vec<i32> {
+    ROGUELIKE_STATE.with(|s| {
+        s.borrow().as_ref().map(|g| g.eq_inventory.weapons.iter().map(|w| *w as i32).collect()).unwrap_or_default()
+    })
+}
+
+#[wasm_bindgen]
+pub fn armor_inventory_roguelike() -> Vec<i32> {
+    ROGUELIKE_STATE.with(|s| {
+        s.borrow().as_ref().map(|g| g.eq_inventory.armors.iter().map(|a| *a as i32).collect()).unwrap_or_default()
+    })
+}
+
+#[wasm_bindgen]
+pub fn accessory_inventory_roguelike() -> Vec<i32> {
+    ROGUELIKE_STATE.with(|s| {
+        s.borrow().as_ref().map(|g| g.eq_inventory.accessories.iter().map(|a| *a as i32).collect()).unwrap_or_default()
+    })
+}
+
+#[wasm_bindgen]
+pub fn equip_weapon_roguelike(idx: usize) -> bool {
+    ROGUELIKE_STATE.with(|s| {
+        if let Some(g) = s.borrow_mut().as_mut() {
+            if idx < g.eq_inventory.weapons.len() {
+                g.equipment.weapon = Some(g.eq_inventory.weapons[idx]);
+                return true;
+            }
+        }
+        false
+    })
+}
+
+#[wasm_bindgen]
+pub fn equip_armor_roguelike(idx: usize) -> bool {
+    ROGUELIKE_STATE.with(|s| {
+        if let Some(g) = s.borrow_mut().as_mut() {
+            if idx < g.eq_inventory.armors.len() {
+                g.equipment.armor = Some(g.eq_inventory.armors[idx]);
+                return true;
+            }
+        }
+        false
+    })
+}
+
+#[wasm_bindgen]
+pub fn equip_accessory_roguelike(idx: usize) -> bool {
+    ROGUELIKE_STATE.with(|s| {
+        if let Some(g) = s.borrow_mut().as_mut() {
+            if idx < g.eq_inventory.accessories.len() {
+                g.equipment.accessory = Some(g.eq_inventory.accessories[idx]);
+                return true;
+            }
+        }
+        false
+    })
+}
+
+#[wasm_bindgen]
+pub fn unequip_weapon_roguelike() {
+    ROGUELIKE_STATE.with(|s| {
+        if let Some(g) = s.borrow_mut().as_mut() {
+            g.equipment.weapon = None;
+        }
+    });
+}
+
+#[wasm_bindgen]
+pub fn unequip_armor_roguelike() {
+    ROGUELIKE_STATE.with(|s| {
+        if let Some(g) = s.borrow_mut().as_mut() {
+            g.equipment.armor = None;
+        }
+    });
+}
+
+#[wasm_bindgen]
+pub fn unequip_accessory_roguelike() {
+    ROGUELIKE_STATE.with(|s| {
+        if let Some(g) = s.borrow_mut().as_mut() {
+            g.equipment.accessory = None;
+        }
+    });
+}
