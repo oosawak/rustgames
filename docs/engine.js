@@ -78,15 +78,11 @@ export class AudioEngine {
   /**
    * AudioContext を遅延初期化し、suspended なら再開する。
    * 初回呼び出し時に autoAmbient が true なら startAmbient() も呼ぶ。
+   * DISABLED: No audio playback
    */
   ensure() {
-    const isNew = !this._ctx;
-    if (!this._ctx) {
-      this._ctx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (this._ctx.state === 'suspended') this._ctx.resume();
-    if (isNew && this._autoAmbient) this.startAmbient(this._ambientOpts ?? {});
-    return this._ctx;
+    // Audio engine disabled - no AudioContext initialization
+    return null;
   }
 
   /** AudioContext インスタンスを返す（未初期化時は null） */
@@ -94,10 +90,14 @@ export class AudioEngine {
 
   /**
    * SoundDef JSON を再生する（audio_tool.rs が生成したもの）。
-   * @param {object} def - JSON.parse(wasm.sound_def_xxx(event)) の結果
-   * @param {number} vol - ボリュームスケール
+   * DISABLED: No audio playback
    */
   play(def, vol = 1.0) {
+    // Audio disabled - no sound effects
+    return;
+  }
+
+  _play_old(def, vol = 1.0) {
     if (!this._ctx || !def?.oscs) return;
     const baseT = this._ctx.currentTime + (def.delay ?? 0);
     for (const osc of def.oscs) {
@@ -120,35 +120,11 @@ export class AudioEngine {
 
   /**
    * アンビエントドローンを開始する（重複呼び出しは無視）。
-   * @param {object} opts
-   *   @param {number[]} opts.freqs      - ドローン周波数 Hz 配列 (デフォルト [55, 55.5])
-   *   @param {number}   opts.filterFreq - LPF カットオフ Hz (デフォルト 180)
-   *   @param {number}   opts.fadeIn     - フェードイン秒数 (デフォルト 3.0)
+   * DISABLED: No audio playback
    */
   startAmbient(opts = {}) {
-    if (!this._ctx || this._ambientNode) return;
-    const { freqs = [55, 55.5], filterFreq = 180, fadeIn = 3.0 } = opts;
-
-    this._ambientGain = this._ctx.createGain();
-    this._ambientGain.gain.setValueAtTime(0.0, this._ctx.currentTime);
-    this._ambientGain.gain.linearRampToValueAtTime(
-      0.06 * this.ambVolume, this._ctx.currentTime + fadeIn
-    );
-    this._ambientGain.connect(this._ctx.destination);
-
-    for (const freq of freqs) {
-      const osc = this._ctx.createOscillator();
-      const lpf = this._ctx.createBiquadFilter();
-      lpf.type = 'lowpass';
-      lpf.frequency.value = filterFreq;
-      lpf.Q.value = 2;
-      osc.type = 'sawtooth';
-      osc.frequency.value = freq;
-      osc.connect(lpf);
-      lpf.connect(this._ambientGain);
-      osc.start();
-    }
-    this._ambientNode = this._ambientGain;
+    // Audio disabled - no ambient sound
+    return;
   }
 
   /** アンビエント音量を変更する */
