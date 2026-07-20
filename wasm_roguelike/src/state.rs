@@ -350,12 +350,24 @@ impl RoguelikeGame {
         self.enemy_shake.clear();
         let mut rng = LcgRng::new(self.depth.wrapping_mul(9999));
 
-        // 各部屋に複数の敵を配置
+        // 各部屋に複数の敵を配置（階段のある部屋は除外）
         for i in 0..self.rooms.len().min(8) {
+            let room = &self.rooms[i];
+
+            // 部屋に階段があるかチェック
+            let has_stairs = (room.y..room.y + room.height).any(|y| {
+                (room.x..room.x + room.width).any(|x| {
+                    matches!(self.map[y as usize][x as usize], TileType::StairUp | TileType::StairDown)
+                })
+            });
+
+            if has_stairs {
+                continue;  // 階段のある部屋はスキップ
+            }
+
             let room_enemy_count = 2 + (rng.next() % 3) as usize;  // 2-4体の敵
             for _ in 0..room_enemy_count {
                 if let Some((enemy_type, variant)) = Self::spawn_random_enemy_for_floor(self.depth, &mut rng) {
-                    let room = &self.rooms[i];
 
                     // 敵を配置する位置を探す（重複なし、歩行可能タイル）
                     let mut ex = room.x + (rng.next() as i32 % room.width);
