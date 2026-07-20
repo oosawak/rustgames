@@ -1000,11 +1000,14 @@ function gameLoop() {
   // Update message log
   updateMessageLog();
 
-  // Update MAP, EQUIPMENT, or ITEMS if open
+  // Update STATUS, MAP, EQUIPMENT, or ITEMS if open
   const activeTab = document.querySelector('.nav-btn.active');
   if (activeTab) {
     const tabName = activeTab.getAttribute('data-tab');
-    if (tabName === 'map') {
+    const panel = document.getElementById(`tab-${tabName}`);
+    if (tabName === 'status' && panel) {
+      updateStatusTab(panel);
+    } else if (tabName === 'map') {
       drawDungeonMap();
     } else if (tabName === 'equipment') {
       updateEquipmentDisplay();
@@ -1111,6 +1114,74 @@ function updateStatus() {
   if (defDisplay) {
     defDisplay.textContent = '+' + defBonus;
   }
+}
+
+// ── Update status tab with card display ────────────────────────────
+function updateStatusTab(panel) {
+  const level = wasm.level_roguelike();
+  const depth = wasm.depth_roguelike();
+  const hp = wasm.hp_roguelike();
+  const maxHp = wasm.max_hp_roguelike();
+  const mp = wasm.mp_roguelike();
+  const maxMp = wasm.max_mp_roguelike();
+  const atkBonus = wasm.player_atk_roguelike();
+  const defBonus = wasm.player_def_roguelike();
+
+  const hpPercent = Math.round((hp / maxHp) * 100);
+  const mpPercent = Math.round((mp / maxMp) * 100);
+
+  let html = '<div style="padding: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">';
+
+  // レベルカード
+  html += `<div style="border: 1px solid rgba(0,200,255,0.3); border-radius: 4px; padding: 12px; text-align: center;">
+    <div style="font-size: 24px; margin-bottom: 4px;">📊</div>
+    <div style="font-size: 12px; color: rgba(0,200,255,0.7); margin-bottom: 4px;">レベル</div>
+    <div style="font-size: 20px; color: #0ff; font-weight: bold;">${level}</div>
+  </div>`;
+
+  // 深度カード
+  html += `<div style="border: 1px solid rgba(0,200,255,0.3); border-radius: 4px; padding: 12px; text-align: center;">
+    <div style="font-size: 24px; margin-bottom: 4px;">🗻</div>
+    <div style="font-size: 12px; color: rgba(0,200,255,0.7); margin-bottom: 4px;">深度</div>
+    <div style="font-size: 20px; color: #0ff; font-weight: bold;">F${depth}</div>
+  </div>`;
+
+  // HPカード
+  html += `<div style="border: 1px solid rgba(255,0,0,0.3); border-radius: 4px; padding: 12px; text-align: center;">
+    <div style="font-size: 24px; margin-bottom: 4px;">❤️</div>
+    <div style="font-size: 12px; color: rgba(255,100,100,0.7); margin-bottom: 4px;">HP</div>
+    <div style="font-size: 14px; color: #f0f; font-weight: bold;">${hp}/${maxHp}</div>
+    <div style="width: 100%; height: 4px; background: rgba(255,0,0,0.2); border-radius: 2px; margin-top: 4px;">
+      <div style="width: ${hpPercent}%; height: 100%; background: #f00; border-radius: 2px;"></div>
+    </div>
+  </div>`;
+
+  // MPカード
+  html += `<div style="border: 1px solid rgba(0,100,255,0.3); border-radius: 4px; padding: 12px; text-align: center;">
+    <div style="font-size: 24px; margin-bottom: 4px;">💎</div>
+    <div style="font-size: 12px; color: rgba(0,100,255,0.7); margin-bottom: 4px;">MP</div>
+    <div style="font-size: 14px; color: #00f; font-weight: bold;">${mp}/${maxMp}</div>
+    <div style="width: 100%; height: 4px; background: rgba(0,100,255,0.2); border-radius: 2px; margin-top: 4px;">
+      <div style="width: ${mpPercent}%; height: 100%; background: #00f; border-radius: 2px;"></div>
+    </div>
+  </div>`;
+
+  // ATKカード
+  html += `<div style="border: 1px solid rgba(255,200,0,0.3); border-radius: 4px; padding: 12px; text-align: center;">
+    <div style="font-size: 24px; margin-bottom: 4px;">⚔️</div>
+    <div style="font-size: 12px; color: rgba(255,200,0,0.7); margin-bottom: 4px;">攻撃</div>
+    <div style="font-size: 20px; color: #fd0; font-weight: bold;">+${atkBonus}</div>
+  </div>`;
+
+  // DEFカード
+  html += `<div style="border: 1px solid rgba(150,150,150,0.3); border-radius: 4px; padding: 12px; text-align: center;">
+    <div style="font-size: 24px; margin-bottom: 4px;">🛡️</div>
+    <div style="font-size: 12px; color: rgba(150,150,150,0.7); margin-bottom: 4px;">防御</div>
+    <div style="font-size: 20px; color: #aaa; font-weight: bold;">+${defBonus}</div>
+  </div>`;
+
+  html += '</div>';
+  panel.innerHTML = html;
 }
 
 // ── Global state for equipment tab ────────────────────────────
@@ -1308,25 +1379,7 @@ function updateTabContent(tabName) {
 
   switch (tabName) {
     case 'status':
-      const level = wasm.level_roguelike();
-      const depth = wasm.depth_roguelike();
-
-      panel.innerHTML = `
-        <div style="padding: 16px;">
-          <div class="stat-item">
-            <span class="stat-label">LV</span>
-            <span class="stat-value" id="level-display">${level}</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">DEPTH</span>
-            <span class="stat-value" id="depth-display">F${depth}</span>
-          </div>
-          <div class="stat-item" style="border-top: 1px solid rgba(0,200,255,0.2); padding-top: 8px; margin-top: 8px;">
-            <span class="stat-label">ステータス</span>
-            <span class="stat-value">なし</span>
-          </div>
-        </div>
-      `;
+      updateStatusTab(panel);
       break;
     case 'equipment':
       updateEquipmentTab(panel);
