@@ -1010,11 +1010,12 @@ impl RoguelikeGame {
                 let new_x = self.enemies[i].x + move_x;
                 let new_y = self.enemies[i].y + move_y;
 
-                // 新しい位置が歩行可能で、他の敵が占有していないかチェック
+                // 新しい位置が歩行可能で、他の敵やプレイヤーが占有していないかチェック
                 let occupied_by_other = self.enemies.iter().enumerate()
                     .any(|(j, e)| j != i && e.x == new_x && e.y == new_y);
+                let occupied_by_player = self.player_x == new_x && self.player_y == new_y;
 
-                if !occupied_by_other {
+                if !occupied_by_other && !occupied_by_player {
                     self.enemies[i].x = new_x;
                     self.enemies[i].y = new_y;
                 }
