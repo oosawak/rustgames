@@ -356,8 +356,21 @@ impl RoguelikeGame {
             for _ in 0..room_enemy_count {
                 if let Some((enemy_type, variant)) = Self::spawn_random_enemy_for_floor(self.depth, &mut rng) {
                     let room = &self.rooms[i];
-                    let ex = room.x + (rng.next() as i32 % room.width);
-                    let ey = room.y + (rng.next() as i32 % room.height);
+
+                    // 敵を配置する位置を探す（重複なし、歩行可能タイル）
+                    let mut ex = room.x + (rng.next() as i32 % room.width);
+                    let mut ey = room.y + (rng.next() as i32 % room.height);
+                    let mut attempts = 0;
+                    while attempts < 20 {
+                        // その位置に既に敵がいないかチェック
+                        let occupied = self.enemies.iter().any(|e| e.x == ex && e.y == ey);
+                        if self.is_walkable(ex, ey) && !occupied {
+                            break;
+                        }
+                        ex = room.x + (rng.next() as i32 % room.width);
+                        ey = room.y + (rng.next() as i32 % room.height);
+                        attempts += 1;
+                    }
 
                     let is_boss = is_boss_floor && i == 0 && self.enemies.is_empty();
                     let (mut hp, mut atk) = Self::get_enemy_stats(enemy_type, variant);
@@ -994,8 +1007,17 @@ impl RoguelikeGame {
 
         for (i, move_x, move_y) in enemy_moves {
             if move_x != 0 || move_y != 0 {
-                self.enemies[i].x += move_x;
-                self.enemies[i].y += move_y;
+                let new_x = self.enemies[i].x + move_x;
+                let new_y = self.enemies[i].y + move_y;
+
+                // 新しい位置が歩行可能で、他の敵が占有していないかチェック
+                let occupied_by_other = self.enemies.iter().enumerate()
+                    .any(|(j, e)| j != i && e.x == new_x && e.y == new_y);
+
+                if !occupied_by_other {
+                    self.enemies[i].x = new_x;
+                    self.enemies[i].y = new_y;
+                }
             }
             let dx = (self.player_x - self.enemies[i].x).abs();
             let dy = (self.player_y - self.enemies[i].y).abs();
