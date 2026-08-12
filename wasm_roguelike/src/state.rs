@@ -24,8 +24,17 @@ pub struct Projectile {
     pub to_x: f64,
     pub to_y: f64,
     pub progress: f64,  // 0.0 to 1.0
-    pub proj_type: i32, // 0=attack, 1=magic
+    pub proj_type: i32, // 0=attack, 1=magic, 2=arrow
     pub direction: i32, // 0=up, 1=left, 2=right, 3=down
+}
+
+#[derive(Clone)]
+pub struct AttackEffect {
+    pub x: i32,
+    pub y: i32,
+    pub ttl: u32,
+    pub max_ttl: u32,
+    pub color: &'static str,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -35,6 +44,13 @@ pub enum WeaponType {
     Axe = 2,           // +7
     CursedBlade = 3,   // +9
     DragonSlayer = 4,  // +12
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum WeaponStyle {
+    Sword,
+    Spear,
+    Bow,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -150,6 +166,7 @@ pub struct RoguelikeGame {
     pub player_shake: u32,
     pub enemy_shake: Vec<u32>,
     pub projectiles: Vec<Projectile>,
+    pub attack_effects: Vec<AttackEffect>,
     pub exp: u32,
     pub next_level_exp: u32,
     pub equipment: Equipment,
@@ -345,6 +362,7 @@ impl RoguelikeGame {
             player_shake: 0,
             enemy_shake: vec![],
             projectiles: vec![],
+            attack_effects: vec![],
             exp: 0,
             next_level_exp: 100,
             equipment: Equipment::new(),
@@ -582,6 +600,10 @@ impl RoguelikeGame {
         self.scene = RogueScene::Playing;
         self.messages.clear();
         self.messages.push("ゲーム開始！".to_string());
+        self.projectiles.clear();
+        self.attack_effects.clear();
+        self.player_shake = 0;
+        self.enemy_shake.clear();
 
         // 最初の部屋にプレイヤーを配置
         if !self.rooms.is_empty() {
@@ -680,48 +702,251 @@ impl RoguelikeGame {
         }
     }
 
+    fn weapon_style(weapon: WeaponType) -> WeaponStyle {
+        match weapon {
+            WeaponType::WoodenSword | WeaponType::IronSword => WeaponStyle::Sword,
+            WeaponType::Axe | WeaponType::CursedBlade => WeaponStyle::Spear,
+            WeaponType::DragonSlayer => WeaponStyle::Bow,
+        }
+    }
+
+    fn push_attack_effects(&mut self, cells: &[(i32, i32)], color: &'static str, ttl: u32) {
+        for &(x, y) in cells {
+            if x >= 0 && x < self.map_width && y >= 0 && y < self.map_height {
+                self.attack_effects.push(AttackEffect {
+                    x,
+                    y,
+                    ttl,
+                    max_ttl: ttl,
+                    color,
+                });
+            }
+        }
+    }
+
+    fn sword_attack_cells(&self) -> Vec<(i32, i32)> {
+        match self.player_direction {
+            0 => vec![
+                (self.player_x, self.player_y - 1),
+                (self.player_x - 1, self.player_y - 1),
+                (self.player_x + 1, self.player_y - 1),
+                (self.player_x - 1, self.player_y),
+                (self.player_x + 1, self.player_y),
+            ],
+            1 => vec![
+                (self.player_x - 1, self.player_y),
+                (self.player_x - 1, self.player_y - 1),
+                (self.player_x - 1, self.player_y + 1),
+                (self.player_x, self.player_y - 1),
+                (self.player_x, self.player_y + 1),
+            ],
+            2 => vec![
+                (self.player_x + 1, self.player_y),
+                (self.player_x + 1, self.player_y - 1),
+                (self.player_x + 1, self.player_y + 1),
+                (self.player_x, self.player_y - 1),
+                (self.player_x, self.player_y + 1),
+            ],
+            3 => vec![
+                (self.player_x, self.player_y + 1),
+                (self.player_x - 1, self.player_y + 1),
+                (self.player_x + 1, self.player_y + 1),
+                (self.player_x - 1, self.player_y),
+                (self.player_x + 1, self.player_y),
+            ],
+            _ => vec![],
+        }
+    }
+
+    fn spear_attack_cells(&self) -> Vec<(i32, i32)> {
+        match self.player_direction {
+            0 => vec![(self.player_x, self.player_y - 1), (self.player_x, self.player_y - 2)],
+            1 => vec![(self.player_x - 1, self.player_y), (self.player_x - 2, self.player_y)],
+            2 => vec![(self.player_x + 1, self.player_y), (self.player_x + 2, self.player_y)],
+            3 => vec![(self.player_x, self.player_y + 1), (self.player_x, self.player_y + 2)],
+            _ => vec![],
+        }
+    }
+
+    fn bow_target(&self) -> (f64, f64) {
+        let mut x = self.player_x;
+        let mut y = self.player_y;
+        loop {
+            let (dx, dy) = match self.player_direction {
+                0 => (0, -1),
+                1 => (-1, 0),
+                2 => (1, 0),
+                3 => (0, 1),
+                _ => (0, 0),
+            };
+            let next_x = x + dx;
+            let next_y = y + dy;
+            if next_x < 0 || next_x >= self.map_width || next_y < 0 || next_y >= self.map_height {
+                break;
+            }
+            if self.map[next_y as usize][next_x as usize] == TileType::Wall {
+                break;
+            }
+            x = next_x;
+            y = next_y;
+        }
+        (x as f64, y as f64)
+    }
+
+    fn handle_attack_hit(&mut self, target_x: i32, target_y: i32, damage: u32) -> bool {
+        for i in 0..self.enemies.len() {
+            if self.enemies[i].x == target_x && self.enemies[i].y == target_y {
+                let enemy_def = self.enemies[i].def as i32;
+                let final_damage = ((damage as i32) - enemy_def).max(1) as u32;
+                self.enemies[i].hp = (self.enemies[i].hp as i32 - final_damage as i32).max(0) as u32;
+                let enemy_name = self.enemies[i].name.clone();
+
+                self.add_message(format!("{} に {} のダメージ！", enemy_name, final_damage));
+                if i < self.enemy_shake.len() {
+                    self.enemy_shake[i] = 5;
+                }
+
+                if self.enemies[i].hp == 0 {
+                    let is_boss = self.enemies[i].is_boss;
+                    let exp_gain = if is_boss { 500 } else { 10 };
+
+                    self.add_message(format!("{} を倒した！ +{} EXP", enemy_name, exp_gain));
+
+                    let mut rng = LcgRng::new((self.depth as u32).wrapping_mul(12345).wrapping_add(self.enemies[i].x as u32));
+                    let item_roll = rng.next() % 100;
+
+                    if item_roll < 30 {
+                        let potion_type = rng.next() % 4;
+                        match potion_type {
+                            0 => {
+                                self.inventory[ItemType::HealthPotion as usize] += 1;
+                                self.add_message("💚 回復ポーションを入手した！".to_string());
+                            }
+                            1 => {
+                                self.inventory[ItemType::ManaPotion as usize] += 1;
+                                self.add_message("💙 マナポーションを入手した！".to_string());
+                            }
+                            2 => {
+                                self.inventory[ItemType::PoisonPotion as usize] += 1;
+                                self.add_message("☠️ 毒ポーションを入手した！".to_string());
+                            }
+                            _ => {
+                                self.inventory[ItemType::EnergyDrink as usize] += 1;
+                                self.add_message("⚡ エナジードリンクを入手した！".to_string());
+                            }
+                        }
+                    } else if item_roll < 60 {
+                        self.inventory[ItemType::Gem as usize] += rng.next() % 3 + 1;
+                        self.add_message("💎 宝石を入手した！".to_string());
+                    } else if item_roll < 80 {
+                        self.inventory[ItemType::SkeletonKey as usize] += 1;
+                        self.add_message("🔑 鍵を入手した！".to_string());
+                    } else if item_roll < 90 {
+                        self.inventory[ItemType::Scroll as usize] += 1;
+                        self.add_message("📜 スクロールを入手した！".to_string());
+                    } else {
+                        self.inventory[ItemType::GoldenCoin as usize] += rng.next() % 5 + 1;
+                        self.add_message("🪙 金貨を入手した！".to_string());
+                    }
+
+                    if is_boss {
+                        let drop_type = rng.next() % 3;
+                        match drop_type {
+                            0 => {
+                                let weapons = [WeaponType::IronSword, WeaponType::Axe, WeaponType::CursedBlade];
+                                let weapon = weapons[(rng.next() as usize) % weapons.len()];
+                                self.eq_inventory.weapons.push(weapon);
+                                self.add_message(format!("⚔️ {} を手に入れた！", Self::weapon_name(weapon)));
+                            }
+                            1 => {
+                                let armors = [ArmorType::LeatherArmor, ArmorType::ChainMail, ArmorType::SteelPlate];
+                                let armor = armors[(rng.next() as usize) % armors.len()];
+                                self.eq_inventory.armors.push(armor);
+                                self.add_message(format!("🛡️ {} を手に入れた！", Self::armor_name(armor)));
+                            }
+                            _ => {
+                                let accessories = [AccessoryType::GoldRing, AccessoryType::LuckyRing, AccessoryType::HealingNecklace];
+                                let accessory = accessories[(rng.next() as usize) % accessories.len()];
+                                self.eq_inventory.accessories.push(accessory);
+                                self.add_message(format!("💍 {} を手に入れた！", Self::accessory_name(accessory)));
+                            }
+                        }
+                    }
+
+                    self.gain_exp(exp_gain);
+                    self.enemies.remove(i);
+                    self.enemy_shake.remove(i);
+                }
+
+                return true;
+            }
+        }
+        false
+    }
+
     pub fn move_player(&mut self, action: i32) {
         if self.scene != RogueScene::Playing {
             return;
         }
 
-        // action: 0=up, 1=left, 2=right, 3=down, 4=magic
+        // action: 0=up, 1=left, 2=right, 3=down, 4=attack, 5=dodge
         if action == 4 {
-            // Magic attack - consumes MP
-            let magic_cost: u32 = 5;
-            if self.mp < magic_cost {
-                self.add_message("MPが足りません".to_string());
-                return;
+            let weapon = self.equipment.weapon.unwrap_or(WeaponType::WoodenSword);
+            let style = Self::weapon_style(weapon);
+
+            match style {
+                WeaponStyle::Sword => {
+                    let cells = self.sword_attack_cells();
+                    self.push_attack_effects(&cells, "rgba(255, 235, 160, 0.90)", 10);
+                    let damage = 10 + self.equipment.get_atk_bonus();
+                    let mut hit_any = false;
+                    for (x, y) in cells {
+                        hit_any |= self.handle_attack_hit(x, y, damage);
+                    }
+                    if hit_any {
+                        self.player_shake = 3;
+                    }
+                    self.add_message("剣を振った！".to_string());
+                }
+                WeaponStyle::Spear => {
+                    let cells = self.spear_attack_cells();
+                    self.push_attack_effects(&cells, "rgba(80, 255, 255, 0.90)", 8);
+                    let damage = 12 + self.equipment.get_atk_bonus();
+                    let mut hit_any = false;
+                    for (x, y) in cells {
+                        hit_any |= self.handle_attack_hit(x, y, damage);
+                    }
+                    if hit_any {
+                        self.player_shake = 3;
+                    }
+                    self.add_message("槍を突いた！".to_string());
+                }
+                WeaponStyle::Bow => {
+                    let (target_x, target_y) = self.bow_target();
+                    self.projectiles.push(Projectile {
+                        from_x: self.player_x as f64,
+                        from_y: self.player_y as f64,
+                        to_x: target_x,
+                        to_y: target_y,
+                        progress: 0.0,
+                        proj_type: 2,
+                        direction: self.player_direction,
+                    });
+                    self.add_message("弓を放った！".to_string());
+                }
             }
-
-            self.mp -= magic_cost;
-
-            // Magic attack in player direction
-            let (dx, dy) = match self.player_direction {
-                0 => (0, -18),  // up
-                1 => (-18, 0),  // left
-                2 => (18, 0),   // right
-                3 => (0, 18),   // down
-                _ => (0, 0),
-            };
-            let target_x = (self.player_x + dx) as f64;
-            let target_y = (self.player_y + dy) as f64;
-            self.projectiles.push(Projectile {
-                from_x: self.player_x as f64,
-                from_y: self.player_y as f64,
-                to_x: target_x,
-                to_y: target_y,
-                progress: 0.0,
-                proj_type: 1,  // magic
-                direction: self.player_direction,
-            });
-            self.add_message("魔法を放った！".to_string());
             return;
         }
 
-        self.player_direction = action;
+        let movement_direction = if action == 5 {
+            self.player_direction
+        } else {
+            self.player_direction = action;
+            action
+        };
+        let move_steps = if action == 5 { 3 } else { 1 };
 
-        let (dx, dy) = match action {
+        let (dx, dy) = match movement_direction {
             0 => (0, -1),
             1 => (-1, 0),
             2 => (1, 0),
@@ -729,8 +954,23 @@ impl RoguelikeGame {
             _ => return,
         };
 
-        let new_x = self.player_x + dx;
-        let new_y = self.player_y + dy;
+        let mut new_x = self.player_x;
+        let mut new_y = self.player_y;
+        for _ in 0..move_steps {
+            let next_x = new_x + dx;
+            let next_y = new_y + dy;
+            if self.is_walkable(next_x, next_y) {
+                new_x = next_x;
+                new_y = next_y;
+            } else {
+                break;
+            }
+        }
+
+        let moved = new_x != self.player_x || new_y != self.player_y;
+        if action == 5 && moved {
+            self.add_message("回転回避！".to_string());
+        }
 
         // 敵への攻撃判定
         let mut attacked_enemy = false;
@@ -860,6 +1100,11 @@ impl RoguelikeGame {
             }
 
             self.mark_visible();
+            return;
+        }
+
+        if !moved {
+            self.add_message("壁にぶつかった".to_string());
             return;
         }
 
@@ -1067,15 +1312,21 @@ impl RoguelikeGame {
             }
         }
 
+        for effect in self.attack_effects.iter_mut() {
+            if effect.ttl > 0 {
+                effect.ttl -= 1;
+            }
+        }
+
         // Update projectiles
         for projectile in self.projectiles.iter_mut() {
             projectile.progress += 0.008;
         }
 
-        // Check magic collision with enemies and damage them
+        // Check projectile collision with enemies and damage them
         let mut hit_projectiles = std::collections::HashSet::new();
         for (proj_idx, projectile) in self.projectiles.iter().enumerate() {
-            if projectile.proj_type == 1 && projectile.progress > 0.1 {  // magic
+            if (projectile.proj_type == 1 || projectile.proj_type == 2) && projectile.progress > 0.1 {
                 let current_x = projectile.from_x + (projectile.to_x - projectile.from_x) * projectile.progress;
                 let current_y = projectile.from_y + (projectile.to_y - projectile.from_y) * projectile.progress;
                 let map_x = current_x as i32;
@@ -1084,7 +1335,8 @@ impl RoguelikeGame {
                 // Check enemy collision and damage
                 for i in 0..self.enemies.len() {
                     if self.enemies[i].x == map_x && self.enemies[i].y == map_y {
-                        self.enemies[i].hp = (self.enemies[i].hp as i32 - 5).max(0) as u32;
+                        let projectile_damage = if projectile.proj_type == 2 { 5 } else { 5 };
+                        self.enemies[i].hp = (self.enemies[i].hp as i32 - projectile_damage).max(0) as u32;
                         hit_projectiles.insert(proj_idx);
 
                         if self.enemies[i].hp == 0 {
@@ -1111,9 +1363,9 @@ impl RoguelikeGame {
         self.enemies.retain(|e| e.hp > 0);
         self.enemy_shake.truncate(self.enemies.len());
 
-        // Check magic collision with walls
+        // Check projectile collision with walls
         self.projectiles.retain(|p| {
-            if p.proj_type == 1 {  // magic
+            if p.proj_type == 1 || p.proj_type == 2 {
                 // Only check collision after progress > 0.1 to avoid colliding with starting position
                 if p.progress > 0.1 {
                     let current_x = p.from_x + (p.to_x - p.from_x) * p.progress;
@@ -1137,6 +1389,8 @@ impl RoguelikeGame {
                 p.progress < 1.0
             }
         });
+
+        self.attack_effects.retain(|effect| effect.ttl > 0);
     }
 
     pub fn add_message(&mut self, msg: String) {
@@ -1163,6 +1417,10 @@ impl RoguelikeGame {
         self.mp = self.max_mp;
         self.messages.clear();
         self.messages.push(format!("F{} に到着した", self.depth));
+        self.projectiles.clear();
+        self.attack_effects.clear();
+        self.player_shake = 0;
+        self.enemy_shake.clear();
 
         // マップサイズを更新
         let (map_width, map_height) = Self::calc_map_size(self.depth);
@@ -1206,6 +1464,10 @@ impl RoguelikeGame {
         self.mp = self.max_mp;
         self.messages.clear();
         self.messages.push(format!("F{} に戻った", self.depth));
+        self.projectiles.clear();
+        self.attack_effects.clear();
+        self.player_shake = 0;
+        self.enemy_shake.clear();
 
         // マップサイズを更新
         let (map_width, map_height) = Self::calc_map_size(self.depth);
@@ -1324,6 +1586,47 @@ pub fn render_canvas(game: &RoguelikeGame, canvas_id: &str, width: i32, height: 
                 }
 
                 // Draw enemies
+                // Attack effects are rendered as opaque glowing highlights so the
+                // player can read weapon range at a glance.
+                for effect in &game.attack_effects {
+                    if effect.x >= camera_x && effect.x < camera_x + view_width
+                        && effect.y >= camera_y && effect.y < camera_y + view_height
+                    {
+                        let screen_x = (effect.x - camera_x) as f64 * cell_w;
+                        let screen_y = (effect.y - camera_y) as f64 * cell_h;
+                        let ttl_ratio = if effect.max_ttl == 0 {
+                            0.0
+                        } else {
+                            effect.ttl as f64 / effect.max_ttl as f64
+                        };
+                        let alpha = (0.30 + ttl_ratio * 0.55).clamp(0.0, 1.0);
+                        let inset = 3.0 + (1.0 - ttl_ratio) * 3.0;
+
+                        ctx.save();
+                        ctx.set_global_alpha(alpha);
+                        ctx.set_fill_style(&effect.color.into());
+                        ctx.set_shadow_color(effect.color);
+                        ctx.set_shadow_blur(18.0);
+                        ctx.fill_rect(
+                            screen_x + inset,
+                            screen_y + inset,
+                            (cell_w - inset * 2.0).max(1.0),
+                            (cell_h - inset * 2.0).max(1.0),
+                        );
+
+                        ctx.set_global_alpha((alpha + 0.15).min(1.0));
+                        ctx.set_fill_style(&"rgba(255,255,255,0.18)".into());
+                        ctx.fill_rect(
+                            screen_x + cell_w * 0.22,
+                            screen_y + cell_h * 0.22,
+                            cell_w * 0.56,
+                            cell_h * 0.56,
+                        );
+                        ctx.restore();
+                    }
+                }
+
+                // Draw enemies
                 for (i, enemy) in game.enemies.iter().enumerate() {
                     if enemy.x >= camera_x && enemy.x < camera_x + view_width
                         && enemy.y >= camera_y && enemy.y < camera_y + view_height
@@ -1418,7 +1721,7 @@ pub fn render_canvas(game: &RoguelikeGame, canvas_id: &str, width: i32, height: 
                     ctx.restore();
                 }
 
-                // Draw magic projectiles
+                // Draw projectiles
                 for projectile in game.projectiles.iter() {
                     let current_x = projectile.from_x + (projectile.to_x - projectile.from_x) * projectile.progress;
                     let current_y = projectile.from_y + (projectile.to_y - projectile.from_y) * projectile.progress;
@@ -1430,26 +1733,55 @@ pub fn render_canvas(game: &RoguelikeGame, canvas_id: &str, width: i32, height: 
 
                     ctx.save();
 
-                    // Draw magic as a glowing orb (cyan) - shrinks as it travels
-                    let size_factor = 1.0 - projectile.progress;
+                    if projectile.proj_type == 2 {
+                        let dx = projectile.to_x - projectile.from_x;
+                        let dy = projectile.to_y - projectile.from_y;
+                        let len = (dx * dx + dy * dy).sqrt().max(1.0);
+                        let ux = dx / len;
+                        let uy = dy / len;
+                        let tail_x = icon_x - ux * cell_w * 0.22;
+                        let tail_y = icon_y - uy * cell_h * 0.22;
+                        let head_x = icon_x + ux * cell_w * 0.18;
+                        let head_y = icon_y + uy * cell_h * 0.18;
 
-                    // Glow effect
-                    ctx.set_fill_style(&"rgba(0,255,255,0.2)".into());
-                    ctx.begin_path();
-                    ctx.arc(icon_x, icon_y, cell_w * 0.2 * size_factor, 0.0, std::f64::consts::PI * 2.0).ok();
-                    ctx.fill();
+                        ctx.set_stroke_style(&"rgba(255, 210, 90, 0.9)".into());
+                        ctx.set_line_width(4.0);
+                        ctx.begin_path();
+                        ctx.move_to(tail_x, tail_y);
+                        ctx.line_to(head_x, head_y);
+                        ctx.stroke();
 
-                    // Core orb
-                    ctx.set_fill_style(&"#0ff".into());
-                    ctx.begin_path();
-                    ctx.arc(icon_x, icon_y, cell_w * 0.12 * size_factor, 0.0, std::f64::consts::PI * 2.0).ok();
-                    ctx.fill();
+                        ctx.set_fill_style(&"rgba(255, 210, 90, 0.35)".into());
+                        ctx.begin_path();
+                        ctx.arc(icon_x, icon_y, cell_w * 0.07, 0.0, std::f64::consts::PI * 2.0).ok();
+                        ctx.fill();
 
-                    // Bright center
-                    ctx.set_fill_style(&"#fff".into());
-                    ctx.begin_path();
-                    ctx.arc(icon_x, icon_y, cell_w * 0.05 * size_factor, 0.0, std::f64::consts::PI * 2.0).ok();
-                    ctx.fill();
+                        ctx.set_fill_style(&"rgba(255, 250, 220, 0.95)".into());
+                        ctx.begin_path();
+                        ctx.arc(head_x, head_y, cell_w * 0.04, 0.0, std::f64::consts::PI * 2.0).ok();
+                        ctx.fill();
+                    } else {
+                        // Draw magic as a glowing orb (cyan) - shrinks as it travels
+                        let size_factor = 1.0 - projectile.progress;
+
+                        // Glow effect
+                        ctx.set_fill_style(&"rgba(0,255,255,0.2)".into());
+                        ctx.begin_path();
+                        ctx.arc(icon_x, icon_y, cell_w * 0.2 * size_factor, 0.0, std::f64::consts::PI * 2.0).ok();
+                        ctx.fill();
+
+                        // Core orb
+                        ctx.set_fill_style(&"#0ff".into());
+                        ctx.begin_path();
+                        ctx.arc(icon_x, icon_y, cell_w * 0.12 * size_factor, 0.0, std::f64::consts::PI * 2.0).ok();
+                        ctx.fill();
+
+                        // Bright center
+                        ctx.set_fill_style(&"#fff".into());
+                        ctx.begin_path();
+                        ctx.arc(icon_x, icon_y, cell_w * 0.05 * size_factor, 0.0, std::f64::consts::PI * 2.0).ok();
+                        ctx.fill();
+                    }
 
                     ctx.restore();
                 }

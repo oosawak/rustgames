@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>DUNGEON//LOAD</title>
+<link rel="stylesheet" href="../../engine.css">
+<style>
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  font-family: 'GenInterfaceJP', monospace;
+  overflow: hidden;
+}
+#container {
+  display: flex;
+  width: 100%;
+  height: 40vh;
+}
+#ui-upper {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  overflow-y: auto;
+  position: relative;
+  transition: flex 0.3s ease;
+}
+#ui-upper.hidden {
+  flex: 0 0 0;
+  overflow: hidden;
+  display: none;
+}
+#canvas-wrap {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  background: #000;
+  transition: flex 0.3s ease;
+}
+#canvas-wrap.expanded { flex: 1; }
+#ui-toggle-btn {
+  position: absolute;
+  top: 50px;
+  right: 10px;
+  z-index: 40;
+  padding: 6px 12px;
+  background: rgba(0,200,255,0.2);
+  border: 1px solid #0ff;
+  color: #0ff;
+  cursor: pointer;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 0.75em;
+  display: none;
+  transition: top 0.3s ease;
+}
+#ui-toggle-btn.show { display: block; }
+#status-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  font-size: 0.9em;
+}
+.stat-item { display: flex; flex-direction: column; gap: 4px; }
+.stat-label {
+  color: #0ff;
+  font-size: 0.75em;
+  text-shadow: 0 0 6px #0ff;
+  opacity: 0.7;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.stat-label .ra {
+  font-size: 1.2em;
+  color: #0ff;
+  text-shadow: 0 0 4px #0ff;
+}
+.stat-value {
+  color: #0ff;
+  font-size: 1.2em;
+  font-weight: bold;
+  text-shadow: 0 0 8px #0ff;
+}
+.stat-bar {
+  width: 100%;
+  height: 12px;
+  background: rgba(0, 40, 60, 0.8);
+  border: 1px solid rgba(0, 200, 255, 0.3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.stat-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00aaff, #00ffff);
+  transition: width 0.3s;
+  width: 100%;
+}
+#hp-bar { --hp: 100; }
+#mp-bar { --mp: 100; }
+#message-log {
+  border-top: 1px solid rgba(0, 200, 255, 0.2);
+  margin-top: 8px;
+  padding-top: 8px;
+  font-size: 0.8em;
+  color: #aaa;
+  max-height: 50px;
+  overflow-y: auto;
+  line-height: 1.4;
+}
+.msg-text {
+  color: #aaf;
+  text-shadow: 0 0 4px #0ff;
+  margin: 2px 0;
+}
+#canvas-wrap {
+  flex: 0 0 50%;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #000;
+}
+#game-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+#swipe-hint { display: none; }
+#swipe-hint .sh-arrow {
+  position: absolute;
+  font-size: 2em;
+  color: rgba(0, 255, 255, 0.2);
+  text-shadow: 0 0 8px rgba(0, 255, 255, 0.3);
+  font-weight: bold;
+}
+#swipe-hint .sh-up    { top: 0; left: 50%; transform: translateX(-50%); }
+#swipe-hint .sh-down  { bottom: 0; left: 50%; transform: translateX(-50%); }
+#swipe-hint .sh-left  { left: 0; top: 50%; transform: translateY(-50%); }
+#swipe-hint .sh-right { right: 0; top: 50%; transform: translateY(-50%); }
+#swipe-hint .sh-arrow.flash {
+  color: rgba(0, 255, 255, 0.9);
+  text-shadow: 0 0 16px rgba(0, 255, 255, 0.8);
+  animation: flash 0.2s;
+}
+@keyframes flash {
+  0% { opacity: 1; }
+  100% { opacity: 0.3; }
+}
+#title-screen {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  color: #0ff;
+  text-shadow: 0 0 20px #0ff;
+}
+#title-screen h1 {
+  font-size: clamp(2em, 8vw, 3.5em);
+  margin: 0 0 16px;
+  animation: pulse 0.8s infinite alternate;
+}
+#title-screen p { margin: 8px 0; font-size: 1em; }
+#title-screen button {
+  margin-top: 24px;
+  padding: 12px 32px;
+  background: transparent;
+  border: 2px solid #0ff;
+  color: #0ff;
+  font-family: 'GenInterfaceJP', monospace;
+  font-size: 1.1em;
+  cursor: pointer;
+  text-shadow: 0 0 8px #0ff;
+  box-shadow: 0 0 16px #0ff;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+#title-screen button:active { background: rgba(0, 255, 255, 0.2); }
+@keyframes pulse {
+  from { opacity: 0.8; }
+  to { opacity: 1; text-shadow: 0 0 30px #0ff, 0 0 60px #0ff; }
+}
+#game-over {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.92);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+#game-over h2 {
+  color: #f44;
+  font-size: 2.5em;
+  text-shadow: 0 0 20px #f44;
+  margin: 0 0 12px;
+  animation: pulse 0.5s infinite alternate;
+}
+#game-over p {
+  color: #f88;
+  font-size: 1.2em;
+  margin-bottom: 24px;
+}
+#game-over button {
+  padding: 12px 32px;
+  background: transparent;
+  border: 2px solid #f44;
+  color: #f44;
+  font-family: 'GenInterfaceJP', monospace;
+  font-size: 1.1em;
+  cursor: pointer;
+  text-shadow: 0 0 8px #f44;
+  box-shadow: 0 0 16px #f44;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+#game-over button:active { background: rgba(244, 68, 68, 0.2); }
+#loading {
+  position: fixed;
+  inset: 0;
+  background: #000008;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  color: #0ff;
+  font-size: 1.2em;
+  text-shadow: 0 0 8px #0ff;
+}
+.spin {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(0, 200, 255, 0.2);
+  border-top-color: #0ff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+#nav-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 50px;
+  background: rgba(0, 20, 40, 0.95);
+  border-top: 2px solid rgba(0, 200, 255, 0.4);
+  display: none;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 100;
+}
+.nav-btn {
+  flex: 1;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: rgba(0, 200, 255, 0.6);
+  font-family: 'GenInterfaceJP', monospace;
+  font-size: 0.7em;
+  cursor: pointer;
+  text-shadow: 0 0 4px rgba(0, 200, 255, 0.3);
+  transition: all 0.2s;
+  border-bottom: 3px solid transparent;
+  white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.nav-btn .ra {
+  font-size: 1.3em;
+  color: rgba(0, 200, 255, 0.6);
+  transition: color 0.2s;
+}
+.nav-btn:hover, .nav-btn.active {
+  color: #0ff;
+  text-shadow: 0 0 8px #0ff;
+}
+.nav-btn:hover .ra, .nav-btn.active .ra { color: #0ff; }
+.nav-btn.active { border-bottom-color: #0ff; }
+#tab-content {
+  background: rgba(0, 0, 20, 0.8);
+  border-bottom: 2px solid rgba(0, 200, 255, 0.3);
+  overflow-y: auto;
+  padding: 12px;
+  display: none;
+}
+.tab-panel {
+  display: none;
+  padding: 16px;
+  color: #aaf;
+  font-size: 0.9em;
+  line-height: 1.6;
+  width: 100%;
+}
+.tab-panel.active { display: block; }
+@media (orientation: portrait) {
+  #container { flex-direction: column; }
+  #tab-content {
+    order: -1;
+    flex: 0 0 40%;
+    display: flex;
+    position: static;
+  }
+  #canvas-wrap {
+    flex: 1;
+    order: 0;
+    min-height: 0;
+    height: calc(60vh - 50px);
+  }
+  #nav-bar { order: 1; height: 50px; }
+}
+@media (max-width: 768px) {
+  #ui-upper { flex: 0 0 45%; }
+  #canvas-wrap { flex: 0 0 55%; }
+  #status-panel { grid-template-columns: 1fr; gap: 8px; }
+  #nav-bar { height: 45px; }
+}
+@media (orientation: landscape) {
+  #container { flex-direction: row; }
+  #ui-upper { display: none; }
+  #status-panel { grid-template-columns: 1fr; }
+  #tab-content {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 50%;
+    height: 100%;
+    border-right: 2px solid rgba(0, 200, 255, 0.3);
+    display: flex;
+    flex-direction: column;
+    padding-top: 0;
+    order: auto;
+    z-index: 0;
+  }
+  #canvas-wrap {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 50% !important;
+    height: calc(100% - 50px) !important;
+    order: auto;
+    z-index: 1;
+  }
+  #nav-bar {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    width: 50%;
+    height: 50px;
+    border-top: 2px solid rgba(0, 200, 255, 0.4);
+    border-left: 2px solid rgba(0, 200, 255, 0.4);
+    flex-direction: row;
+  }
+  .tab-panel { display: none; flex: 1; overflow-y: auto; padding: 16px; }
+  .tab-panel.active { display: block; }
+}
+#message-log {
+  position: fixed;
+  bottom: 60px;
+  left: 120px;
+  right: 120px;
+  z-index: 40;
+  max-height: 140px;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid rgba(0, 200, 255, 0.6);
+  border-radius: 4px;
+  padding: 12px;
+  font-family: monospace;
+  font-size: 0.8em;
+  color: #0ff;
+  display: none;
+  text-shadow: 0 0 6px #0ff;
+  line-height: 1.4;
+  text-align: left;
+}
+@media (max-aspect-ratio: 1/1), (max-width: 768px) {
+  #message-log {
+    left: 140px;
+    right: 100px;
+    max-height: 120px;
+    font-size: 0.75em;
+    padding: 10px;
+  }
+}
+@media (max-width: 480px) {
+  #message-log {
+    left: 20px;
+    right: 20px;
+    max-height: 100px;
+    font-size: 0.7em;
+    padding: 8px;
+  }
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@0.6.11/lib/three-vrm.min.js"></script>
+</head>
+<body>
+<div style="position: absolute; left: -9999px; font-family: RPGAwesome; font-size: 1px;">
+  <span class="ra ra-player"></span>
+  <span class="ra ra-dragon"></span>
+  <span class="ra ra-monster-skull"></span>
+  <span class="ra ra-skull"></span>
+</div>
+<div style="position: absolute; left: -9999px;">
+  <img id="player-icon" src="../roguelike/icons/cathelineau/swordman.png" width="64" height="64">
+  <img id="stairs-icon" src="../roguelike/icons/delapouite/3d-stairs.png" width="64" height="64">
+  <img id="enemy-0" src="../roguelike/icons/caro-asercion/goblin.png" width="64" height="64">
+  <img id="enemy-1" src="../roguelike/icons/caro-asercion/goblin.png" width="64" height="64">
+  <img id="enemy-2" src="../roguelike/icons/caro-asercion/goblin.png" width="64" height="64">
+  <img id="enemy-3" src="../roguelike/icons/lorc/evil-bat.png" width="64" height="64">
+  <img id="enemy-4" src="../roguelike/icons/lorc/evil-bat.png" width="64" height="64">
+  <img id="enemy-5" src="../roguelike/icons/lorc/evil-bat.png" width="64" height="64">
+  <img id="enemy-6" src="../roguelike/icons/lorc/skeleton-inside.png" width="64" height="64">
+  <img id="enemy-7" src="../roguelike/icons/lorc/skeleton-inside.png" width="64" height="64">
+  <img id="enemy-8" src="../roguelike/icons/lorc/skeleton-key.png" width="64" height="64">
+  <img id="enemy-9" src="../roguelike/icons/lorc/angular-spider.png" width="64" height="64">
+  <img id="enemy-10" src="../roguelike/icons/lorc/hanging-spider.png" width="64" height="64">
+  <img id="enemy-11" src="../roguelike/icons/lorc/masked-spider.png" width="64" height="64">
+  <img id="enemy-12" src="../roguelike/icons/lorc/daemon-skull.png" width="64" height="64">
+  <img id="enemy-13" src="../roguelike/icons/lorc/daemon-skull.png" width="64" height="64">
+  <img id="enemy-14" src="../roguelike/icons/lorc/daemon-skull.png" width="64" height="64">
+  <img id="enemy-15" src="../roguelike/icons/lorc/ghost-ally.png" width="64" height="64">
+  <img id="enemy-16" src="../roguelike/icons/lorc/ghost-ally.png" width="64" height="64">
+  <img id="enemy-17" src="../roguelike/icons/lorc/ghost-ally.png" width="64" height="64">
+  <img id="enemy-18" src="../roguelike/icons/lorc/ghost.png" width="64" height="64">
+  <img id="enemy-19" src="../roguelike/icons/lorc/ghost.png" width="64" height="64">
+  <img id="enemy-20" src="../roguelike/icons/lorc/ghost.png" width="64" height="64">
+  <img id="enemy-21" src="../roguelike/icons/lorc/ghost-ally.png" width="64" height="64">
+  <img id="enemy-22" src="../roguelike/icons/lorc/ghost-ally.png" width="64" height="64">
+  <img id="enemy-23" src="../roguelike/icons/lorc/ghost.png" width="64" height="64">
+  <img id="enemy-24" src="../roguelike/icons/lorc/animal-skull.png" width="64" height="64">
+  <img id="enemy-25" src="../roguelike/icons/lorc/animal-skull.png" width="64" height="64">
+  <img id="enemy-26" src="../roguelike/icons/lorc/animal-skull.png" width="64" height="64">
+  <img id="enemy-27" src="../roguelike/icons/lorc/dragon-head.png" width="64" height="64">
+  <img id="enemy-28" src="../roguelike/icons/lorc/dragon-head.png" width="64" height="64">
+  <img id="enemy-29" src="../roguelike/icons/lorc/dragon-head.png" width="64" height="64">
+</div>
+<div id="loading">
+  <div>
+    <div class="spin"></div>
+    <p style="margin-top: 14px">ロード中...</p>
+  </div>
+</div>
+<div id="title-screen">
+  <h1>⟡ DUNGEON//LOAD</h1>
+  <p>Unknown cartridge detected. 解析して、新しいダンジョンをロードしろ</p>
+  <button id="btn-start">▶ LOAD</button>
+</div>
+<div id="game-over">
+  <h2>💀 GAME OVER 💀</h2>
+  <p id="game-over-msg">カートリッジの解析に失敗した</p>
+  <button id="btn-retry">↺ RELOAD</button>
+</div>
+<div id="container">
+  <div id="ui-upper">
+    <div id="tab-content">
+      <div id="tab-status" class="tab-panel">
+        <div style="padding: 16px;">
+          <div class="stat-item">
+            <span class="stat-label">LV</span>
+            <span class="stat-value" id="level-display">1</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">DEPTH</span>
+            <span class="stat-value" id="depth-display">F1</span>
+          </div>
+          <div class="stat-item" style="border-top: 1px solid rgba(0,200,255,0.2); padding-top: 8px; margin-top: 8px;">
+            <span class="stat-label">STATUS</span>
+            <span class="stat-value">CARTRIDGE READY</span>
+          </div>
+        </div>
+      </div>
+      <div id="tab-equipment" class="tab-panel">
+        <div style="padding: 16px;">
+          <div class="stat-item">
+            <span class="stat-label">⚔️ 武器</span>
+            <span class="stat-value" id="weapon-display">Wooden Sword (+3)</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">🛡️ 防具</span>
+            <span class="stat-value" id="armor-display">なし</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">💍 アクセサリー</span>
+            <span class="stat-value" id="accessory-display">なし</span>
+          </div>
+          <div class="stat-item" style="border-top: 1px solid rgba(0,200,255,0.2); padding-top: 8px; margin-top: 8px;">
+            <span class="stat-label">攻撃力ボーナス</span>
+            <span class="stat-value" id="atk-bonus-display">+3</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">防御力ボーナス</span>
+            <span class="stat-value" id="def-bonus-display">+0</span>
+          </div>
+        </div>
+      </div>
+      <div id="tab-items" class="tab-panel"></div>
+      <div id="tab-map" class="tab-panel active">
+        <canvas id="dungeon-map" style="width: 100%; height: 100%; display: block; max-height: calc(100vh - 200px); object-fit: contain;"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="canvas-wrap">
+  <canvas id="game-canvas" style="display: block; width: 100%; height: 100%; max-width: 100%;"></canvas>
+  <canvas id="game-canvas-3d" style="display: none; width: 100%; height: 100%; max-width: 100%;"></canvas>
+  <button id="view-toggle" style="position: absolute; top: 10px; right: 10px; z-index: 30; padding: 8px 16px; background: rgba(0,200,255,0.2); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 4px; font-family: monospace; font-size: 0.8em;">2D/3D</button>
+  <button id="ui-toggle-btn" style="position: absolute; top: 50px; right: 10px; z-index: 30; padding: 6px 12px; background: rgba(0,200,255,0.2); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 4px; font-family: monospace; font-size: 0.8em; display: none;">▼ 非表示</button>
+</div>
+<div id="message-log"></div>
+<button id="attack-button" style="position: fixed; bottom: 70px; left: 10px; z-index: 50; display: none; width: 90px; height: 90px; background: rgba(0,255,255,0.2); border: 2px solid #0ff; border-radius: 50%; color: #0ff; font-weight: bold; cursor: pointer; font-size: 32px;">⚔️</button>
+<div id="movement-joystick" style="position: fixed; bottom: 60px; right: 10px; z-index: 50; display: none; width: 120px; height: 120px; background: rgba(0,200,255,0.2); border: 2px solid #0ff; border-radius: 50%; padding: 10px;">
+  <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; height: 100%;">
+    <div></div>
+    <button id="btn-up" style="background: rgba(0,200,255,0.6); border: 1px solid rgba(0,200,255,0.6); border-radius: 3px; color: #0ff; font-weight: bold; cursor: pointer;">↑</button>
+    <div></div>
+    <button id="btn-left" style="background: rgba(0,200,255,0.6); border: 1px solid rgba(0,200,255,0.6); border-radius: 3px; color: #0ff; font-weight: bold; cursor: pointer;">←</button>
+    <div></div>
+    <button id="btn-right" style="background: rgba(0,200,255,0.6); border: 1px solid rgba(0,200,255,0.6); border-radius: 3px; color: #0ff; font-weight: bold; cursor: pointer;">→</button>
+    <div></div>
+    <button id="btn-down" style="background: rgba(0,200,255,0.6); border: 1px solid rgba(0,200,255,0.6); border-radius: 3px; color: #0ff; font-weight: bold; cursor: pointer;">↓</button>
+    <div></div>
+  </div>
+</div>
+<div id="nav-bar">
+  <button class="nav-btn" data-tab="status"><i class="ra ra-player"></i> Status</button>
+  <button class="nav-btn" data-tab="equipment"><i class="ra ra-broadsword"></i> Equipment</button>
+  <button class="nav-btn" data-tab="items"><i class="ra ra-potion"></i> Items</button>
+  <button class="nav-btn active" data-tab="map"><i class="ra ra-compass"></i> Map</button>
+  <button class="nav-btn" id="nav-swap-button" style="cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;">←<br>→</button>
+</div>
+<div id="swipe-hint">
+  <span class="sh-arrow sh-up">▲</span>
+  <span class="sh-arrow sh-down">▼</span>
+  <span class="sh-arrow sh-left">◀</span>
+  <span class="sh-arrow sh-right">▶</span>
+</div>
+<script type="module">
+import init, * as wasm from './wasm/wasm_dungeonload.js';
+import { FontLoader, InputManager } from '../../engine.js';
+import { createDungeonLoadUi } from './ui.js';
+window.wasm = wasm;
+const ui = createDungeonLoadUi({ wasm });
+
+const KEYMAP = {
+  ArrowUp: 0,    KeyW: 0,
+  ArrowDown: 3,  KeyS: 3,
+  ArrowLeft: 1,  KeyA: 1,
+  ArrowRight: 2, KeyD: 2,
+  KeyZ: 4,
+  KeyX: 5,
+};
+
+const audio = { ensure: () => {}, play: () => {}, startAmbient: () => {}, setAmbVolume: () => {}, setSeVolume: () => {} };
+const input = new InputManager({ swipeMin: 35 });
+let initialized = false;
+
+async function start() {
+  try {
+    await init();
+    await FontLoader.load('GenInterfaceJP', wasm);
+    wasm.init_roguelike();
+
+    document.getElementById('loading').style.display = 'none';
+    initialized = true;
+
+    input.onAction(action => {
+      if (initialized) wasm.move_roguelike(action);
+    });
+    input.bindKeyboard(KEYMAP);
+    input.bindSwipe(['#ui-upper', '#canvas-wrap'], {
+      onStart: () => {},
+      onHint: ui.flashHint,
+    });
+
+    document.getElementById('btn-start').addEventListener('click', () => {
+      document.getElementById('title-screen').style.display = 'none';
+      document.getElementById('nav-bar').style.display = 'flex';
+      document.getElementById('movement-joystick').style.display = 'flex';
+      document.getElementById('attack-button').style.display = 'block';
+      document.getElementById('ui-toggle-btn').classList.add('show');
+
+      const isLandscape = window.innerHeight < window.innerWidth;
+      if (isLandscape) {
+        const uiUpper = document.getElementById('ui-upper');
+        if (uiUpper) uiUpper.style.display = 'flex';
+      }
+
+      wasm.start_game_roguelike();
+    });
+
+    document.getElementById('btn-retry').addEventListener('click', () => {
+      document.getElementById('game-over').style.display = 'none';
+      document.getElementById('movement-joystick').style.display = 'flex';
+      document.getElementById('attack-button').style.display = 'block';
+      document.getElementById('ui-toggle-btn').classList.add('show');
+      wasm.start_game_roguelike();
+    });
+
+    const joystick = document.getElementById('movement-joystick');
+    let joystickTouchStart = { x: 0, y: 0 };
+    joystick.addEventListener('touchstart', (e) => {
+      const touch = e.touches[0];
+      joystickTouchStart = { x: touch.clientX, y: touch.clientY };
+    });
+    joystick.addEventListener('touchend', (e) => {
+      const touch = e.changedTouches[0];
+      const dx = touch.clientX - joystickTouchStart.x;
+      const dy = touch.clientY - joystickTouchStart.y;
+      if (Math.abs(dx) > Math.abs(dy)) {
+        if (dx > 20) wasm.move_roguelike(2);
+        else if (dx < -20) wasm.move_roguelike(1);
+      } else {
+        if (dy > 20) wasm.move_roguelike(3);
+        else if (dy < -20) wasm.move_roguelike(0);
+      }
+    });
+
+    const attackButton = document.getElementById('attack-button');
+    attackButton.addEventListener('click', () => {
+      if (initialized) wasm.move_roguelike(4);
+    });
+
+    ui.setupNavigation();
+
+    function update() {
+      if (initialized) {
+        wasm.tick_roguelike(performance.now());
+        render();
+      }
+      requestAnimationFrame(update);
+    }
+    requestAnimationFrame(update);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+function render() {
+  if (!initialized) return;
+  ui.updateMessageLog();
+
+  const activeTab = document.querySelector('.nav-btn.active');
+  if (activeTab) {
+    const tabName = activeTab.getAttribute('data-tab');
+    const panel = document.getElementById(`tab-${tabName}`);
+    if (tabName === 'status' && panel) {
+      ui.updateStatusTab(panel);
+    } else if (tabName === 'map') {
+      ui.drawDungeonMap();
+    } else if (tabName === 'equipment') {
+      ui.updateEquipmentDisplay();
+    } else if (tabName === 'items') {
+      ui.updateItemsDisplay();
+    }
+  }
+  renderCanvas();
+  if (wasm.scene_roguelike() === 2) {
+    const gameOver = document.getElementById('game-over');
+    gameOver.style.display = 'flex';
+  }
+}
+
+function updateStatusTab(panel) { ui.updateStatusTab(panel); }
+function updateEquipmentTab(panel) { ui.updateEquipmentTab(panel); }
+function selectEquipmentSlot(slot, event) { ui.selectEquipmentSlot(slot, event); }
+function updateEquipmentDisplay() { ui.updateEquipmentDisplay(); }
+function updateItemsDisplay() { ui.updateItemsDisplay(); }
+function updateMessageLog() { ui.updateMessageLog(); }
+function flashHint(action) { ui.flashHint(action); }
+function setupNavigation() { ui.setupNavigation(); }
+function updateTabContent(tabName) { ui.updateTabContent(tabName); }
+function drawDungeonMap() { ui.drawDungeonMap(); }
+let scene, camera, renderer;
+let cubes = [];
+let playerCube, enemies3d = [];
+let is3dMode = false;
+let playerModel = null;
+let playerVrm = null;
+let playerModelYOffset = 0;
+let vrmLoading = false;
+function setupPlayerModel(obj) {
+  const box = new THREE.Box3().setFromObject(obj);
+  const size = box.getSize(new THREE.Vector3());
+  const s = size.y > 0 ? 1.4 / size.y : 1;
+  obj.scale.setScalar(s);
+  playerModelYOffset = -box.min.y * s;
+  playerModel = obj;
+}
+function loadPlayerVrm() {
+  if (playerModel || vrmLoading || typeof THREE.GLTFLoader === 'undefined') return;
+  vrmLoading = true;
+  const loader = new THREE.GLTFLoader();
+  loader.load('./vrm/standard.vrm', (gltf) => {
+    if (window.THREE_VRM && THREE_VRM.VRM) {
+      THREE_VRM.VRM.from(gltf).then((vrm) => {
+        playerVrm = vrm;
+        setupPlayerModel(vrm.scene);
+      }).catch(() => {
+        setupPlayerModel(gltf.scene);
+      });
+    } else {
+      setupPlayerModel(gltf.scene);
+    }
+  }, undefined, (e) => {
+    console.warn('VRM load failed, keeping box player:', e);
+  });
+}
+function init3d() {
+  const canvas3d = document.getElementById('game-canvas-3d');
+  const wrap = document.getElementById('canvas-wrap');
+  let width = wrap.offsetWidth || 1280;
+  let height = wrap.offsetHeight || 800;
+  canvas3d.setAttribute('width', width);
+  canvas3d.setAttribute('height', height);
+  renderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true });
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x000008);
+  camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+  camera.position.set(0, 40, 80);
+  camera.lookAt(0, 10, 0);
+  renderer.setSize(width, height, false);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  const light = new THREE.DirectionalLight(0xffffff, 0.8);
+  light.position.set(50, 50, 50);
+  scene.add(light);
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+  scene.add(ambientLight);
+  loadPlayerVrm();
+  window.addEventListener('resize', () => {
+    if (!renderer) return;
+    const newWidth = wrap.offsetWidth;
+    const newHeight = wrap.offsetHeight;
+    camera.aspect = newWidth / newHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(newWidth, newHeight);
+  });
+}
+function updateDungeon3d() {
+  if (!scene) init3d();
+  cubes.forEach(cube => {
+    scene.remove(cube);
+    cube.geometry.dispose();
+    cube.material.dispose();
+  });
+  cubes = [];
+  if (playerCube) {
+    scene.remove(playerCube);
+    playerCube.geometry.dispose();
+    playerCube.material.dispose();
+    playerCube = null;
+  }
+  enemies3d.forEach(e => {
+    scene.remove(e);
+    e.geometry.dispose();
+    e.material.dispose();
+  });
+  enemies3d = [];
+  const mapWidth = wasm.map_width_roguelike();
+  const mapHeight = wasm.map_height_roguelike();
+  const playerX = wasm.player_x_roguelike();
+  const playerY = wasm.player_y_roguelike();
+  const mapData = wasm.map_data_roguelike();
+  const viewRadius = 12;
+  const minX = Math.max(0, playerX - viewRadius);
+  const maxX = Math.min(mapWidth - 1, playerX + viewRadius);
+  const minY = Math.max(0, playerY - viewRadius);
+  const maxY = Math.min(mapHeight - 1, playerY + viewRadius);
+  for (let y = minY; y <= maxY; y++) {
+    for (let x = minX; x <= maxX; x++) {
+      const idx = y * mapWidth + x;
+      const tile = mapData[idx];
+      let color = 0x555577;
+      let h = 0.2;
+      if (tile === 1) { color = 0x333344; h = 2.0; }
+      else if (tile === 2) { color = 0x446688; h = 0.2; }
+      else if (tile === 3) { color = 0xdddd00; h = 0.5; }
+      else if (tile === 4) { color = 0x00dddd; h = 0.5; }
+      const geom = new THREE.BoxGeometry(1, h, 1);
+      const mat = new THREE.MeshLambertMaterial({ color });
+      const cube = new THREE.Mesh(geom, mat);
+      cube.position.set(x, h / 2, y);
+      scene.add(cube);
+      cubes.push(cube);
+    }
+  }
+  if (playerModel) {
+    if (playerModel.parent !== scene) {
+      if (playerModel.parent) playerModel.parent.remove(playerModel);
+      scene.add(playerModel);
+    }
+    playerModel.position.set(playerX, 0.2 + playerModelYOffset, playerY);
+    const dir = wasm.player_direction_roguelike();
+    const dirToRot = { 0: Math.PI, 1: -Math.PI / 2, 2: Math.PI / 2, 3: 0 };
+    playerModel.rotation.y = dirToRot[dir] ?? 0;
+    if (playerVrm) playerVrm.update(1 / 60);
+  } else {
+    const playerGeom = new THREE.BoxGeometry(0.7, 1.4, 0.7);
+    const playerMat = new THREE.MeshLambertMaterial({ color: 0x00ff00 });
+    playerCube = new THREE.Mesh(playerGeom, playerMat);
+    playerCube.position.set(playerX, 0.9, playerY);
+    scene.add(playerCube);
+  }
+  const enemyCount = wasm.enemy_count_roguelike();
+  for (let i = 0; i < enemyCount; i++) {
+    const data = wasm.enemy_data_roguelike(i);
+    if (data.length < 3) continue;
+    const ex = data[0];
+    const ey = data[1];
+    if (ex < minX || ex > maxX || ey < minY || ey > maxY) continue;
+    const enemyGeom = new THREE.BoxGeometry(0.6, 1.1, 0.6);
+    const enemyMat = new THREE.MeshLambertMaterial({ color: 0xff4444 });
+    const enemyCube = new THREE.Mesh(enemyGeom, enemyMat);
+    enemyCube.position.set(ex, 0.75, ey);
+    scene.add(enemyCube);
+    enemies3d.push(enemyCube);
+  }
+  camera.position.set(playerX, 7, playerY + 6);
+  camera.lookAt(playerX, 0.8, playerY - 2);
+}
+let init3dAttempted = false;
+function render3d() {
+  if (!renderer) {
+    if (init3dAttempted) return;
+    init3dAttempted = true;
+    init3d();
+  }
+  if (!renderer) return;
+  const wrap = document.getElementById('canvas-wrap');
+  const w = wrap.offsetWidth || 1280;
+  const h = wrap.offsetHeight || 800;
+  const size = new THREE.Vector2();
+  renderer.getSize(size);
+  if (size.x !== w || size.y !== h) {
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  updateDungeon3d();
+  renderer.render(scene, camera);
+}
+function toggleViewMode() {
+  is3dMode = !is3dMode;
+  const canvas2d = document.getElementById('game-canvas');
+  const canvas3d = document.getElementById('game-canvas-3d');
+  const btn = document.getElementById('view-toggle');
+  if (is3dMode) {
+    canvas2d.style.display = 'none';
+    canvas3d.style.display = 'block';
+    btn.textContent = '2D';
+    render3d();
+  } else {
+    canvas2d.style.display = 'block';
+    canvas3d.style.display = 'none';
+    btn.textContent = '3D';
+  }
+}
+document.getElementById('view-toggle').addEventListener('click', toggleViewMode);
+document.getElementById('ui-toggle-btn').addEventListener('click', () => {
+  const uiUpper = document.getElementById('ui-upper');
+  const canvasWrap = document.getElementById('canvas-wrap');
+  const btn = document.getElementById('ui-toggle-btn');
+  if (uiUpper.classList.contains('hidden')) {
+    uiUpper.classList.remove('hidden');
+    canvasWrap.classList.remove('expanded');
+    btn.textContent = '▼ 非表示';
+  } else {
+    uiUpper.classList.add('hidden');
+    canvasWrap.classList.add('expanded');
+    btn.textContent = '▲ 表示';
+  }
+  setTimeout(() => {
+    if (renderer) {
+      const wrap = document.getElementById('canvas-wrap');
+      const width = wrap.offsetWidth;
+      const height = wrap.offsetHeight;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    }
+  }, 300);
+});
+function renderCanvas() { wasm.render_roguelike('game-canvas', document.getElementById('canvas-wrap').offsetWidth, document.getElementById('canvas-wrap').offsetHeight); }
+window.selectEquipmentSlot = selectEquipmentSlot;
+window.updateEquipmentTab = updateEquipmentTab;
+window.updateEquipmentDisplay = updateEquipmentDisplay;
+window.updateItemsDisplay = updateItemsDisplay;
+window.drawDungeonMap = drawDungeonMap;
+window.flashHint = flashHint;
+start();
+</script>
+</body>
+</html>
