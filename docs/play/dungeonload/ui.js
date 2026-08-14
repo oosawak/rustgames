@@ -18,12 +18,12 @@ export function createDungeonLoadUi({ wasm }) {
     let html = '<div style="padding: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">';
     html += `<div style="border: 1px solid rgba(0,200,255,0.3); border-radius: 4px; padding: 12px; text-align: center;">
       <div style="font-size: 24px; margin-bottom: 4px;">📊</div>
-      <div style="font-size: 12px; color: rgba(0,200,255,0.7); margin-bottom: 4px;">レベル</div>
+      <div style="font-size: 12px; color: rgba(0,200,255,0.7); margin-bottom: 4px;">LEVEL</div>
       <div style="font-size: 20px; color: #0ff; font-weight: bold;">${level}</div>
     </div>`;
     html += `<div style="border: 1px solid rgba(0,200,255,0.3); border-radius: 4px; padding: 12px; text-align: center;">
       <div style="font-size: 24px; margin-bottom: 4px;">🗻</div>
-      <div style="font-size: 12px; color: rgba(0,200,255,0.7); margin-bottom: 4px;">深度</div>
+      <div style="font-size: 12px; color: rgba(0,200,255,0.7); margin-bottom: 4px;">DEPTH</div>
       <div style="font-size: 20px; color: #0ff; font-weight: bold;">F${depth}</div>
     </div>`;
     html += `<div style="border: 1px solid rgba(255,0,0,0.3); border-radius: 4px; padding: 12px; text-align: center;">
@@ -44,13 +44,24 @@ export function createDungeonLoadUi({ wasm }) {
     </div>`;
     html += `<div style="border: 1px solid rgba(255,200,0,0.3); border-radius: 4px; padding: 12px; text-align: center;">
       <div style="font-size: 24px; margin-bottom: 4px;">⚔️</div>
-      <div style="font-size: 12px; color: rgba(255,200,0,0.7); margin-bottom: 4px;">攻撃</div>
+      <div style="font-size: 12px; color: rgba(255,200,0,0.7); margin-bottom: 4px;">ATTACK</div>
       <div style="font-size: 20px; color: #fd0; font-weight: bold;">+${atkBonus}</div>
     </div>`;
     html += `<div style="border: 1px solid rgba(150,150,150,0.3); border-radius: 4px; padding: 12px; text-align: center;">
       <div style="font-size: 24px; margin-bottom: 4px;">🛡️</div>
-      <div style="font-size: 12px; color: rgba(150,150,150,0.7); margin-bottom: 4px;">防御</div>
+      <div style="font-size: 12px; color: rgba(150,150,150,0.7); margin-bottom: 4px;">DEFENSE</div>
       <div style="font-size: 20px; color: #aaa; font-weight: bold;">+${defBonus}</div>
+    </div>`;
+    html += `<div style="grid-column: 1 / -1; border: 1px solid rgba(0,200,255,0.3); border-radius: 4px; padding: 12px;">
+      <div style="font-size: 12px; color: #0ff; margin-bottom: 8px;">Controls</div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 16px; font-size: 0.8em; color: rgba(190,220,240,0.85);">
+        <div><b style="color: #fff;">WASD / Arrows</b> Move</div>
+        <div><b style="color: #fff;">Z</b> Weapon attack / Staff magic</div>
+        <div><b style="color: #fff;">X</b> Jump / dodge forward 3 tiles</div>
+        <div><b style="color: #fff;">C</b> Sword guard</div>
+        <div><b style="color: #fff;">1 - 4</b> Switch weapon</div>
+        <div><b style="color: #fff;">Shift + Arrows</b> Steer active staff magic</div>
+      </div>
     </div>`;
     html += '</div>';
     panel.innerHTML = html;
@@ -58,7 +69,7 @@ export function createDungeonLoadUi({ wasm }) {
 
   function updateEquipmentTab(panel) {
     if (!panel) return;
-    const weaponNames = ['Wooden Sword', 'Iron Sword', '槍', 'Bow', '杖', 'Cursed Blade'];
+    const weaponNames = ['Wooden Sword', 'Iron Sword', 'Spear', 'Bow', 'Staff', 'Cursed Blade'];
     const armorNames = ['Leather Armor', 'Chain Mail', 'Steel Plate', 'Dragon Scale', 'Cursed Mail'];
     const accessoryNames = ['Gold Ring', 'Vampire Ring', 'Lucky Ring', 'Healing Necklace', 'Mana Earrings'];
     const weaponBonuses = [3, 5, 7, 9, 8, 12];
@@ -70,23 +81,23 @@ export function createDungeonLoadUi({ wasm }) {
     html += '<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">';
     html += `<div style="border: 2px solid ${selectedEquipmentSlot === 'weapon' ? '#0ff' : 'rgba(0,200,255,0.3)'}; border-radius: 4px; padding: 12px; text-align: center; cursor: pointer;" onclick="selectEquipmentSlot('weapon', event)">
       <div style="font-size: 24px; margin-bottom: 4px;">⚔️</div>
-      <div style="font-size: 12px; color: rgba(0,200,255,0.7); margin-bottom: 4px;">武器</div>
-      <div style="font-size: 11px; color: #0ff;">${wepIdx >= 0 ? weaponNames[wepIdx] : 'なし'}</div>
+      <div style="font-size: 12px; color: rgba(0,200,255,0.7); margin-bottom: 4px;">WEAPON</div>
+      <div style="font-size: 11px; color: #0ff;">${wepIdx >= 0 ? weaponNames[wepIdx] : 'None'}</div>
     </div>`;
     html += `<div style="border: 2px solid ${selectedEquipmentSlot === 'armor' ? '#0ff' : 'rgba(0,200,255,0.3)'}; border-radius: 4px; padding: 12px; text-align: center; cursor: pointer;" onclick="selectEquipmentSlot('armor', event)">
       <div style="font-size: 24px; margin-bottom: 4px;">🛡️</div>
-      <div style="font-size: 12px; color: rgba(0,200,255,0.7); margin-bottom: 4px;">防具</div>
-      <div style="font-size: 11px; color: #0ff;">${armIdx >= 0 ? armorNames[armIdx] : 'なし'}</div>
+      <div style="font-size: 12px; color: rgba(0,200,255,0.7); margin-bottom: 4px;">ARMOR</div>
+      <div style="font-size: 11px; color: #0ff;">${armIdx >= 0 ? armorNames[armIdx] : 'None'}</div>
     </div>`;
     html += `<div style="border: 2px solid ${selectedEquipmentSlot === 'accessory' ? '#0ff' : 'rgba(0,200,255,0.3)'}; border-radius: 4px; padding: 12px; text-align: center; cursor: pointer;" onclick="selectEquipmentSlot('accessory', event)">
       <div style="font-size: 24px; margin-bottom: 4px;">💍</div>
-      <div style="font-size: 12px; color: rgba(0,200,255,0.7); margin-bottom: 4px;">アクセサリ</div>
-      <div style="font-size: 11px; color: #0ff;">${accIdx >= 0 ? accessoryNames[accIdx] : 'なし'}</div>
+      <div style="font-size: 12px; color: rgba(0,200,255,0.7); margin-bottom: 4px;">ACCESSORY</div>
+      <div style="font-size: 11px; color: #0ff;">${accIdx >= 0 ? accessoryNames[accIdx] : 'None'}</div>
     </div>`;
     html += '</div>';
     if (selectedEquipmentSlot === 'weapon') {
       const weapons = wasm.weapon_inventory_roguelike();
-      html += '<div style="border-top: 1px solid rgba(0,200,255,0.2); padding-top: 12px;"><div style="font-size: 12px; color: rgba(0,200,255,0.7); margin-bottom: 8px;">使用可能な武器</div>';
+      html += '<div style="border-top: 1px solid rgba(0,200,255,0.2); padding-top: 12px;"><div style="font-size: 12px; color: rgba(0,200,255,0.7); margin-bottom: 8px;">AVAILABLE WEAPONS</div>';
       html += '<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">';
       for (let i = 0; i < weapons.length; i++) {
         html += `<div style="border: 1px solid rgba(0,200,255,0.3); border-radius: 4px; padding: 8px; text-align: center; cursor: pointer; font-size: 10px;" onclick="wasm.equip_weapon_roguelike(${i}); updateEquipmentTab(document.getElementById('tab-equipment')); updateEquipmentDisplay();">
@@ -94,11 +105,11 @@ export function createDungeonLoadUi({ wasm }) {
           <div style="color: rgba(0,200,255,0.5); font-size: 9px;">+${weaponBonuses[weapons[i]]}</div>
         </div>`;
       }
-      html += `<div style="border: 1px solid rgba(200,0,0,0.3); border-radius: 4px; padding: 8px; text-align: center; cursor: pointer; font-size: 10px; background: rgba(200,0,0,0.1);" onclick="wasm.unequip_weapon_roguelike(); updateEquipmentTab(document.getElementById('tab-equipment')); updateEquipmentDisplay();">解除</div>`;
+      html += `<div style="border: 1px solid rgba(200,0,0,0.3); border-radius: 4px; padding: 8px; text-align: center; cursor: pointer; font-size: 10px; background: rgba(200,0,0,0.1);" onclick="wasm.unequip_weapon_roguelike(); updateEquipmentTab(document.getElementById('tab-equipment')); updateEquipmentDisplay();">Unequip</div>`;
       html += '</div></div>';
     } else if (selectedEquipmentSlot === 'armor') {
       const armors = wasm.armor_inventory_roguelike();
-      html += '<div style="border-top: 1px solid rgba(0,200,255,0.2); padding-top: 12px;"><div style="font-size: 12px; color: rgba(0,200,255,0.7); margin-bottom: 8px;">使用可能な防具</div>';
+      html += '<div style="border-top: 1px solid rgba(0,200,255,0.2); padding-top: 12px;"><div style="font-size: 12px; color: rgba(0,200,255,0.7); margin-bottom: 8px;">AVAILABLE ARMOR</div>';
       html += '<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">';
       for (let i = 0; i < armors.length; i++) {
         html += `<div style="border: 1px solid rgba(0,200,255,0.3); border-radius: 4px; padding: 8px; text-align: center; cursor: pointer; font-size: 10px;" onclick="wasm.equip_armor_roguelike(${i}); updateEquipmentTab(document.getElementById('tab-equipment')); updateEquipmentDisplay();">
@@ -106,18 +117,18 @@ export function createDungeonLoadUi({ wasm }) {
           <div style="color: rgba(0,200,255,0.5); font-size: 9px;">+${armorBonuses[armors[i]]}</div>
         </div>`;
       }
-      html += `<div style="border: 1px solid rgba(200,0,0,0.3); border-radius: 4px; padding: 8px; text-align: center; cursor: pointer; font-size: 10px; background: rgba(200,0,0,0.1);" onclick="wasm.unequip_armor_roguelike(); updateEquipmentTab(document.getElementById('tab-equipment')); updateEquipmentDisplay();">解除</div>`;
+      html += `<div style="border: 1px solid rgba(200,0,0,0.3); border-radius: 4px; padding: 8px; text-align: center; cursor: pointer; font-size: 10px; background: rgba(200,0,0,0.1);" onclick="wasm.unequip_armor_roguelike(); updateEquipmentTab(document.getElementById('tab-equipment')); updateEquipmentDisplay();">Unequip</div>`;
       html += '</div></div>';
     } else if (selectedEquipmentSlot === 'accessory') {
       const accessories = wasm.accessory_inventory_roguelike();
-      html += '<div style="border-top: 1px solid rgba(0,200,255,0.2); padding-top: 12px;"><div style="font-size: 12px; color: rgba(0,200,255,0.7); margin-bottom: 8px;">使用可能なアクセサリ</div>';
+      html += '<div style="border-top: 1px solid rgba(0,200,255,0.2); padding-top: 12px;"><div style="font-size: 12px; color: rgba(0,200,255,0.7); margin-bottom: 8px;">AVAILABLE ACCESSORIES</div>';
       html += '<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">';
       for (let i = 0; i < accessories.length; i++) {
         html += `<div style="border: 1px solid rgba(0,200,255,0.3); border-radius: 4px; padding: 8px; text-align: center; cursor: pointer; font-size: 10px;" onclick="wasm.equip_accessory_roguelike(${i}); updateEquipmentTab(document.getElementById('tab-equipment')); updateEquipmentDisplay();">
           <div>${accessoryNames[accessories[i]]}</div>
         </div>`;
       }
-      html += `<div style="border: 1px solid rgba(200,0,0,0.3); border-radius: 4px; padding: 8px; text-align: center; cursor: pointer; font-size: 10px; background: rgba(200,0,0,0.1);" onclick="wasm.unequip_accessory_roguelike(); updateEquipmentTab(document.getElementById('tab-equipment')); updateEquipmentDisplay();">解除</div>`;
+      html += `<div style="border: 1px solid rgba(200,0,0,0.3); border-radius: 4px; padding: 8px; text-align: center; cursor: pointer; font-size: 10px; background: rgba(200,0,0,0.1);" onclick="wasm.unequip_accessory_roguelike(); updateEquipmentTab(document.getElementById('tab-equipment')); updateEquipmentDisplay();">Unequip</div>`;
       html += '</div></div>';
     }
     html += '</div>';
@@ -138,7 +149,7 @@ export function createDungeonLoadUi({ wasm }) {
     const panel = document.getElementById('tab-items');
     if (!panel) return;
     const inventory = wasm.inventory_roguelike();
-    const itemNames = ['回復ポーション', 'マナポーション', '毒ポーション', 'エナジードリンク', '宝石', '鍵', 'スクロール', '金貨'];
+    const itemNames = ['Health Potion', 'Mana Potion', 'Poison Potion', 'Energy Drink', 'Gem', 'Key', 'Scroll', 'Gold Coin'];
     const itemEmojis = ['💚', '💙', '☠️', '⚡', '💎', '🔑', '📜', '🪙'];
     let itemsHtml = '<div style="padding: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">';
     for (let i = 0; i < Math.min(inventory.length, itemNames.length); i++) {
@@ -222,16 +233,45 @@ export function createDungeonLoadUi({ wasm }) {
   function updateSettingsTab(panel) {
     if (!panel) return;
     const scale = wasm.enemy_attack_interval_scale_roguelike();
+    const noDamageMode = wasm.no_damage_mode_roguelike();
+    const depth = wasm.depth_roguelike();
     panel.innerHTML = `
       <div style="padding: 16px;">
         <div class="stat-item" style="display: block;">
           <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
-            <span class="stat-label">敵攻撃間隔</span>
+            <span class="stat-label">ENEMY ATTACK INTERVAL</span>
             <span class="stat-value" id="enemy-interval-value">${scale}%</span>
           </div>
           <input id="enemy-interval-slider" type="range" min="50" max="250" step="10" value="${scale}" style="width: 100%; margin-top: 14px; accent-color: #0ff;">
           <div style="color: rgba(180,220,240,0.75); font-size: 0.75em; line-height: 1.5; margin-top: 8px;">
-            数値が大きいほど敵の攻撃が遅くなります。敵の種類ごとの速度差は残ります。
+            Higher values make enemy attacks slower. Differences between enemy types are preserved.
+          </div>
+        </div>
+
+        <div class="stat-item" style="display: block; margin-top: 18px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+            <span class="stat-label">NO DAMAGE MODE</span>
+            <label style="display: flex; align-items: center; gap: 8px; color: #0ff; cursor: pointer; user-select: none;">
+              <input id="no-damage-toggle" type="checkbox" ${noDamageMode ? 'checked' : ''} style="accent-color: #0ff;">
+              <span id="no-damage-label">${noDamageMode ? 'ON' : 'OFF'}</span>
+            </label>
+          </div>
+          <div style="color: rgba(180,220,240,0.75); font-size: 0.75em; line-height: 1.5; margin-top: 8px;">
+            Enemy attacks will not reduce HP while this mode is enabled.
+          </div>
+        </div>
+
+        <div class="stat-item" style="display: block; margin-top: 18px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+            <span class="stat-label">FLOOR JUMP</span>
+            <span class="stat-value">F${depth}</span>
+          </div>
+          <div style="display: flex; gap: 8px; margin-top: 12px;">
+            <input id="floor-jump-input" type="number" min="1" max="30" step="1" value="${depth}" style="flex: 1; padding: 8px; background: rgba(0, 20, 30, 0.9); border: 1px solid rgba(0,200,255,0.3); color: #0ff; font-family: inherit;">
+            <button id="floor-jump-button" style="padding: 8px 14px; background: rgba(0,200,255,0.15); border: 1px solid #0ff; color: #0ff; cursor: pointer; font-family: inherit;">JUMP</button>
+          </div>
+          <div id="floor-jump-status" style="color: rgba(180,220,240,0.75); font-size: 0.75em; line-height: 1.5; margin-top: 8px;">
+            Jump to any floor from F1 to F30.
           </div>
         </div>
       </div>`;
@@ -242,6 +282,32 @@ export function createDungeonLoadUi({ wasm }) {
       const nextScale = Number(slider.value);
       wasm.set_enemy_attack_interval_scale_roguelike(nextScale);
       value.textContent = `${nextScale}%`;
+    });
+
+    const noDamageToggle = panel.querySelector('#no-damage-toggle');
+    const noDamageLabel = panel.querySelector('#no-damage-label');
+    noDamageToggle.addEventListener('change', () => {
+      const enabled = noDamageToggle.checked;
+      wasm.set_no_damage_mode_roguelike(enabled);
+      noDamageLabel.textContent = enabled ? 'ON' : 'OFF';
+    });
+
+    const floorInput = panel.querySelector('#floor-jump-input');
+    const floorButton = panel.querySelector('#floor-jump-button');
+    const jumpToFloor = () => {
+      const raw = Number(floorInput.value);
+      const nextFloor = Number.isFinite(raw) ? Math.min(30, Math.max(1, Math.round(raw))) : depth;
+      floorInput.value = String(nextFloor);
+      wasm.jump_to_floor_roguelike(nextFloor);
+      updateTabContent('status');
+      updateSettingsTab(panel);
+      updateTabContent('map');
+    };
+    floorButton.addEventListener('click', jumpToFloor);
+    floorInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        jumpToFloor();
+      }
     });
   }
 

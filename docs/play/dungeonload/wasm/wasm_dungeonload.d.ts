@@ -27,6 +27,8 @@ export function init_roguelike(): void;
 
 export function inventory_roguelike(): Uint32Array;
 
+export function jump_to_floor_roguelike(depth: number): void;
+
 export function level_roguelike(): number;
 
 export function map_data_roguelike(): Uint8Array;
@@ -44,6 +46,8 @@ export function messages_roguelike(): string[];
 export function move_roguelike(action: number): void;
 
 export function mp_roguelike(): number;
+
+export function no_damage_mode_roguelike(): boolean;
 
 export function player_atk_roguelike(): number;
 
@@ -66,6 +70,8 @@ export function render_roguelike(canvas_id: string, width: number, height: numbe
 export function scene_roguelike(): number;
 
 export function set_enemy_attack_interval_scale_roguelike(value: number): void;
+
+export function set_no_damage_mode_roguelike(enabled: boolean): void;
 
 export function start_game_roguelike(): void;
 
@@ -98,6 +104,7 @@ export interface InitOutput {
     readonly hp_roguelike: () => number;
     readonly init_roguelike: () => void;
     readonly inventory_roguelike: () => [number, number];
+    readonly jump_to_floor_roguelike: (a: number) => void;
     readonly level_roguelike: () => number;
     readonly map_data_roguelike: () => [number, number];
     readonly map_height_roguelike: () => number;
@@ -107,6 +114,7 @@ export interface InitOutput {
     readonly messages_roguelike: () => [number, number];
     readonly move_roguelike: (a: number) => void;
     readonly mp_roguelike: () => number;
+    readonly no_damage_mode_roguelike: () => number;
     readonly player_atk_roguelike: () => number;
     readonly player_def_roguelike: () => number;
     readonly player_direction_roguelike: () => number;
@@ -118,6 +126,7 @@ export interface InitOutput {
     readonly render_roguelike: (a: number, b: number, c: number, d: number) => void;
     readonly scene_roguelike: () => number;
     readonly set_enemy_attack_interval_scale_roguelike: (a: number) => void;
+    readonly set_no_damage_mode_roguelike: (a: number) => void;
     readonly start_game_roguelike: () => void;
     readonly tick_roguelike: (a: number) => void;
     readonly unequip_accessory_roguelike: () => void;

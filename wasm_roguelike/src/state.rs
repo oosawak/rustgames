@@ -193,6 +193,7 @@ pub struct RoguelikeGame {
     pub attack_effects: Vec<AttackEffect>,
     pub damage_numbers: Vec<DamageNumber>,
     pub enemy_attack_interval_scale: u32,
+    pub no_damage_mode: bool,
     pub exp: u32,
     pub next_level_exp: u32,
     pub equipment: Equipment,
@@ -396,6 +397,7 @@ impl RoguelikeGame {
             damage_numbers: vec![],
             // 150% keeps the current prototype readable while remaining adjustable in-game.
             enemy_attack_interval_scale: 150,
+            no_damage_mode: false,
             exp: 0,
             next_level_exp: 100,
             equipment: Equipment::new(),
@@ -828,14 +830,25 @@ impl RoguelikeGame {
             let base_damage = enemy_atk as i32 + 3;
             let reduced_damage = (base_damage - (player_def * 80 / 100)).max(1) as u32;
             let damage = if guarding { (reduced_damage / 3).max(1) } else { reduced_damage };
+            let final_damage = if self.no_damage_mode { 0 } else { damage };
             self.push_attack_effects(
                 &[(self.player_x, self.player_y)],
-                if guarding { "rgba(100, 180, 255, 0.92)" } else { "rgba(255, 80, 80, 0.92)" },
+                if self.no_damage_mode {
+                    "rgba(120, 220, 255, 0.92)"
+                } else if guarding {
+                    "rgba(100, 180, 255, 0.92)"
+                } else {
+                    "rgba(255, 80, 80, 0.92)"
+                },
                 10,
             );
-            self.hp = (self.hp as i32 - damage as i32).max(0) as u32;
-            self.push_damage_number(self.player_x, self.player_y, damage, "#ff6666");
-            if guarding {
+            if !self.no_damage_mode {
+                self.hp = (self.hp as i32 - final_damage as i32).max(0) as u32;
+            }
+            self.push_damage_number(self.player_x, self.player_y, final_damage, if self.no_damage_mode { "#66ccff" } else { "#ff6666" });
+            if self.no_damage_mode {
+                self.add_message(format!("{} attack blocked by no-damage mode", enemy_name));
+            } else if guarding {
                 self.add_message(format!("ガード！ {} の攻撃を {} ダメージに軽減", enemy_name, damage));
             } else {
                 self.add_message(format!("{} の攻撃！ {} ダメージ", enemy_name, damage));
@@ -1730,6 +1743,16 @@ impl RoguelikeGame {
         self.mark_visible();
     }
 
+    fn reset_transition_state(&mut self) {
+        self.projectiles.clear();
+        self.attack_effects.clear();
+        self.damage_numbers.clear();
+        self.player_shake = 0;
+        self.dodge_animation = 0;
+        self.guard_timer = 0;
+        self.enemy_shake.clear();
+    }
+
     pub fn next_floor(&mut self) {
         if self.depth >= 30 {
             self.add_message("最下階です".to_string());
@@ -1743,13 +1766,7 @@ impl RoguelikeGame {
         self.mp = self.max_mp;
         self.messages.clear();
         self.messages.push(format!("F{} に到着した", self.depth));
-        self.projectiles.clear();
-        self.attack_effects.clear();
-        self.damage_numbers.clear();
-        self.player_shake = 0;
-        self.dodge_animation = 0;
-        self.guard_timer = 0;
-        self.enemy_shake.clear();
+        self.reset_transition_state();
 
         self.load_floor(self.depth);
 
@@ -1775,19 +1792,43 @@ impl RoguelikeGame {
         self.mp = self.max_mp;
         self.messages.clear();
         self.messages.push(format!("F{} に戻った", self.depth));
-        self.projectiles.clear();
-        self.attack_effects.clear();
-        self.damage_numbers.clear();
-        self.player_shake = 0;
-        self.dodge_animation = 0;
-        self.guard_timer = 0;
-        self.enemy_shake.clear();
+        self.reset_transition_state();
 
         self.load_floor(self.depth);
 
         self.spawn_enemies(Self::should_spawn_boss(self.depth));
 
         // スタート位置を訪問済みに
+        if self.player_y >= 0 && self.player_y < self.map_height
+            && self.player_x >= 0 && self.player_x < self.map_width {
+            self.visited[self.player_y as usize][self.player_x as usize] = true;
+        }
+    }
+
+    pub fn jump_to_floor(&mut self, target_depth: u32) {
+        if self.scene != RogueScene::Playing {
+            self.add_message("Can only jump floors while playing".to_string());
+            return;
+        }
+
+        let target_depth = target_depth.clamp(1, 30);
+        if target_depth == self.depth {
+            self.add_message(format!("Already on F{}", self.depth));
+            return;
+        }
+
+        self.save_current_floor();
+        self.depth = target_depth;
+        self.level = target_depth;
+        self.hp = self.max_hp;
+        self.mp = self.max_mp;
+        self.messages.clear();
+        self.messages.push(format!("Jumped to F{}", self.depth));
+        self.reset_transition_state();
+
+        self.load_floor(self.depth);
+        self.spawn_enemies(Self::should_spawn_boss(self.depth));
+
         if self.player_y >= 0 && self.player_y < self.map_height
             && self.player_x >= 0 && self.player_x < self.map_width {
             self.visited[self.player_y as usize][self.player_x as usize] = true;

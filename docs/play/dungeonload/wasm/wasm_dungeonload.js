@@ -109,6 +109,13 @@ export function inventory_roguelike() {
 }
 
 /**
+ * @param {number} depth
+ */
+export function jump_to_floor_roguelike(depth) {
+    wasm.jump_to_floor_roguelike(depth);
+}
+
+/**
  * @returns {number}
  */
 export function level_roguelike() {
@@ -181,6 +188,14 @@ export function move_roguelike(action) {
 export function mp_roguelike() {
     const ret = wasm.mp_roguelike();
     return ret >>> 0;
+}
+
+/**
+ * @returns {boolean}
+ */
+export function no_damage_mode_roguelike() {
+    const ret = wasm.no_damage_mode_roguelike();
+    return ret !== 0;
 }
 
 /**
@@ -271,6 +286,13 @@ export function scene_roguelike() {
  */
 export function set_enemy_attack_interval_scale_roguelike(value) {
     wasm.set_enemy_attack_interval_scale_roguelike(value);
+}
+
+/**
+ * @param {boolean} enabled
+ */
+export function set_no_damage_mode_roguelike(enabled) {
+    wasm.set_no_damage_mode_roguelike(enabled);
 }
 
 export function start_game_roguelike() {

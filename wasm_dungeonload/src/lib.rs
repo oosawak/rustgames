@@ -129,6 +129,20 @@ pub fn set_enemy_attack_interval_scale_roguelike(value: u32) {
 }
 
 #[wasm_bindgen]
+pub fn no_damage_mode_roguelike() -> bool {
+    DUNGEONLOAD_STATE.with(|s| s.borrow().as_ref().map(|g| g.no_damage_mode).unwrap_or(false))
+}
+
+#[wasm_bindgen]
+pub fn set_no_damage_mode_roguelike(enabled: bool) {
+    DUNGEONLOAD_STATE.with(|s| {
+        if let Some(g) = s.borrow_mut().as_mut() {
+            g.no_damage_mode = enabled;
+        }
+    });
+}
+
+#[wasm_bindgen]
 pub fn level_roguelike() -> u32 {
     DUNGEONLOAD_STATE.with(|s| s.borrow().as_ref().map(|g| g.level).unwrap_or(0))
 }
@@ -161,6 +175,15 @@ pub fn player_y_roguelike() -> i32 {
 #[wasm_bindgen]
 pub fn player_direction_roguelike() -> i32 {
     DUNGEONLOAD_STATE.with(|s| s.borrow().as_ref().map(|g| g.player_direction).unwrap_or(0))
+}
+
+#[wasm_bindgen]
+pub fn jump_to_floor_roguelike(depth: u32) {
+    DUNGEONLOAD_STATE.with(|s| {
+        if let Some(g) = s.borrow_mut().as_mut() {
+            g.jump_to_floor(depth);
+        }
+    });
 }
 
 #[wasm_bindgen]

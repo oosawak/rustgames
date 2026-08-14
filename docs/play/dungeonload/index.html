@@ -450,17 +450,17 @@ html, body {
 <div id="loading">
   <div>
     <div class="spin"></div>
-    <p style="margin-top: 14px">ロード中...</p>
+    <p style="margin-top: 14px">Loading...</p>
   </div>
 </div>
 <div id="title-screen">
   <h1>⟡ DUNGEON//LOAD</h1>
-  <p>Unknown cartridge detected. 解析して、新しいダンジョンをロードしろ</p>
+  <p>Unknown cartridge detected. Analyze it and load a new dungeon.</p>
   <button id="btn-start">▶ LOAD</button>
 </div>
 <div id="game-over">
   <h2>💀 GAME OVER 💀</h2>
-  <p id="game-over-msg">カートリッジの解析に失敗した</p>
+  <p id="game-over-msg">Cartridge analysis failed.</p>
   <button id="btn-retry">↺ RELOAD</button>
 </div>
 <div id="container">
@@ -485,23 +485,23 @@ html, body {
       <div id="tab-equipment" class="tab-panel">
         <div style="padding: 16px;">
           <div class="stat-item">
-            <span class="stat-label">⚔️ 武器</span>
+            <span class="stat-label">⚔️ WEAPON</span>
             <span class="stat-value" id="weapon-display">Wooden Sword (+3)</span>
           </div>
           <div class="stat-item">
-            <span class="stat-label">🛡️ 防具</span>
-            <span class="stat-value" id="armor-display">なし</span>
+            <span class="stat-label">🛡️ ARMOR</span>
+            <span class="stat-value" id="armor-display">None</span>
           </div>
           <div class="stat-item">
-            <span class="stat-label">💍 アクセサリー</span>
-            <span class="stat-value" id="accessory-display">なし</span>
+            <span class="stat-label">💍 ACCESSORY</span>
+            <span class="stat-value" id="accessory-display">None</span>
           </div>
           <div class="stat-item" style="border-top: 1px solid rgba(0,200,255,0.2); padding-top: 8px; margin-top: 8px;">
-            <span class="stat-label">攻撃力ボーナス</span>
+            <span class="stat-label">ATTACK BONUS</span>
             <span class="stat-value" id="atk-bonus-display">+3</span>
           </div>
           <div class="stat-item">
-            <span class="stat-label">防御力ボーナス</span>
+            <span class="stat-label">DEFENSE BONUS</span>
             <span class="stat-value" id="def-bonus-display">+0</span>
           </div>
         </div>
@@ -518,7 +518,7 @@ html, body {
   <canvas id="game-canvas" style="display: block; width: 100%; height: 100%; max-width: 100%;"></canvas>
   <canvas id="game-canvas-3d" style="display: none; width: 100%; height: 100%; max-width: 100%;"></canvas>
   <button id="view-toggle" style="position: absolute; top: 10px; right: 10px; z-index: 30; padding: 8px 16px; background: rgba(0,200,255,0.2); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 4px; font-family: monospace; font-size: 0.8em;">2D/3D</button>
-  <button id="ui-toggle-btn" style="position: absolute; top: 50px; right: 10px; z-index: 30; padding: 6px 12px; background: rgba(0,200,255,0.2); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 4px; font-family: monospace; font-size: 0.8em; display: none;">▼ 非表示</button>
+  <button id="ui-toggle-btn" style="position: absolute; top: 50px; right: 10px; z-index: 30; padding: 6px 12px; background: rgba(0,200,255,0.2); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 4px; font-family: monospace; font-size: 0.8em; display: none;">▼ Hide UI</button>
 </div>
 <div id="message-log"></div>
 <button id="attack-button" style="position: fixed; bottom: 70px; left: 10px; z-index: 50; display: none; width: 90px; height: 90px; background: rgba(0,255,255,0.2); border: 2px solid #0ff; border-radius: 50%; color: #0ff; font-weight: bold; cursor: pointer; font-size: 32px;">⚔️</button>
@@ -897,11 +897,11 @@ document.getElementById('ui-toggle-btn').addEventListener('click', () => {
   if (uiUpper.classList.contains('hidden')) {
     uiUpper.classList.remove('hidden');
     canvasWrap.classList.remove('expanded');
-    btn.textContent = '▼ 非表示';
+    btn.textContent = '▼ Hide UI';
   } else {
     uiUpper.classList.add('hidden');
     canvasWrap.classList.add('expanded');
-    btn.textContent = '▲ 表示';
+    btn.textContent = '▲ Show UI';
   }
   setTimeout(() => {
     if (renderer) {
