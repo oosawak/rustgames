@@ -109,6 +109,26 @@ pub fn max_mp_roguelike() -> u32 {
 }
 
 #[wasm_bindgen]
+pub fn enemy_attack_interval_scale_roguelike() -> u32 {
+    DUNGEONLOAD_STATE.with(|s| {
+        s.borrow()
+            .as_ref()
+            .map(|g| g.enemy_attack_interval_scale)
+            .unwrap_or(150)
+    })
+}
+
+#[wasm_bindgen]
+pub fn set_enemy_attack_interval_scale_roguelike(value: u32) {
+    let value = value.clamp(50, 250);
+    DUNGEONLOAD_STATE.with(|s| {
+        if let Some(g) = s.borrow_mut().as_mut() {
+            g.enemy_attack_interval_scale = value;
+        }
+    });
+}
+
+#[wasm_bindgen]
 pub fn level_roguelike() -> u32 {
     DUNGEONLOAD_STATE.with(|s| s.borrow().as_ref().map(|g| g.level).unwrap_or(0))
 }
@@ -154,6 +174,7 @@ pub fn map_data_roguelike() -> Vec<u8> {
                         crate::state::TileType::Floor => 0u8,
                         crate::state::TileType::Wall => 1u8,
                         crate::state::TileType::Room => 2u8,
+                        crate::state::TileType::Pit => 5u8,
                         crate::state::TileType::StairDown => 3u8,
                         crate::state::TileType::StairUp => 4u8,
                     })

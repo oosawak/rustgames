@@ -6,6 +6,7 @@
   ],
   "version": "0.1.0",
   "files": [
+    "wasm_dungeonload_bg.wasm",
     "wasm_dungeonload.js",
     "wasm_dungeonload.d.ts"
   ],

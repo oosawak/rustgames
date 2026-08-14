@@ -58,10 +58,10 @@ export function createDungeonLoadUi({ wasm }) {
 
   function updateEquipmentTab(panel) {
     if (!panel) return;
-    const weaponNames = ['Wooden Sword', 'Iron Sword', 'Axe', 'Cursed Blade', 'Dragon Slayer'];
+    const weaponNames = ['Wooden Sword', 'Iron Sword', '槍', 'Bow', '杖', 'Cursed Blade'];
     const armorNames = ['Leather Armor', 'Chain Mail', 'Steel Plate', 'Dragon Scale', 'Cursed Mail'];
     const accessoryNames = ['Gold Ring', 'Vampire Ring', 'Lucky Ring', 'Healing Necklace', 'Mana Earrings'];
-    const weaponBonuses = [3, 5, 7, 9, 12];
+    const weaponBonuses = [3, 5, 7, 9, 8, 12];
     const armorBonuses = [2, 4, 6, 8, 10];
     const wepIdx = wasm.player_equipped_weapon_roguelike();
     const armIdx = wasm.player_equipped_armor_roguelike();
@@ -210,10 +210,39 @@ export function createDungeonLoadUi({ wasm }) {
       case 'items':
         updateItemsDisplay();
         break;
+      case 'settings':
+        updateSettingsTab(panel);
+        break;
       case 'map':
         drawDungeonMap();
         break;
     }
+  }
+
+  function updateSettingsTab(panel) {
+    if (!panel) return;
+    const scale = wasm.enemy_attack_interval_scale_roguelike();
+    panel.innerHTML = `
+      <div style="padding: 16px;">
+        <div class="stat-item" style="display: block;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+            <span class="stat-label">敵攻撃間隔</span>
+            <span class="stat-value" id="enemy-interval-value">${scale}%</span>
+          </div>
+          <input id="enemy-interval-slider" type="range" min="50" max="250" step="10" value="${scale}" style="width: 100%; margin-top: 14px; accent-color: #0ff;">
+          <div style="color: rgba(180,220,240,0.75); font-size: 0.75em; line-height: 1.5; margin-top: 8px;">
+            数値が大きいほど敵の攻撃が遅くなります。敵の種類ごとの速度差は残ります。
+          </div>
+        </div>
+      </div>`;
+
+    const slider = panel.querySelector('#enemy-interval-slider');
+    const value = panel.querySelector('#enemy-interval-value');
+    slider.addEventListener('input', () => {
+      const nextScale = Number(slider.value);
+      wasm.set_enemy_attack_interval_scale_roguelike(nextScale);
+      value.textContent = `${nextScale}%`;
+    });
   }
 
   function drawDungeonMap() {
@@ -270,12 +299,14 @@ export function createDungeonLoadUi({ wasm }) {
         let color;
         if (tile === 1) color = '#555';
         else if (tile === 2) color = '#3a5';
+        else if (tile === 5) color = '#62c';
         else if (tile === 3) color = '#dd0';
         else if (tile === 4) color = '#0dd';
         else color = '#4a6';
         if (roomTiles.has(`${x},${y}`)) {
           if (tile === 1) color = '#888';
           else if (tile === 2) color = '#6e8';
+          else if (tile === 5) color = '#96f';
           else if (tile === 3) color = '#ff0';
           else if (tile === 4) color = '#0ff';
           else color = '#7b9';

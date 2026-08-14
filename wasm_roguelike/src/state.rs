@@ -6,6 +6,7 @@ pub enum TileType {
     Floor,
     Wall,
     Room,
+    Pit,
     StairDown,
     StairUp,
 }
@@ -18,6 +19,13 @@ pub struct Room {
     pub height: i32,
 }
 
+#[derive(Clone)]
+struct FloorState {
+    map: Vec<Vec<TileType>>,
+    rooms: Vec<Room>,
+    visited: Vec<Vec<bool>>,
+}
+
 pub struct Projectile {
     pub from_x: f64,
     pub from_y: f64,
@@ -25,6 +33,7 @@ pub struct Projectile {
     pub to_y: f64,
     pub progress: f64,  // 0.0 to 1.0
     pub proj_type: i32, // 0=attack, 1=magic, 2=arrow
+    pub damage: u32,
     pub direction: i32, // 0=up, 1=left, 2=right, 3=down
 }
 
@@ -37,13 +46,24 @@ pub struct AttackEffect {
     pub color: &'static str,
 }
 
+#[derive(Clone)]
+pub struct DamageNumber {
+    pub x: i32,
+    pub y: i32,
+    pub amount: u32,
+    pub ttl: u32,
+    pub max_ttl: u32,
+    pub color: &'static str,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum WeaponType {
     WoodenSword = 0,   // +3
     IronSword = 1,     // +5
-    Axe = 2,           // +7
-    CursedBlade = 3,   // +9
-    DragonSlayer = 4,  // +12
+    Spear = 2,         // +7
+    Bow = 3,           // +9
+    Staff = 4,         // +8
+    CursedBlade = 5,   // +12
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -51,6 +71,7 @@ pub enum WeaponStyle {
     Sword,
     Spear,
     Bow,
+    Staff,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -110,9 +131,10 @@ impl Equipment {
         let weapon_bonus = match self.weapon {
             Some(WeaponType::WoodenSword) => 3,
             Some(WeaponType::IronSword) => 5,
-            Some(WeaponType::Axe) => 7,
-            Some(WeaponType::CursedBlade) => 9,
-            Some(WeaponType::DragonSlayer) => 12,
+            Some(WeaponType::Spear) => 7,
+            Some(WeaponType::Bow) => 9,
+            Some(WeaponType::Staff) => 8,
+            Some(WeaponType::CursedBlade) => 12,
             None => 0,
         };
         weapon_bonus
@@ -164,15 +186,20 @@ pub struct RoguelikeGame {
     pub rooms: Vec<Room>,
     pub visited: Vec<Vec<bool>>,
     pub player_shake: u32,
+    pub dodge_animation: u32,
+    pub guard_timer: u32,
     pub enemy_shake: Vec<u32>,
     pub projectiles: Vec<Projectile>,
     pub attack_effects: Vec<AttackEffect>,
+    pub damage_numbers: Vec<DamageNumber>,
+    pub enemy_attack_interval_scale: u32,
     pub exp: u32,
     pub next_level_exp: u32,
     pub equipment: Equipment,
     pub current_room: Option<usize>,  // 現在いる部屋のインデックス
     pub inventory: [u32; 8],  // ItemType ごとの数量（8 種類）
     pub eq_inventory: EquipmentInventory,  // ドロップした装備
+    floor_states: Vec<Option<FloorState>>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -222,6 +249,7 @@ pub struct Enemy {
     pub is_boss: bool,  // ボス敵フラグ
     pub pursuit_timer: u32,  // 60フレーム毎の移動カウンター
     pub can_see_player: bool,  // プレイヤーを見かけたか
+    pub attack_cooldown: u32,
 }
 
 // 敵マスターテーブル（敵タイプの定義）
@@ -360,19 +388,31 @@ impl RoguelikeGame {
             rooms,
             visited,
             player_shake: 0,
+            dodge_animation: 0,
+            guard_timer: 0,
             enemy_shake: vec![],
             projectiles: vec![],
             attack_effects: vec![],
+            damage_numbers: vec![],
+            // 150% keeps the current prototype readable while remaining adjustable in-game.
+            enemy_attack_interval_scale: 150,
             exp: 0,
             next_level_exp: 100,
             equipment: Equipment::new(),
             current_room: None,
             inventory: [0; 8],  // HealthPotion, ManaPotion, PoisonPotion, EnergyDrink, Gem, SkeletonKey, Scroll, GoldenCoin
             eq_inventory: EquipmentInventory {
-                weapons: Vec::new(),
+                // Keep the three prototype weapon styles available from the start.
+                weapons: vec![
+                    WeaponType::WoodenSword,
+                    WeaponType::Spear,
+                    WeaponType::Bow,
+                    WeaponType::Staff,
+                ],
                 armors: Vec::new(),
                 accessories: Vec::new(),
             },
+            floor_states: vec![None; 31],
         }
     }
 
@@ -452,6 +492,7 @@ impl RoguelikeGame {
                         is_boss,
                         pursuit_timer: 0,
                         can_see_player: false,
+                        attack_cooldown: 0,
                     });
                     self.enemy_shake.push(0);
                 }
@@ -494,6 +535,7 @@ impl RoguelikeGame {
                         is_boss: false,
                         pursuit_timer: 0,
                         can_see_player: false,
+                        attack_cooldown: 0,
                     });
                     self.enemy_shake.push(0);
                 }
@@ -592,6 +634,23 @@ impl RoguelikeGame {
             }
         }
 
+        // Add traversal holes to interior rooms. Normal movement enters a hole;
+        // dodge movement can cross it and land on the other side.
+        for room in rooms.iter().skip(1).take(5) {
+            if room.width < 5 || room.height < 5 {
+                continue;
+            }
+            let candidates = [
+                (room.x + 2, room.y + 2),
+                (room.x + room.width - 3, room.y + room.height - 3),
+            ];
+            for (pit_x, pit_y) in candidates {
+                if map[pit_y as usize][pit_x as usize] == TileType::Room {
+                    map[pit_y as usize][pit_x as usize] = TileType::Pit;
+                }
+            }
+        }
+
         (map, rooms)
     }
 
@@ -602,7 +661,9 @@ impl RoguelikeGame {
         self.messages.push("ゲーム開始！".to_string());
         self.projectiles.clear();
         self.attack_effects.clear();
+        self.damage_numbers.clear();
         self.player_shake = 0;
+        self.dodge_animation = 0;
         self.enemy_shake.clear();
 
         // 最初の部屋にプレイヤーを配置
@@ -641,6 +702,20 @@ impl RoguelikeGame {
             TileType::Floor | TileType::Room | TileType::StairDown | TileType::StairUp)
     }
 
+    fn is_pit(&self, x: i32, y: i32) -> bool {
+        x >= 0 && x < self.map_width && y >= 0 && y < self.map_height
+            && self.map[y as usize][x as usize] == TileType::Pit
+    }
+
+    fn enter_pit(&mut self) {
+        if self.depth >= 30 {
+            self.add_message("🕳️ 穴はあるが、これ以上下へ行けない".to_string());
+            return;
+        }
+        self.next_floor();
+        self.add_message("🕳️ 穴に落ちて、下の階へ進んだ".to_string());
+    }
+
     fn get_room_at(&self, x: i32, y: i32) -> Option<usize> {
         for (idx, room) in self.rooms.iter().enumerate() {
             if x >= room.x && x < room.x + room.width && y >= room.y && y < room.y + room.height {
@@ -654,9 +729,10 @@ impl RoguelikeGame {
         match weapon {
             WeaponType::WoodenSword => "Wooden Sword",
             WeaponType::IronSword => "Iron Sword",
-            WeaponType::Axe => "Axe",
+            WeaponType::Spear => "槍",
+            WeaponType::Bow => "Bow",
+            WeaponType::Staff => "杖",
             WeaponType::CursedBlade => "Cursed Blade",
-            WeaponType::DragonSlayer => "Dragon Slayer",
         }
     }
 
@@ -705,8 +781,9 @@ impl RoguelikeGame {
     fn weapon_style(weapon: WeaponType) -> WeaponStyle {
         match weapon {
             WeaponType::WoodenSword | WeaponType::IronSword => WeaponStyle::Sword,
-            WeaponType::Axe | WeaponType::CursedBlade => WeaponStyle::Spear,
-            WeaponType::DragonSlayer => WeaponStyle::Bow,
+            WeaponType::Spear | WeaponType::CursedBlade => WeaponStyle::Spear,
+            WeaponType::Bow => WeaponStyle::Bow,
+            WeaponType::Staff => WeaponStyle::Staff,
         }
     }
 
@@ -722,6 +799,141 @@ impl RoguelikeGame {
                 });
             }
         }
+    }
+
+    fn push_damage_number(&mut self, x: i32, y: i32, amount: u32, color: &'static str) {
+        self.damage_numbers.push(DamageNumber {
+            x,
+            y,
+            amount,
+            ttl: 30,
+            max_ttl: 30,
+            color,
+        });
+    }
+
+    fn enemy_attack_adjacent(&mut self) {
+        let attackers: Vec<(usize, String, u32)> = self.enemies.iter().enumerate()
+            .filter(|(_, enemy)| {
+                enemy.attack_cooldown == 0
+                    && (enemy.x - self.player_x).abs() + (enemy.y - self.player_y).abs() == 1
+            })
+            .map(|(index, enemy)| (index, enemy.name.clone(), enemy.atk))
+            .collect();
+
+        let player_def = self.equipment.get_def_bonus() as i32;
+        let guarding = self.guard_timer > 0
+            && Self::weapon_style(self.equipment.weapon.unwrap_or(WeaponType::WoodenSword)) == WeaponStyle::Sword;
+        for (enemy_index, enemy_name, enemy_atk) in attackers {
+            let base_damage = enemy_atk as i32 + 3;
+            let reduced_damage = (base_damage - (player_def * 80 / 100)).max(1) as u32;
+            let damage = if guarding { (reduced_damage / 3).max(1) } else { reduced_damage };
+            self.push_attack_effects(
+                &[(self.player_x, self.player_y)],
+                if guarding { "rgba(100, 180, 255, 0.92)" } else { "rgba(255, 80, 80, 0.92)" },
+                10,
+            );
+            self.hp = (self.hp as i32 - damage as i32).max(0) as u32;
+            self.push_damage_number(self.player_x, self.player_y, damage, "#ff6666");
+            if guarding {
+                self.add_message(format!("ガード！ {} の攻撃を {} ダメージに軽減", enemy_name, damage));
+            } else {
+                self.add_message(format!("{} の攻撃！ {} ダメージ", enemy_name, damage));
+            }
+            self.player_shake = 5;
+
+            let (enemy_type, variant, is_boss) = {
+                let enemy = &self.enemies[enemy_index];
+                (enemy.enemy_type, enemy.variant, enemy.is_boss)
+            };
+            let base_interval = match enemy_type % 3 {
+                0 => 18,
+                1 => 28,
+                _ => 38,
+            };
+            let variant_bonus = match variant {
+                EnemyVariant::Weak => 0,
+                EnemyVariant::Normal => 4,
+                EnemyVariant::Strong => 10,
+                EnemyVariant::Boss => 22,
+            };
+            let base_interval = if is_boss {
+                60
+            } else {
+                base_interval + variant_bonus
+            };
+            self.enemies[enemy_index].attack_cooldown =
+                (base_interval * self.enemy_attack_interval_scale / 100).max(1);
+        }
+
+        if self.hp == 0 {
+            self.scene = RogueScene::GameOver;
+            self.add_message("💀 ゲームオーバー".to_string());
+        }
+    }
+
+    fn cast_staff_magic(&mut self) {
+        if self.mp < 3 {
+            self.add_message("MPが足りない".to_string());
+            return;
+        }
+        let (target_x, target_y) = self.bow_target();
+        self.mp -= 3;
+        self.projectiles.push(Projectile {
+            from_x: self.player_x as f64,
+            from_y: self.player_y as f64,
+            to_x: target_x,
+            to_y: target_y,
+            progress: 0.0,
+            proj_type: 1,
+            damage: 10 + self.equipment.get_atk_bonus(),
+            direction: self.player_direction,
+        });
+        self.add_message("杖から魔法を放った！ MP -3".to_string());
+    }
+
+    fn magic_target_from(&self, from_x: f64, from_y: f64, direction: i32) -> (f64, f64) {
+        let mut x = from_x.floor() as i32;
+        let mut y = from_y.floor() as i32;
+        let (dx, dy) = match direction {
+            0 => (0, -1),
+            1 => (-1, 0),
+            2 => (1, 0),
+            3 => (0, 1),
+            _ => (0, 0),
+        };
+        loop {
+            let next_x = x + dx;
+            let next_y = y + dy;
+            if !self.is_walkable(next_x, next_y) {
+                break;
+            }
+            x = next_x;
+            y = next_y;
+        }
+        (x as f64, y as f64)
+    }
+
+    fn steer_magic_projectile(&mut self, direction: i32) {
+        self.player_direction = direction;
+        let projectile_index = self.projectiles.iter().rposition(|projectile| projectile.proj_type == 1);
+        let Some(index) = projectile_index else {
+            return;
+        };
+
+        let projectile = &self.projectiles[index];
+        let current_x = projectile.from_x
+            + (projectile.to_x - projectile.from_x) * projectile.progress;
+        let current_y = projectile.from_y
+            + (projectile.to_y - projectile.from_y) * projectile.progress;
+        let (target_x, target_y) = self.magic_target_from(current_x, current_y, direction);
+        let projectile = &mut self.projectiles[index];
+        projectile.from_x = current_x;
+        projectile.from_y = current_y;
+        projectile.to_x = target_x;
+        projectile.to_y = target_y;
+        projectile.progress = 0.0;
+        projectile.direction = direction;
     }
 
     fn sword_attack_cells(&self) -> Vec<(i32, i32)> {
@@ -802,6 +1014,7 @@ impl RoguelikeGame {
                 let enemy_name = self.enemies[i].name.clone();
 
                 self.add_message(format!("{} に {} のダメージ！", enemy_name, final_damage));
+                self.push_damage_number(target_x, target_y, final_damage, "#ffd45c");
                 if i < self.enemy_shake.len() {
                     self.enemy_shake[i] = 5;
                 }
@@ -853,7 +1066,7 @@ impl RoguelikeGame {
                         let drop_type = rng.next() % 3;
                         match drop_type {
                             0 => {
-                                let weapons = [WeaponType::IronSword, WeaponType::Axe, WeaponType::CursedBlade];
+                                let weapons = [WeaponType::IronSword, WeaponType::Spear, WeaponType::Bow, WeaponType::Staff];
                                 let weapon = weapons[(rng.next() as usize) % weapons.len()];
                                 self.eq_inventory.weapons.push(weapon);
                                 self.add_message(format!("⚔️ {} を手に入れた！", Self::weapon_name(weapon)));
@@ -889,7 +1102,34 @@ impl RoguelikeGame {
             return;
         }
 
-        // action: 0=up, 1=left, 2=right, 3=down, 4=attack, 5=dodge
+        // action: 0=up, 1=left, 2=right, 3=down, 4=attack, 5=dodge, 6-9=weapon slots, 14=guard
+        if (6..=9).contains(&action) {
+            let slot = (action - 6) as usize;
+            if let Some(&weapon) = self.eq_inventory.weapons.get(slot) {
+                self.equipment.weapon = Some(weapon);
+                self.add_message(format!("⚔️ {} に切り替えた", Self::weapon_name(weapon)));
+            } else {
+                self.add_message("その武器はまだ持っていない".to_string());
+            }
+            return;
+        }
+
+        // Shift + arrow steers the most recent magic projectile without moving.
+        if (10..=13).contains(&action) {
+            self.steer_magic_projectile(action - 10);
+            return;
+        }
+
+        if action == 14 {
+            if Self::weapon_style(self.equipment.weapon.unwrap_or(WeaponType::WoodenSword)) == WeaponStyle::Sword {
+                self.guard_timer = 30;
+                self.add_message("剣を構えた！ ガード中".to_string());
+            } else {
+                self.add_message("剣を装備すると防御できる".to_string());
+            }
+            return;
+        }
+
         if action == 4 {
             let weapon = self.equipment.weapon.unwrap_or(WeaponType::WoodenSword);
             let style = Self::weapon_style(weapon);
@@ -930,11 +1170,16 @@ impl RoguelikeGame {
                         to_y: target_y,
                         progress: 0.0,
                         proj_type: 2,
+                        damage: 5 + self.equipment.get_atk_bonus(),
                         direction: self.player_direction,
                     });
                     self.add_message("弓を放った！".to_string());
                 }
+                WeaponStyle::Staff => {
+                    self.cast_staff_magic();
+                }
             }
+            self.enemy_attack_adjacent();
             return;
         }
 
@@ -956,19 +1201,32 @@ impl RoguelikeGame {
 
         let mut new_x = self.player_x;
         let mut new_y = self.player_y;
+        let mut last_safe_x = self.player_x;
+        let mut last_safe_y = self.player_y;
         for _ in 0..move_steps {
             let next_x = new_x + dx;
             let next_y = new_y + dy;
-            if self.is_walkable(next_x, next_y) {
+            if self.is_walkable(next_x, next_y) || self.is_pit(next_x, next_y) {
                 new_x = next_x;
                 new_y = next_y;
+                if self.is_walkable(next_x, next_y) {
+                    last_safe_x = next_x;
+                    last_safe_y = next_y;
+                }
             } else {
                 break;
             }
         }
 
+        // A dodge may cross a pit, but never ends by standing inside one.
+        if action == 5 && self.is_pit(new_x, new_y) {
+            new_x = last_safe_x;
+            new_y = last_safe_y;
+        }
+
         let moved = new_x != self.player_x || new_y != self.player_y;
         if action == 5 && moved {
+            self.dodge_animation = 12;
             self.add_message("回転回避！".to_string());
         }
 
@@ -981,6 +1239,7 @@ impl RoguelikeGame {
                 let enemy_def = self.enemies[i].def as i32;
                 let damage = ((base_damage as i32) - enemy_def).max(1) as u32;  // 最小1ダメージ
                 let old_hp = self.enemies[i].hp;
+                self.push_damage_number(self.enemies[i].x, self.enemies[i].y, damage, "#ffd45c");
                 self.enemies[i].hp = (self.enemies[i].hp as i32 - damage as i32).max(0) as u32;
                 let enemy_name = self.enemies[i].name.clone();
 
@@ -1048,7 +1307,7 @@ impl RoguelikeGame {
                         match drop_type {
                             0 => {
                                 // 武器ドロップ
-                                let weapons = [WeaponType::IronSword, WeaponType::Axe, WeaponType::CursedBlade];
+                                let weapons = [WeaponType::IronSword, WeaponType::Spear, WeaponType::Bow, WeaponType::Staff];
                                 let weapon = weapons[(rng.next() as usize) % weapons.len()];
                                 self.eq_inventory.weapons.push(weapon);
                                 self.add_message(format!("⚔️ {} を手に入れた！", Self::weapon_name(weapon)));
@@ -1081,24 +1340,7 @@ impl RoguelikeGame {
         }
 
         if attacked_enemy {
-            // 敵の反撃（プレイヤーDEFを考慮）
-            let player_def = self.equipment.get_def_bonus() as i32;
-            let enemy_positions: Vec<(i32, i32, String, u32)> = self.enemies.iter().map(|e| (e.x, e.y, e.name.clone(), e.atk)).collect();
-            for (ex, ey, enemy_name, enemy_atk) in enemy_positions {
-                if (ex - self.player_x).abs() + (ey - self.player_y).abs() <= 1 {
-                    let base_enemy_damage = (enemy_atk as i32 + 3) as i32;  // 敵ATK + 基本ダメージ
-                    let damage = (base_enemy_damage - (player_def * 80 / 100)).max(1) as u32;  // DEFで20%軽減
-                    self.hp = (self.hp as i32 - damage as i32).max(0) as u32;
-                    self.add_message(format!("{} の反撃で {} ダメージ!", enemy_name, damage));
-                    self.player_shake = 5;
-                }
-            }
-
-            if self.hp == 0 {
-                self.scene = RogueScene::GameOver;
-                self.add_message("💀 ゲームオーバー".to_string());
-            }
-
+            self.enemy_attack_adjacent();
             self.mark_visible();
             return;
         }
@@ -1110,6 +1352,11 @@ impl RoguelikeGame {
 
         // マップの壁判定と階段チェック
         let tile = self.map[new_y as usize][new_x as usize];
+
+        if tile == TileType::Pit {
+            self.enter_pit();
+            return;
+        }
 
         if tile == TileType::StairDown && self.depth < 30 {
             // 下り階段
@@ -1176,25 +1423,7 @@ impl RoguelikeGame {
                 }
             }
 
-            // 敵の反撃
-            let mut hit = false;
-            for enemy in self.enemies.iter() {
-                if self.player_x == enemy.x && self.player_y == enemy.y {
-                    hit = true;
-                    break;
-                }
-            }
-
-            if hit {
-                self.hp = (self.hp as i32 - 10).max(0) as u32;
-                self.add_message("敵に攻撃された！".to_string());
-                self.player_shake = 5;
-
-                if self.hp == 0 {
-                    self.scene = RogueScene::GameOver;
-                    self.add_message("ゲームオーバー".to_string());
-                }
-            }
+            self.enemy_attack_adjacent();
 
             // 訪問済みをマーク
             self.mark_visible();
@@ -1301,9 +1530,26 @@ impl RoguelikeGame {
             }
         }
 
+        // Enemy attacks run from the game loop, so the player does not need to act first.
+        self.enemy_attack_adjacent();
+
         // 震える時間を減らす
         if self.player_shake > 0 {
             self.player_shake -= 1;
+        }
+
+        for enemy in self.enemies.iter_mut() {
+            if enemy.attack_cooldown > 0 {
+                enemy.attack_cooldown -= 1;
+            }
+        }
+
+        if self.dodge_animation > 0 {
+            self.dodge_animation -= 1;
+        }
+
+        if self.guard_timer > 0 {
+            self.guard_timer -= 1;
         }
 
         for shake in self.enemy_shake.iter_mut() {
@@ -1318,13 +1564,26 @@ impl RoguelikeGame {
             }
         }
 
+        for number in self.damage_numbers.iter_mut() {
+            if number.ttl > 0 {
+                number.ttl -= 1;
+            }
+        }
+
         // Update projectiles
         for projectile in self.projectiles.iter_mut() {
-            projectile.progress += 0.008;
+            let distance = ((projectile.to_x - projectile.from_x).powi(2)
+                + (projectile.to_y - projectile.from_y).powi(2))
+                .sqrt()
+                .max(1.0);
+            // Keep arrows at a constant tile-per-frame speed regardless of range.
+            let tile_speed = if projectile.proj_type == 2 { 0.18 } else { 0.008 };
+            projectile.progress += tile_speed / distance;
         }
 
         // Check projectile collision with enemies and damage them
         let mut hit_projectiles = std::collections::HashSet::new();
+        let mut projectile_damage_numbers = Vec::new();
         for (proj_idx, projectile) in self.projectiles.iter().enumerate() {
             if (projectile.proj_type == 1 || projectile.proj_type == 2) && projectile.progress > 0.1 {
                 let current_x = projectile.from_x + (projectile.to_x - projectile.from_x) * projectile.progress;
@@ -1335,8 +1594,9 @@ impl RoguelikeGame {
                 // Check enemy collision and damage
                 for i in 0..self.enemies.len() {
                     if self.enemies[i].x == map_x && self.enemies[i].y == map_y {
-                        let projectile_damage = if projectile.proj_type == 2 { 5 } else { 5 };
-                        self.enemies[i].hp = (self.enemies[i].hp as i32 - projectile_damage).max(0) as u32;
+                        let projectile_damage = projectile.damage;
+                        projectile_damage_numbers.push((map_x, map_y, projectile_damage));
+                        self.enemies[i].hp = (self.enemies[i].hp as i32 - projectile_damage as i32).max(0) as u32;
                         hit_projectiles.insert(proj_idx);
 
                         if self.enemies[i].hp == 0 {
@@ -1348,6 +1608,10 @@ impl RoguelikeGame {
                     }
                 }
             }
+        }
+
+        for (x, y, amount) in projectile_damage_numbers {
+            self.push_damage_number(x, y, amount, "#ffd45c");
         }
 
         // Add messages after the loop and gain exp
@@ -1391,6 +1655,7 @@ impl RoguelikeGame {
         });
 
         self.attack_effects.retain(|effect| effect.ttl > 0);
+        self.damage_numbers.retain(|number| number.ttl > 0);
     }
 
     pub fn add_message(&mut self, msg: String) {
@@ -1405,12 +1670,73 @@ impl RoguelikeGame {
         self.scene = RogueScene::GameOver;
     }
 
+    fn save_current_floor(&mut self) {
+        self.floor_states[self.depth as usize] = Some(FloorState {
+            map: self.map.clone(),
+            rooms: self.rooms.clone(),
+            visited: self.visited.clone(),
+        });
+    }
+
+    fn load_floor(&mut self, depth: u32) {
+        if let Some(saved) = self.floor_states[depth as usize].clone() {
+            self.map = saved.map;
+            self.rooms = saved.rooms;
+            self.visited = saved.visited;
+        } else {
+            let (map_width, map_height) = Self::calc_map_size(depth);
+            let (map, rooms) = Self::generate_dungeon(map_width, map_height, depth);
+            self.map = map;
+            self.rooms = rooms;
+            self.visited = vec![vec![false; map_width as usize]; map_height as usize];
+            self.floor_states[depth as usize] = Some(FloorState {
+                map: self.map.clone(),
+                rooms: self.rooms.clone(),
+                visited: self.visited.clone(),
+            });
+        }
+
+        self.map_width = self.map.first().map(|row| row.len() as i32).unwrap_or(0);
+        self.map_height = self.map.len() as i32;
+        self.place_in_random_room(depth);
+    }
+
+    fn place_in_random_room(&mut self, depth: u32) {
+        if self.rooms.is_empty() {
+            return;
+        }
+
+        let mut rng = LcgRng::new(depth.wrapping_mul(7919).wrapping_add(self.player_x as u32));
+        let room_index = (rng.next() as usize) % self.rooms.len();
+        let room = self.rooms[room_index].clone();
+
+        for _ in 0..30 {
+            let x = room.x + 1 + (rng.next() % (room.width.saturating_sub(2) as u32)) as i32;
+            let y = room.y + 1 + (rng.next() % (room.height.saturating_sub(2) as u32)) as i32;
+            if self.is_walkable(x, y)
+                && !self.enemies.iter().any(|enemy| enemy.x == x && enemy.y == y)
+            {
+                self.player_x = x;
+                self.player_y = y;
+                self.current_room = Some(room_index);
+                self.mark_visible();
+                return;
+            }
+        }
+
+        self.player_x = room.x + room.width / 2;
+        self.player_y = room.y + room.height / 2;
+        self.current_room = Some(room_index);
+        self.mark_visible();
+    }
+
     pub fn next_floor(&mut self) {
         if self.depth >= 30 {
             self.add_message("最下階です".to_string());
             return;
         }
 
+        self.save_current_floor();
         self.depth += 1;
         self.level += 1;
         self.hp = self.max_hp;
@@ -1419,29 +1745,13 @@ impl RoguelikeGame {
         self.messages.push(format!("F{} に到着した", self.depth));
         self.projectiles.clear();
         self.attack_effects.clear();
+        self.damage_numbers.clear();
         self.player_shake = 0;
+        self.dodge_animation = 0;
+        self.guard_timer = 0;
         self.enemy_shake.clear();
 
-        // マップサイズを更新
-        let (map_width, map_height) = Self::calc_map_size(self.depth);
-        self.map_width = map_width;
-        self.map_height = map_height;
-
-        // 新しいダンジョンを生成
-        let (map, rooms) = Self::generate_dungeon(map_width, map_height, self.depth);
-        self.map = map;
-        self.rooms = rooms;
-
-        // 訪問済みを新しいサイズでリセット
-        self.visited = vec![vec![false; map_width as usize]; map_height as usize];
-
-        // プレイヤーを上り階段の場所に配置
-        if !self.rooms.is_empty() {
-            let room = &self.rooms[0];
-            self.player_x = (room.x + 1).max(0).min(self.map_width - 1);
-            self.player_y = (room.y + 1).max(0).min(self.map_height - 1);
-            self.current_room = Some(0);
-        }
+        self.load_floor(self.depth);
 
         self.spawn_enemies(Self::should_spawn_boss(self.depth));
 
@@ -1458,6 +1768,7 @@ impl RoguelikeGame {
             return;
         }
 
+        self.save_current_floor();
         self.depth -= 1;
         self.level = self.depth;
         self.hp = self.max_hp;
@@ -1466,29 +1777,13 @@ impl RoguelikeGame {
         self.messages.push(format!("F{} に戻った", self.depth));
         self.projectiles.clear();
         self.attack_effects.clear();
+        self.damage_numbers.clear();
         self.player_shake = 0;
+        self.dodge_animation = 0;
+        self.guard_timer = 0;
         self.enemy_shake.clear();
 
-        // マップサイズを更新
-        let (map_width, map_height) = Self::calc_map_size(self.depth);
-        self.map_width = map_width;
-        self.map_height = map_height;
-
-        // 新しいダンジョンを生成
-        let (map, rooms) = Self::generate_dungeon(map_width, map_height, self.depth);
-        self.map = map;
-        self.rooms = rooms;
-
-        // 訪問済みを新しいサイズでリセット
-        self.visited = vec![vec![false; map_width as usize]; map_height as usize];
-
-        // プレイヤーを下り階段の場所に配置
-        if self.rooms.len() > 1 {
-            let room = &self.rooms[self.rooms.len() - 1];
-            self.player_x = (room.x + room.width - 2).max(0).min(self.map_width - 1);
-            self.player_y = (room.y + room.height - 2).max(0).min(self.map_height - 1);
-            self.current_room = Some(self.rooms.len() - 1);
-        }
+        self.load_floor(self.depth);
 
         self.spawn_enemies(Self::should_spawn_boss(self.depth));
 
@@ -1548,6 +1843,7 @@ pub fn render_canvas(game: &RoguelikeGame, canvas_id: &str, width: i32, height: 
                             crate::state::TileType::Wall => "#444",
                             crate::state::TileType::Floor => "#223",
                             crate::state::TileType::Room => "#335",
+                            crate::state::TileType::Pit => "#080812",
                             crate::state::TileType::StairDown => "#dd0",
                             crate::state::TileType::StairUp => "#0dd",
                         };
@@ -1581,6 +1877,23 @@ pub fn render_canvas(game: &RoguelikeGame, canvas_id: &str, width: i32, height: 
                                 ).ok();
                                 ctx.restore();
                             }
+                        }
+
+                        if tile_type == crate::state::TileType::Pit {
+                            ctx.save();
+                            ctx.set_fill_style(&"#020205".into());
+                            ctx.set_shadow_color("rgba(120, 40, 220, 0.8)");
+                            ctx.set_shadow_blur(12.0);
+                            ctx.begin_path();
+                            ctx.arc(
+                                screen_x + cell_w * 0.5,
+                                screen_y + cell_h * 0.5,
+                                cell_w * 0.32,
+                                0.0,
+                                std::f64::consts::PI * 2.0,
+                            ).ok();
+                            ctx.fill();
+                            ctx.restore();
                         }
                     }
                 }
@@ -1700,11 +2013,20 @@ pub fn render_canvas(game: &RoguelikeGame, canvas_id: &str, width: i32, height: 
                     .dyn_into::<web_sys::HtmlImageElement>()
                 {
                     let icon_x = player_screen_x + cell_w * 0.5 + shake_offset_x;
-                    let icon_y = player_screen_y + cell_h * 0.5 + shake_offset_y;
+                    let dodge_progress = if game.dodge_animation > 0 {
+                        1.0 - (game.dodge_animation as f64 / 12.0)
+                    } else {
+                        0.0
+                    };
+                    let jump_height = (dodge_progress * std::f64::consts::PI).sin() * cell_h * 0.45;
+                    let icon_y = player_screen_y + cell_h * 0.5 + shake_offset_y - jump_height;
                     let icon_size = cell_w * 0.6;
 
                     ctx.save();
                     ctx.translate(icon_x, icon_y).ok();
+                    if game.dodge_animation > 0 {
+                        ctx.rotate(dodge_progress * std::f64::consts::TAU).ok();
+                    }
 
                     // 方向に応じて反転: left は反転、right は そのまま
                     if game.player_direction == 1 {
@@ -1784,6 +2106,29 @@ pub fn render_canvas(game: &RoguelikeGame, canvas_id: &str, width: i32, height: 
                     }
 
                     ctx.restore();
+                }
+
+                // Draw floating damage numbers above the hit target.
+                for number in &game.damage_numbers {
+                    if number.x >= camera_x && number.x < camera_x + view_width
+                        && number.y >= camera_y && number.y < camera_y + view_height
+                    {
+                        let ttl_ratio = number.ttl as f64 / number.max_ttl as f64;
+                        let rise = (1.0 - ttl_ratio) * cell_h * 0.65;
+                        let screen_x = (number.x - camera_x) as f64 * cell_w + cell_w * 0.5;
+                        let screen_y = (number.y - camera_y) as f64 * cell_h + cell_h * 0.35 - rise;
+
+                        ctx.save();
+                        ctx.set_global_alpha(ttl_ratio.clamp(0.0, 1.0));
+                        ctx.set_font("bold 16px monospace");
+                        ctx.set_text_align("center");
+                        ctx.set_stroke_style(&"rgba(0, 0, 0, 0.9)".into());
+                        ctx.set_line_width(3.0);
+                        ctx.stroke_text(&format!("-{}", number.amount), screen_x, screen_y).ok();
+                        ctx.set_fill_style(&number.color.into());
+                        ctx.fill_text(&format!("-{}", number.amount), screen_x, screen_y).ok();
+                        ctx.restore();
+                    }
                 }
 
                 // Draw HP bar at top

@@ -507,6 +507,7 @@ html, body {
         </div>
       </div>
       <div id="tab-items" class="tab-panel"></div>
+      <div id="tab-settings" class="tab-panel"></div>
       <div id="tab-map" class="tab-panel active">
         <canvas id="dungeon-map" style="width: 100%; height: 100%; display: block; max-height: calc(100vh - 200px); object-fit: contain;"></canvas>
       </div>
@@ -538,6 +539,7 @@ html, body {
   <button class="nav-btn" data-tab="status"><i class="ra ra-player"></i> Status</button>
   <button class="nav-btn" data-tab="equipment"><i class="ra ra-broadsword"></i> Equipment</button>
   <button class="nav-btn" data-tab="items"><i class="ra ra-potion"></i> Items</button>
+  <button class="nav-btn" data-tab="settings"><i class="ra ra-cog"></i> Settings</button>
   <button class="nav-btn active" data-tab="map"><i class="ra ra-compass"></i> Map</button>
   <button class="nav-btn" id="nav-swap-button" style="cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;">←<br>→</button>
 </div>
@@ -561,6 +563,11 @@ const KEYMAP = {
   ArrowRight: 2, KeyD: 2,
   KeyZ: 4,
   KeyX: 5,
+  Digit1: 6,
+  Digit2: 7,
+  Digit3: 8,
+  Digit4: 9,
+  KeyC: 14,
 };
 
 const audio = { ensure: () => {}, play: () => {}, startAmbient: () => {}, setAmbVolume: () => {}, setSeVolume: () => {} };
@@ -578,6 +585,21 @@ async function start() {
 
     input.onAction(action => {
       if (initialized) wasm.move_roguelike(action);
+    });
+
+    // Shift + arrow steers an already-cast magic projectile without moving the player.
+    document.addEventListener('keydown', e => {
+      if (!e.shiftKey) return;
+      const direction = {
+        ArrowUp: 0, KeyW: 0,
+        ArrowLeft: 1, KeyA: 1,
+        ArrowRight: 2, KeyD: 2,
+        ArrowDown: 3, KeyS: 3,
+      }[e.code];
+      if (direction === undefined) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      if (initialized) wasm.move_roguelike(10 + direction);
     });
     input.bindKeyboard(KEYMAP);
     input.bindSwipe(['#ui-upper', '#canvas-wrap'], {
