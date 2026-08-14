@@ -538,13 +538,13 @@ html, body {
 <div id="movement-joystick" style="position: fixed; bottom: 60px; right: 10px; z-index: 50; display: none; width: 120px; height: 120px; background: rgba(0,200,255,0.2); border: 2px solid #0ff; border-radius: 50%; padding: 10px;">
   <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; height: 100%;">
     <div></div>
-    <button id="btn-up" style="background: rgba(0,200,255,0.6); border: 1px solid rgba(0,200,255,0.6); border-radius: 3px; color: #0ff; font-weight: bold; cursor: pointer;">↑</button>
+    <button id="btn-up" type="button" style="background: rgba(0,200,255,0.6); border: 1px solid rgba(0,200,255,0.6); border-radius: 3px; color: #0ff; font-weight: bold; cursor: pointer; touch-action: none;">↑</button>
     <div></div>
-    <button id="btn-left" style="background: rgba(0,200,255,0.6); border: 1px solid rgba(0,200,255,0.6); border-radius: 3px; color: #0ff; font-weight: bold; cursor: pointer;">←</button>
+    <button id="btn-left" type="button" style="background: rgba(0,200,255,0.6); border: 1px solid rgba(0,200,255,0.6); border-radius: 3px; color: #0ff; font-weight: bold; cursor: pointer; touch-action: none;">←</button>
     <div></div>
-    <button id="btn-right" style="background: rgba(0,200,255,0.6); border: 1px solid rgba(0,200,255,0.6); border-radius: 3px; color: #0ff; font-weight: bold; cursor: pointer;">→</button>
+    <button id="btn-right" type="button" style="background: rgba(0,200,255,0.6); border: 1px solid rgba(0,200,255,0.6); border-radius: 3px; color: #0ff; font-weight: bold; cursor: pointer; touch-action: none;">→</button>
     <div></div>
-    <button id="btn-down" style="background: rgba(0,200,255,0.6); border: 1px solid rgba(0,200,255,0.6); border-radius: 3px; color: #0ff; font-weight: bold; cursor: pointer;">↓</button>
+    <button id="btn-down" type="button" style="background: rgba(0,200,255,0.6); border: 1px solid rgba(0,200,255,0.6); border-radius: 3px; color: #0ff; font-weight: bold; cursor: pointer; touch-action: none;">↓</button>
     <div></div>
   </div>
 </div>
@@ -646,6 +646,24 @@ async function start() {
 
     const joystick = document.getElementById('movement-joystick');
     let joystickTouchStart = { x: 0, y: 0 };
+    const moveByButton = (action) => {
+      if (!initialized) return;
+      wasm.move_roguelike(action);
+    };
+    const bindButton = (id, action) => {
+      const button = document.getElementById(id);
+      if (!button) return;
+      const handler = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        moveByButton(action);
+      };
+      button.addEventListener('pointerdown', handler);
+    };
+    bindButton('btn-up', 0);
+    bindButton('btn-left', 1);
+    bindButton('btn-right', 2);
+    bindButton('btn-down', 3);
     joystick.addEventListener('touchstart', (e) => {
       const touch = e.touches[0];
       joystickTouchStart = { x: touch.clientX, y: touch.clientY };
