@@ -1,0 +1,6 @@
+*
+!wasm_dungeonload.js
+!wasm_dungeonload_bg.wasm
+!wasm_dungeonload.d.ts
+!wasm_dungeonload_bg.wasm.d.ts
+!package.json
