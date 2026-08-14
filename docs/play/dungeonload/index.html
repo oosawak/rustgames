@@ -509,7 +509,20 @@ html, body {
       <div id="tab-items" class="tab-panel"></div>
       <div id="tab-settings" class="tab-panel"></div>
       <div id="tab-map" class="tab-panel active">
-        <canvas id="dungeon-map" style="width: 100%; height: 100%; display: block; max-height: calc(100vh - 200px); object-fit: contain;"></canvas>
+        <div style="padding: 12px; display: flex; flex-direction: column; gap: 10px; height: 100%;">
+          <div style="border: 1px solid rgba(0,200,255,0.3); border-radius: 4px; padding: 10px 12px; color: rgba(190,220,240,0.9); font-size: 0.8em; line-height: 1.5; background: rgba(0, 20, 30, 0.45);">
+            <div style="font-size: 12px; color: #0ff; margin-bottom: 6px;">Controls</div>
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 16px;">
+              <div><b style="color: #fff;">WASD / Arrows</b> Move</div>
+              <div><b style="color: #fff;">Z</b> Weapon attack / Staff magic</div>
+              <div><b style="color: #fff;">X</b> Jump / dodge forward 3 tiles</div>
+              <div><b style="color: #fff;">C</b> Sword guard</div>
+              <div><b style="color: #fff;">1 - 4</b> Switch weapon</div>
+              <div><b style="color: #fff;">Shift + Arrows</b> Steer active staff magic</div>
+            </div>
+          </div>
+          <canvas id="dungeon-map" style="width: 100%; flex: 1; min-height: 0; display: block; object-fit: contain;"></canvas>
+        </div>
       </div>
     </div>
   </div>

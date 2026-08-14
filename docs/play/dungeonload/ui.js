@@ -52,17 +52,6 @@ export function createDungeonLoadUi({ wasm }) {
       <div style="font-size: 12px; color: rgba(150,150,150,0.7); margin-bottom: 4px;">DEFENSE</div>
       <div style="font-size: 20px; color: #aaa; font-weight: bold;">+${defBonus}</div>
     </div>`;
-    html += `<div style="grid-column: 1 / -1; border: 1px solid rgba(0,200,255,0.3); border-radius: 4px; padding: 12px;">
-      <div style="font-size: 12px; color: #0ff; margin-bottom: 8px;">Controls</div>
-      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 16px; font-size: 0.8em; color: rgba(190,220,240,0.85);">
-        <div><b style="color: #fff;">WASD / Arrows</b> Move</div>
-        <div><b style="color: #fff;">Z</b> Weapon attack / Staff magic</div>
-        <div><b style="color: #fff;">X</b> Jump / dodge forward 3 tiles</div>
-        <div><b style="color: #fff;">C</b> Sword guard</div>
-        <div><b style="color: #fff;">1 - 4</b> Switch weapon</div>
-        <div><b style="color: #fff;">Shift + Arrows</b> Steer active staff magic</div>
-      </div>
-    </div>`;
     html += '</div>';
     panel.innerHTML = html;
   }
