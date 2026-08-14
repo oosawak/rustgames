@@ -534,7 +534,13 @@ html, body {
   <button id="ui-toggle-btn" style="position: absolute; top: 50px; right: 10px; z-index: 30; padding: 6px 12px; background: rgba(0,200,255,0.2); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 4px; font-family: monospace; font-size: 0.8em; display: none;">▼ Hide UI</button>
 </div>
 <div id="message-log"></div>
-<button id="attack-button" style="position: fixed; bottom: 70px; left: 10px; z-index: 50; display: none; width: 90px; height: 90px; background: rgba(0,255,255,0.2); border: 2px solid #0ff; border-radius: 50%; color: #0ff; font-weight: bold; cursor: pointer; font-size: 32px;">⚔️</button>
+<div id="mobile-action-pad" style="position: fixed; bottom: 70px; left: 10px; z-index: 50; display: none; align-items: flex-end; gap: 8px;">
+  <button id="weapon-prev-button" type="button" style="width: 44px; height: 44px; background: rgba(0,200,255,0.18); border: 2px solid rgba(0,200,255,0.7); border-radius: 10px; color: #0ff; font-weight: bold; cursor: pointer; font-size: 18px; touch-action: none;">L</button>
+  <button id="attack-button" type="button" style="width: 88px; height: 88px; background: rgba(0,255,255,0.2); border: 2px solid #0ff; border-radius: 50%; color: #0ff; font-weight: bold; cursor: pointer; font-size: 32px; touch-action: none;">⚔️</button>
+  <button id="jump-button" type="button" style="width: 88px; height: 88px; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.8); border-radius: 50%; color: #fff; font-weight: bold; cursor: pointer; font-size: 28px; touch-action: none;">X</button>
+  <button id="weapon-next-button" type="button" style="width: 44px; height: 44px; background: rgba(0,200,255,0.18); border: 2px solid rgba(0,200,255,0.7); border-radius: 10px; color: #0ff; font-weight: bold; cursor: pointer; font-size: 18px; touch-action: none;">R</button>
+  <div id="mobile-weapon-label" style="position: absolute; left: 0; bottom: -24px; width: 100%; color: #0ff; text-align: center; font-size: 11px; text-shadow: 0 0 6px #0ff;">Wooden Sword</div>
+</div>
 <div id="movement-joystick" style="position: fixed; bottom: 60px; right: 10px; z-index: 50; display: none; width: 120px; height: 120px; background: rgba(0,200,255,0.2); border: 2px solid #0ff; border-radius: 50%; padding: 10px;">
   <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; height: 100%;">
     <div></div>
@@ -623,8 +629,12 @@ async function start() {
     document.getElementById('btn-start').addEventListener('click', () => {
       document.getElementById('title-screen').style.display = 'none';
       document.getElementById('nav-bar').style.display = 'flex';
+      document.getElementById('mobile-action-pad').style.display = 'flex';
       document.getElementById('movement-joystick').style.display = 'flex';
       document.getElementById('attack-button').style.display = 'block';
+      document.getElementById('jump-button').style.display = 'block';
+      document.getElementById('weapon-prev-button').style.display = 'block';
+      document.getElementById('weapon-next-button').style.display = 'block';
       document.getElementById('ui-toggle-btn').classList.add('show');
 
       const isLandscape = window.innerHeight < window.innerWidth;
@@ -638,8 +648,12 @@ async function start() {
 
     document.getElementById('btn-retry').addEventListener('click', () => {
       document.getElementById('game-over').style.display = 'none';
+      document.getElementById('mobile-action-pad').style.display = 'flex';
       document.getElementById('movement-joystick').style.display = 'flex';
       document.getElementById('attack-button').style.display = 'block';
+      document.getElementById('jump-button').style.display = 'block';
+      document.getElementById('weapon-prev-button').style.display = 'block';
+      document.getElementById('weapon-next-button').style.display = 'block';
       document.getElementById('ui-toggle-btn').classList.add('show');
       wasm.start_game_roguelike();
     });
@@ -681,9 +695,45 @@ async function start() {
       }
     });
 
-    const attackButton = document.getElementById('attack-button');
-    attackButton.addEventListener('click', () => {
-      if (initialized) wasm.move_roguelike(4);
+    const bindActionButton = (id, action) => {
+      const button = document.getElementById(id);
+      if (!button) return;
+      button.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (initialized) wasm.move_roguelike(action);
+      });
+    };
+    bindActionButton('attack-button', 4);
+    bindActionButton('jump-button', 5);
+
+    const weaponNames = ['Wooden Sword', 'Iron Sword', 'Spear', 'Bow', 'Staff', 'Cursed Blade'];
+    const mobileWeaponLabel = document.getElementById('mobile-weapon-label');
+    const cycleWeapon = (direction) => {
+      if (!initialized) return;
+      const inventory = wasm.weapon_inventory_roguelike();
+      if (!inventory.length) return;
+      const currentWeapon = wasm.player_equipped_weapon_roguelike();
+      let currentIndex = inventory.findIndex((weapon) => weapon === currentWeapon);
+      if (currentIndex < 0) currentIndex = 0;
+      const nextIndex = (currentIndex + direction + inventory.length) % inventory.length;
+      if (wasm.equip_weapon_roguelike(nextIndex)) {
+        mobileWeaponLabel.textContent = weaponNames[inventory[nextIndex]] || 'Weapon';
+      }
+    };
+
+    const weaponPrevButton = document.getElementById('weapon-prev-button');
+    weaponPrevButton.addEventListener('pointerdown', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      cycleWeapon(-1);
+    });
+
+    const weaponNextButton = document.getElementById('weapon-next-button');
+    weaponNextButton.addEventListener('pointerdown', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      cycleWeapon(1);
     });
 
     ui.setupNavigation();
@@ -704,6 +754,12 @@ async function start() {
 function render() {
   if (!initialized) return;
   ui.updateMessageLog();
+  const mobileWeaponLabel = document.getElementById('mobile-weapon-label');
+  if (mobileWeaponLabel) {
+    const weaponNames = ['Wooden Sword', 'Iron Sword', 'Spear', 'Bow', 'Staff', 'Cursed Blade'];
+    const equippedWeapon = wasm.player_equipped_weapon_roguelike();
+    mobileWeaponLabel.textContent = weaponNames[equippedWeapon] || 'No Weapon';
+  }
 
   const activeTab = document.querySelector('.nav-btn.active');
   if (activeTab) {
