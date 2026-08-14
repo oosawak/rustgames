@@ -382,7 +382,7 @@ impl RoguelikeGame {
             player_y: 0,
             player_direction: 2,  // default facing right
             enemies: vec![],
-            messages: vec!["ダンジョンに入った...".to_string()],
+            messages: vec!["Entered the dungeon...".to_string()],
             map,
             map_width,
             map_height,
@@ -660,7 +660,7 @@ impl RoguelikeGame {
     pub fn start_game(&mut self) {
         self.scene = RogueScene::Playing;
         self.messages.clear();
-        self.messages.push("ゲーム開始！".to_string());
+        self.messages.push("Game started!".to_string());
         self.projectiles.clear();
         self.attack_effects.clear();
         self.damage_numbers.clear();
@@ -674,7 +674,7 @@ impl RoguelikeGame {
             self.player_x = room.x + room.width / 2;
             self.player_y = room.y + room.height / 2;
             self.current_room = Some(0);
-            self.add_message("📍 部屋 #1 に入った".to_string());
+            self.add_message("📍 Entered Room #1".to_string());
         }
 
         self.hp = self.max_hp;
@@ -711,11 +711,11 @@ impl RoguelikeGame {
 
     fn enter_pit(&mut self) {
         if self.depth >= 30 {
-            self.add_message("🕳️ 穴はあるが、これ以上下へ行けない".to_string());
+            self.add_message("🕳️ There is a pit here, but you cannot go any lower.".to_string());
             return;
         }
         self.next_floor();
-        self.add_message("🕳️ 穴に落ちて、下の階へ進んだ".to_string());
+        self.add_message("🕳️ Fell into a pit and dropped to the next floor.".to_string());
     }
 
     fn get_room_at(&self, x: i32, y: i32) -> Option<usize> {
@@ -731,9 +731,9 @@ impl RoguelikeGame {
         match weapon {
             WeaponType::WoodenSword => "Wooden Sword",
             WeaponType::IronSword => "Iron Sword",
-            WeaponType::Spear => "槍",
+            WeaponType::Spear => "Spear",
             WeaponType::Bow => "Bow",
-            WeaponType::Staff => "杖",
+            WeaponType::Staff => "Staff",
             WeaponType::CursedBlade => "Cursed Blade",
         }
     }
@@ -849,9 +849,9 @@ impl RoguelikeGame {
             if self.no_damage_mode {
                 self.add_message(format!("{} attack blocked by no-damage mode", enemy_name));
             } else if guarding {
-                self.add_message(format!("ガード！ {} の攻撃を {} ダメージに軽減", enemy_name, damage));
+                self.add_message(format!("Guard! {}'s attack reduced to {} damage.", enemy_name, damage));
             } else {
-                self.add_message(format!("{} の攻撃！ {} ダメージ", enemy_name, damage));
+                self.add_message(format!("{} attacks! {} damage.", enemy_name, damage));
             }
             self.player_shake = 5;
 
@@ -881,13 +881,13 @@ impl RoguelikeGame {
 
         if self.hp == 0 {
             self.scene = RogueScene::GameOver;
-            self.add_message("💀 ゲームオーバー".to_string());
+            self.add_message("💀 Game Over".to_string());
         }
     }
 
     fn cast_staff_magic(&mut self) {
         if self.mp < 3 {
-            self.add_message("MPが足りない".to_string());
+            self.add_message("Not enough MP.".to_string());
             return;
         }
         let (target_x, target_y) = self.bow_target();
@@ -902,7 +902,7 @@ impl RoguelikeGame {
             damage: 10 + self.equipment.get_atk_bonus(),
             direction: self.player_direction,
         });
-        self.add_message("杖から魔法を放った！ MP -3".to_string());
+        self.add_message("Cast a spell from the staff! MP -3".to_string());
     }
 
     fn magic_target_from(&self, from_x: f64, from_y: f64, direction: i32) -> (f64, f64) {
@@ -1026,7 +1026,7 @@ impl RoguelikeGame {
                 self.enemies[i].hp = (self.enemies[i].hp as i32 - final_damage as i32).max(0) as u32;
                 let enemy_name = self.enemies[i].name.clone();
 
-                self.add_message(format!("{} に {} のダメージ！", enemy_name, final_damage));
+                self.add_message(format!("{} takes {} damage!", enemy_name, final_damage));
                 self.push_damage_number(target_x, target_y, final_damage, "#ffd45c");
                 if i < self.enemy_shake.len() {
                     self.enemy_shake[i] = 5;
@@ -1036,7 +1036,7 @@ impl RoguelikeGame {
                     let is_boss = self.enemies[i].is_boss;
                     let exp_gain = if is_boss { 500 } else { 10 };
 
-                    self.add_message(format!("{} を倒した！ +{} EXP", enemy_name, exp_gain));
+                    self.add_message(format!("{} defeated! +{} EXP", enemy_name, exp_gain));
 
                     let mut rng = LcgRng::new((self.depth as u32).wrapping_mul(12345).wrapping_add(self.enemies[i].x as u32));
                     let item_roll = rng.next() % 100;
@@ -1046,33 +1046,33 @@ impl RoguelikeGame {
                         match potion_type {
                             0 => {
                                 self.inventory[ItemType::HealthPotion as usize] += 1;
-                                self.add_message("💚 回復ポーションを入手した！".to_string());
+                                self.add_message("💚 Found a Health Potion!".to_string());
                             }
                             1 => {
                                 self.inventory[ItemType::ManaPotion as usize] += 1;
-                                self.add_message("💙 マナポーションを入手した！".to_string());
+                                self.add_message("💙 Found a Mana Potion!".to_string());
                             }
                             2 => {
                                 self.inventory[ItemType::PoisonPotion as usize] += 1;
-                                self.add_message("☠️ 毒ポーションを入手した！".to_string());
+                                self.add_message("☠️ Found a Poison Potion!".to_string());
                             }
                             _ => {
                                 self.inventory[ItemType::EnergyDrink as usize] += 1;
-                                self.add_message("⚡ エナジードリンクを入手した！".to_string());
+                                self.add_message("⚡ Found an Energy Drink!".to_string());
                             }
                         }
                     } else if item_roll < 60 {
                         self.inventory[ItemType::Gem as usize] += rng.next() % 3 + 1;
-                        self.add_message("💎 宝石を入手した！".to_string());
+                        self.add_message("💎 Found gems!".to_string());
                     } else if item_roll < 80 {
                         self.inventory[ItemType::SkeletonKey as usize] += 1;
-                        self.add_message("🔑 鍵を入手した！".to_string());
+                        self.add_message("🔑 Found a key!".to_string());
                     } else if item_roll < 90 {
                         self.inventory[ItemType::Scroll as usize] += 1;
-                        self.add_message("📜 スクロールを入手した！".to_string());
+                        self.add_message("📜 Found a scroll!".to_string());
                     } else {
                         self.inventory[ItemType::GoldenCoin as usize] += rng.next() % 5 + 1;
-                        self.add_message("🪙 金貨を入手した！".to_string());
+                        self.add_message("🪙 Found gold coins!".to_string());
                     }
 
                     if is_boss {
@@ -1082,19 +1082,19 @@ impl RoguelikeGame {
                                 let weapons = [WeaponType::IronSword, WeaponType::Spear, WeaponType::Bow, WeaponType::Staff];
                                 let weapon = weapons[(rng.next() as usize) % weapons.len()];
                                 self.eq_inventory.weapons.push(weapon);
-                                self.add_message(format!("⚔️ {} を手に入れた！", Self::weapon_name(weapon)));
+                                self.add_message(format!("⚔️ Found {}", Self::weapon_name(weapon)));
                             }
                             1 => {
                                 let armors = [ArmorType::LeatherArmor, ArmorType::ChainMail, ArmorType::SteelPlate];
                                 let armor = armors[(rng.next() as usize) % armors.len()];
                                 self.eq_inventory.armors.push(armor);
-                                self.add_message(format!("🛡️ {} を手に入れた！", Self::armor_name(armor)));
+                                self.add_message(format!("🛡️ Found {}", Self::armor_name(armor)));
                             }
                             _ => {
                                 let accessories = [AccessoryType::GoldRing, AccessoryType::LuckyRing, AccessoryType::HealingNecklace];
                                 let accessory = accessories[(rng.next() as usize) % accessories.len()];
                                 self.eq_inventory.accessories.push(accessory);
-                                self.add_message(format!("💍 {} を手に入れた！", Self::accessory_name(accessory)));
+                                self.add_message(format!("💍 Found {}", Self::accessory_name(accessory)));
                             }
                         }
                     }
@@ -1120,9 +1120,9 @@ impl RoguelikeGame {
             let slot = (action - 6) as usize;
             if let Some(&weapon) = self.eq_inventory.weapons.get(slot) {
                 self.equipment.weapon = Some(weapon);
-                self.add_message(format!("⚔️ {} に切り替えた", Self::weapon_name(weapon)));
+                self.add_message(format!("⚔️ Switched to {}", Self::weapon_name(weapon)));
             } else {
-                self.add_message("その武器はまだ持っていない".to_string());
+                self.add_message("You do not have that weapon yet.".to_string());
             }
             return;
         }
@@ -1136,9 +1136,9 @@ impl RoguelikeGame {
         if action == 14 {
             if Self::weapon_style(self.equipment.weapon.unwrap_or(WeaponType::WoodenSword)) == WeaponStyle::Sword {
                 self.guard_timer = 30;
-                self.add_message("剣を構えた！ ガード中".to_string());
+                self.add_message("Sword guard up! Blocking.".to_string());
             } else {
-                self.add_message("剣を装備すると防御できる".to_string());
+                self.add_message("Equip a sword to guard.".to_string());
             }
             return;
         }
@@ -1159,7 +1159,7 @@ impl RoguelikeGame {
                     if hit_any {
                         self.player_shake = 3;
                     }
-                    self.add_message("剣を振った！".to_string());
+                    self.add_message("Sword slash!".to_string());
                 }
                 WeaponStyle::Spear => {
                     let cells = self.spear_attack_cells();
@@ -1172,7 +1172,7 @@ impl RoguelikeGame {
                     if hit_any {
                         self.player_shake = 3;
                     }
-                    self.add_message("槍を突いた！".to_string());
+                    self.add_message("Spear thrust!".to_string());
                 }
                 WeaponStyle::Bow => {
                     let (target_x, target_y) = self.bow_target();
@@ -1186,7 +1186,7 @@ impl RoguelikeGame {
                         damage: 5 + self.equipment.get_atk_bonus(),
                         direction: self.player_direction,
                     });
-                    self.add_message("弓を放った！".to_string());
+                    self.add_message("Bow shot!".to_string());
                 }
                 WeaponStyle::Staff => {
                     self.cast_staff_magic();
@@ -1240,7 +1240,7 @@ impl RoguelikeGame {
         let moved = new_x != self.player_x || new_y != self.player_y;
         if action == 5 && moved {
             self.dodge_animation = 12;
-            self.add_message("回転回避！".to_string());
+            self.add_message("Spin dodge!".to_string());
         }
 
         // 敵への攻撃判定
@@ -1256,7 +1256,7 @@ impl RoguelikeGame {
                 self.enemies[i].hp = (self.enemies[i].hp as i32 - damage as i32).max(0) as u32;
                 let enemy_name = self.enemies[i].name.clone();
 
-                self.add_message(format!("{} に {} のダメージ！", enemy_name, damage));
+                self.add_message(format!("{} takes {} damage!", enemy_name, damage));
 
                 // 敵を震わせる
                 if i < self.enemy_shake.len() {
@@ -1267,7 +1267,7 @@ impl RoguelikeGame {
                     let is_boss = self.enemies[i].is_boss;
                     let exp_gain = if is_boss { 500 } else { 10 };
 
-                    self.add_message(format!("{} を倒した！ +{} EXP", enemy_name, exp_gain));
+                    self.add_message(format!("{} defeated! +{} EXP", enemy_name, exp_gain));
 
                     // 敵からのドロップ（アイテム）
                     let mut rng = LcgRng::new((self.depth as u32).wrapping_mul(12345).wrapping_add(self.enemies[i].x as u32));
@@ -1279,37 +1279,37 @@ impl RoguelikeGame {
                         match potion_type {
                             0 => {
                                 self.inventory[ItemType::HealthPotion as usize] += 1;
-                                self.add_message("💚 回復ポーションを入手した！".to_string());
+                                self.add_message("💚 Found a Health Potion!".to_string());
                             }
                             1 => {
                                 self.inventory[ItemType::ManaPotion as usize] += 1;
-                                self.add_message("💙 マナポーションを入手した！".to_string());
+                                self.add_message("💙 Found a Mana Potion!".to_string());
                             }
                             2 => {
                                 self.inventory[ItemType::PoisonPotion as usize] += 1;
-                                self.add_message("☠️ 毒ポーションを入手した！".to_string());
+                                self.add_message("☠️ Found a Poison Potion!".to_string());
                             }
                             _ => {
                                 self.inventory[ItemType::EnergyDrink as usize] += 1;
-                                self.add_message("⚡ エナジードリンクを入手した！".to_string());
+                                self.add_message("⚡ Found an Energy Drink!".to_string());
                             }
                         }
                     } else if item_roll < 60 {
                         // 宝石（30%）
                         self.inventory[ItemType::Gem as usize] += rng.next() % 3 + 1;
-                        self.add_message("💎 宝石を入手した！".to_string());
+                        self.add_message("💎 Found gems!".to_string());
                     } else if item_roll < 80 {
                         // 鍵（20%）
                         self.inventory[ItemType::SkeletonKey as usize] += 1;
-                        self.add_message("🔑 鍵を入手した！".to_string());
+                        self.add_message("🔑 Found a key!".to_string());
                     } else if item_roll < 90 {
                         // スクロール（10%）
                         self.inventory[ItemType::Scroll as usize] += 1;
-                        self.add_message("📜 スクロールを入手した！".to_string());
+                        self.add_message("📜 Found a scroll!".to_string());
                     } else {
                         // コイン（10%）
                         self.inventory[ItemType::GoldenCoin as usize] += rng.next() % 5 + 1;
-                        self.add_message("🪙 金貨を入手した！".to_string());
+                        self.add_message("🪙 Found gold coins!".to_string());
                     }
 
                     // ボス撃破時の装備ドロップ
@@ -1323,21 +1323,21 @@ impl RoguelikeGame {
                                 let weapons = [WeaponType::IronSword, WeaponType::Spear, WeaponType::Bow, WeaponType::Staff];
                                 let weapon = weapons[(rng.next() as usize) % weapons.len()];
                                 self.eq_inventory.weapons.push(weapon);
-                                self.add_message(format!("⚔️ {} を手に入れた！", Self::weapon_name(weapon)));
+                                self.add_message(format!("⚔️ Found {}", Self::weapon_name(weapon)));
                             }
                             1 => {
                                 // 防具ドロップ
                                 let armors = [ArmorType::LeatherArmor, ArmorType::ChainMail, ArmorType::SteelPlate];
                                 let armor = armors[(rng.next() as usize) % armors.len()];
                                 self.eq_inventory.armors.push(armor);
-                                self.add_message(format!("🛡️ {} を手に入れた！", Self::armor_name(armor)));
+                                self.add_message(format!("🛡️ Found {}", Self::armor_name(armor)));
                             }
                             _ => {
                                 // アクセサリードロップ
                                 let accessories = [AccessoryType::GoldRing, AccessoryType::LuckyRing, AccessoryType::HealingNecklace];
                                 let accessory = accessories[(rng.next() as usize) % accessories.len()];
                                 self.eq_inventory.accessories.push(accessory);
-                                self.add_message(format!("💍 {} を手に入れた！", Self::accessory_name(accessory)));
+                                self.add_message(format!("💍 Found {}", Self::accessory_name(accessory)));
                             }
                         }
                     }
@@ -1359,7 +1359,7 @@ impl RoguelikeGame {
         }
 
         if !moved {
-            self.add_message("壁にぶつかった".to_string());
+            self.add_message("Bumped into a wall.".to_string());
             return;
         }
 
@@ -1373,14 +1373,14 @@ impl RoguelikeGame {
 
         if tile == TileType::StairDown && self.depth < 30 {
             // 下り階段
-            self.add_message(format!("⬇️ F{} へ下った...", self.depth + 1));
+            self.add_message(format!("⬇️ Moved down to F{}...", self.depth + 1));
             self.next_floor();
             return;
         }
 
         if tile == TileType::StairUp && self.depth > 1 {
             // 上り階段
-            self.add_message(format!("⬆️ F{} へ上った...", self.depth - 1));
+            self.add_message(format!("⬆️ Moved up to F{}...", self.depth - 1));
             self.prev_floor();
             return;
         }
@@ -1394,10 +1394,10 @@ impl RoguelikeGame {
             if new_room != self.current_room {
                 match new_room {
                     Some(room_idx) => {
-                        self.add_message(format!("📍 部屋 #{} に入った", room_idx + 1));
+                        self.add_message(format!("📍 Entered Room #{}", room_idx + 1));
                     }
                     None => {
-                        self.add_message("通路に出た".to_string());
+                        self.add_message("Entered a corridor.".to_string());
                     }
                 }
                 self.current_room = new_room;
@@ -1441,7 +1441,7 @@ impl RoguelikeGame {
             // 訪問済みをマーク
             self.mark_visible();
         } else {
-            self.add_message("壁にぶつかった".to_string());
+            self.add_message("Bumped into a wall.".to_string());
         }
     }
 
@@ -1475,7 +1475,7 @@ impl RoguelikeGame {
         self.hp = self.max_hp;
         self.mp = self.max_mp;
         self.next_level_exp = self.level * 50;
-        self.add_message(format!("レベルアップ！LV{}", self.level));
+        self.add_message(format!("Level up! LV{}", self.level));
     }
 
     pub fn tick(&mut self, _ts: f64) {
@@ -1630,7 +1630,7 @@ impl RoguelikeGame {
         // Add messages after the loop and gain exp
         for i in 0..self.enemies.len() {
             if self.enemy_shake[i] == 5 {
-                self.add_message("敵を倒した！".to_string());
+                self.add_message("Enemy defeated!".to_string());
                 self.gain_exp(10);
                 break;
             }
@@ -1755,7 +1755,7 @@ impl RoguelikeGame {
 
     pub fn next_floor(&mut self) {
         if self.depth >= 30 {
-            self.add_message("最下階です".to_string());
+            self.add_message("You are already on the deepest floor.".to_string());
             return;
         }
 
@@ -1765,7 +1765,7 @@ impl RoguelikeGame {
         self.hp = self.max_hp;
         self.mp = self.max_mp;
         self.messages.clear();
-        self.messages.push(format!("F{} に到着した", self.depth));
+        self.messages.push(format!("Arrived at F{}", self.depth));
         self.reset_transition_state();
 
         self.load_floor(self.depth);
@@ -1781,7 +1781,7 @@ impl RoguelikeGame {
 
     pub fn prev_floor(&mut self) {
         if self.depth <= 1 {
-            self.add_message("地上です".to_string());
+            self.add_message("You are on the surface.".to_string());
             return;
         }
 
@@ -1791,7 +1791,7 @@ impl RoguelikeGame {
         self.hp = self.max_hp;
         self.mp = self.max_mp;
         self.messages.clear();
-        self.messages.push(format!("F{} に戻った", self.depth));
+        self.messages.push(format!("Returned to F{}", self.depth));
         self.reset_transition_state();
 
         self.load_floor(self.depth);
