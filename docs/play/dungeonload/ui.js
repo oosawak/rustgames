@@ -199,6 +199,20 @@ export function createDungeonLoadUi({ wasm }) {
     }
   }
 
+  function updateLogTab(panel) {
+    if (!panel) return;
+    const messages = wasm.messages_roguelike();
+    panel.innerHTML = `
+      <div style="padding: 16px; height: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px;">
+        <div class="stat-label" style="font-size: 1.1em;">MESSAGE LOG</div>
+        <div style="border: 1px solid rgba(0,200,255,0.35); padding: 10px; overflow-y: auto; flex: 1; min-height: 0; line-height: 1.5; color: #aaf; text-shadow: 0 0 4px #0ff;">
+          ${messages.map(msg => `<div style="margin: 3px 0; word-break: break-word;">${msg}</div>`).join('') || '<div style="color: #888;">No messages yet.</div>'}
+        </div>
+      </div>`;
+    const logBox = panel.querySelector('div[style*="overflow-y"]');
+    if (logBox) logBox.scrollTop = logBox.scrollHeight;
+  }
+
   function flashHint(action) {
     const hints = ['sh-up', 'sh-left', 'sh-right', 'sh-down'];
     const hint = document.querySelector(`.${hints[action]}`);
@@ -250,6 +264,9 @@ export function createDungeonLoadUi({ wasm }) {
         break;
       case 'settings':
         updateSettingsTab(panel);
+        break;
+      case 'log':
+        updateLogTab(panel);
         break;
       case 'map':
         drawDungeonMap();
@@ -466,6 +483,7 @@ export function createDungeonLoadUi({ wasm }) {
     selectEquipmentSlot,
     updateEquipmentDisplay,
     updateItemsDisplay,
+    updateLogTab,
     updateMessageLog,
     setControlsSwapped,
     flashHint,

@@ -734,6 +734,7 @@ body.controls-swapped #movement-joystick {
       </div>
       <div id="tab-items" class="tab-panel"></div>
       <div id="tab-settings" class="tab-panel"></div>
+      <div id="tab-log" class="tab-panel"></div>
       <div id="tab-map" class="tab-panel">
         <div style="padding: 12px; display: flex; flex-direction: column; gap: 10px; height: 100%;">
           <canvas id="dungeon-map" style="width: 100%; flex: 1; min-height: 0; display: block; object-fit: contain;"></canvas>
@@ -796,6 +797,7 @@ body.controls-swapped #movement-joystick {
   <button class="nav-btn" data-tab="equipment"><i class="ra ra-broadsword"></i> Equipment</button>
   <button class="nav-btn" data-tab="items"><i class="ra ra-potion"></i> Items</button>
   <button class="nav-btn" data-tab="settings"><i class="ra ra-cog"></i> Settings</button>
+  <button class="nav-btn" data-tab="log"><i class="ra ra-scroll-unfurled"></i> Log</button>
   <button class="nav-btn" data-tab="map"><i class="ra ra-compass"></i> Map</button>
 </div>
 <div id="swipe-hint">
@@ -807,7 +809,7 @@ body.controls-swapped #movement-joystick {
 <script type="module">
 import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=3';
 import { FontLoader, InputManager } from '../../engine.js';
-import { createDungeonLoadUi } from './ui.js?overlay=2';
+import { createDungeonLoadUi } from './ui.js?overlay=3';
 window.wasm = wasm;
 const ui = createDungeonLoadUi({ wasm });
 
