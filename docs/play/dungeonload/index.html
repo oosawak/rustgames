@@ -437,6 +437,7 @@ html, body {
   display: block;
   width: 100%;
   height: 100%;
+  z-index: 80;
 }
 #ui-upper {
   position: fixed;
@@ -503,6 +504,14 @@ html, body {
   pointer-events: none;
 }
 #ui-toggle-btn { display: none !important; }
+body.controls-swapped #mobile-action-pad {
+  left: auto !important;
+  right: 10px;
+}
+body.controls-swapped #movement-joystick {
+  right: auto !important;
+  left: 10px;
+}
 #panel-close {
   align-self: flex-end;
   flex: 0 0 auto;
@@ -768,7 +777,7 @@ html, body {
   <button class="nav-btn" data-tab="items"><i class="ra ra-potion"></i> Items</button>
   <button class="nav-btn" data-tab="settings"><i class="ra ra-cog"></i> Settings</button>
   <button class="nav-btn" data-tab="map"><i class="ra ra-compass"></i> Map</button>
-  <button class="nav-btn" id="nav-swap-button" style="cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;">←<br>→</button>
+  <button class="nav-btn" id="nav-swap-button" aria-label="Swap control sides" style="cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;">←<br>→</button>
 </div>
 <div id="swipe-hint">
   <span class="sh-arrow sh-up">▲</span>
@@ -977,6 +986,13 @@ async function start() {
     });
 
     ui.setupNavigation();
+
+    const navSwapButton = document.getElementById('nav-swap-button');
+    navSwapButton.addEventListener('pointerdown', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      document.body.classList.toggle('controls-swapped');
+    });
 
     function update() {
       if (initialized) {
