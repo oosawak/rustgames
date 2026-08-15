@@ -163,7 +163,7 @@ export function createDungeonLoadUi({ wasm }) {
       msgLogEl.style.display = 'block';
       const messages = wasm.messages_roguelike();
       msgLogEl.innerHTML = messages
-        .slice(-4)
+        .slice(-5)
         .map(msg => '<div style="margin: 2px 0; word-break: break-word;">' + msg + '</div>')
         .join('');
       msgLogEl.scrollTop = msgLogEl.scrollHeight;
