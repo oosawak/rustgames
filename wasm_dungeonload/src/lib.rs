@@ -243,7 +243,7 @@ pub fn enemy_data_roguelike(index: usize) -> Vec<i32> {
         if let Some(g) = s.borrow().as_ref() {
             if index < g.enemies.len() {
                 let e = &g.enemies[index];
-                vec![e.x, e.y, e.hp as i32]
+                vec![e.x, e.y, e.hp as i32, e.enemy_type as i32]
             } else {
                 vec![]
             }

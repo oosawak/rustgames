@@ -812,7 +812,7 @@ body.controls-swapped #movement-joystick {
   <span class="sh-arrow sh-right">▶</span>
 </div>
 <script type="module">
-import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=8';
+import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=9';
 import { FontLoader, InputManager } from '../../engine.js';
 import { createDungeonLoadUi } from './ui.js?overlay=4';
 window.wasm = wasm;
@@ -1119,6 +1119,20 @@ function loadPlayerVrm() {
     console.warn('VRM load failed, keeping box player:', e);
   });
 }
+function createIconSprite(imageId, size) {
+  const image = document.getElementById(imageId);
+  if (!image) return null;
+  const texture = new THREE.Texture(image);
+  texture.needsUpdate = true;
+  const material = new THREE.SpriteMaterial({
+    map: texture,
+    transparent: true,
+    depthWrite: false,
+  });
+  const sprite = new THREE.Sprite(material);
+  sprite.scale.set(size, size, 1);
+  return sprite;
+}
 function init3d() {
   const canvas3d = document.getElementById('game-canvas-3d');
   const wrap = document.getElementById('canvas-wrap');
@@ -1139,7 +1153,7 @@ function init3d() {
   scene.add(light);
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
   scene.add(ambientLight);
-  loadPlayerVrm();
+  // Use the same readable character icon as the 2D view in the 3D scene.
   window.addEventListener('resize', () => {
     if (!renderer) return;
     const newWidth = wrap.offsetWidth;
@@ -1214,9 +1228,12 @@ function updateDungeon3d() {
     playerModel.rotation.y = dirToRot[dir] ?? 0;
     if (playerVrm) playerVrm.update(1 / 60);
   } else {
-    const playerGeom = new THREE.BoxGeometry(0.7, 1.4, 0.7);
-    const playerMat = new THREE.MeshLambertMaterial({ color: 0x00ff00 });
-    playerCube = new THREE.Mesh(playerGeom, playerMat);
+    playerCube = createIconSprite('player-icon', 1.5);
+    if (!playerCube) {
+      const playerGeom = new THREE.BoxGeometry(0.7, 1.4, 0.7);
+      const playerMat = new THREE.MeshLambertMaterial({ color: 0x00ff00 });
+      playerCube = new THREE.Mesh(playerGeom, playerMat);
+    }
     playerCube.position.set(playerX, 0.9, playerY);
     scene.add(playerCube);
   }
@@ -1227,9 +1244,11 @@ function updateDungeon3d() {
     const ex = data[0];
     const ey = data[1];
     if (ex < minX || ex > maxX || ey < minY || ey > maxY) continue;
-    const enemyGeom = new THREE.BoxGeometry(0.6, 1.1, 0.6);
-    const enemyMat = new THREE.MeshLambertMaterial({ color: 0xff4444 });
-    const enemyCube = new THREE.Mesh(enemyGeom, enemyMat);
+    const enemyCube = createIconSprite(`enemy-${data[3]}`, 1.25)
+      || new THREE.Mesh(
+        new THREE.BoxGeometry(0.6, 1.1, 0.6),
+        new THREE.MeshLambertMaterial({ color: 0xff4444 })
+      );
     enemyCube.position.set(ex, 0.75, ey);
     scene.add(enemyCube);
     enemies3d.push(enemyCube);
