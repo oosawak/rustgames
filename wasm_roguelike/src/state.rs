@@ -1863,8 +1863,7 @@ pub fn render_canvas(game: &RoguelikeGame, canvas_id: &str, width: i32, height: 
                 let view_height = 10i32;
 
                 // Font and tile size settings
-                let font_size = 20.0;  // フォントサイズ（px）
-                let cell_size = 32.0;  // タイルサイズ（px）、フォント + 余白
+                let cell_size = (width as f64 / view_width as f64).max(1.0);
 
                 let cell_w = cell_size;
                 let cell_h = cell_size;
