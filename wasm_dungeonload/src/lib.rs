@@ -120,7 +120,7 @@ pub fn enemy_attack_interval_scale_roguelike() -> u32 {
 
 #[wasm_bindgen]
 pub fn set_enemy_attack_interval_scale_roguelike(value: u32) {
-    let value = value.clamp(50, 250);
+    let value = value.clamp(50, 1000);
     DUNGEONLOAD_STATE.with(|s| {
         if let Some(g) = s.borrow_mut().as_mut() {
             g.enemy_attack_interval_scale = value;

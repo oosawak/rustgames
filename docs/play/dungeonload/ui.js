@@ -297,7 +297,7 @@ export function createDungeonLoadUi({ wasm }) {
             <span class="stat-label">ENEMY ATTACK INTERVAL</span>
             <span class="stat-value" id="enemy-interval-value">${scale}%</span>
           </div>
-          <input id="enemy-interval-slider" type="range" min="50" max="250" step="10" value="${scale}" style="width: 100%; margin-top: 14px; accent-color: #0ff;">
+          <input id="enemy-interval-slider" type="range" min="50" max="1000" step="10" value="${scale}" style="width: 100%; margin-top: 14px; accent-color: #0ff;">
           <div style="color: rgba(180,220,240,0.75); font-size: 0.75em; line-height: 1.5; margin-top: 8px;">
             Higher values make enemy attacks slower. Differences between enemy types are preserved.
           </div>
