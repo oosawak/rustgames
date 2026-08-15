@@ -489,6 +489,10 @@ html, body {
   height: calc(100% - 42px) !important;
   z-index: 1;
 }
+body.mode-3d #canvas-wrap {
+  bottom: auto;
+  height: calc(50vh - 42px) !important;
+}
 #game-top-info {
   position: fixed;
   top: 0;
@@ -1250,11 +1254,13 @@ function toggleViewMode() {
   const canvas3d = document.getElementById('game-canvas-3d');
   const btn = document.getElementById('view-toggle');
   if (is3dMode) {
+    document.body.classList.add('mode-3d');
     canvas2d.style.display = 'none';
     canvas3d.style.display = 'block';
     btn.textContent = '2D';
     render3d();
   } else {
+    document.body.classList.remove('mode-3d');
     canvas2d.style.display = 'block';
     canvas3d.style.display = 'none';
     btn.textContent = '3D';
