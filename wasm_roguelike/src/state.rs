@@ -1525,6 +1525,7 @@ impl RoguelikeGame {
                 }
             }
         }
+        self.save_floor_progress();
     }
 
     fn gain_exp(&mut self, amount: u32) {
@@ -1803,6 +1804,14 @@ impl RoguelikeGame {
             rooms: self.rooms.clone(),
             visited: self.visited.clone(),
         });
+    }
+
+    fn save_floor_progress(&mut self) {
+        if let Some(saved) = self.floor_states[self.depth as usize].as_mut() {
+            saved.visited = self.visited.clone();
+        } else {
+            self.save_current_floor();
+        }
     }
 
     fn load_floor(&mut self, depth: u32) {

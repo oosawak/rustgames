@@ -836,7 +836,7 @@ async function __wbg_init(module_or_path) {
     }
 
     if (module_or_path === undefined) {
-        module_or_path = new URL('wasm_dungeonload_bg.wasm?canvas-scale=1&enemy-ranged=2', import.meta.url);
+        module_or_path = new URL('wasm_dungeonload_bg.wasm?canvas-scale=1&map-persist=1', import.meta.url);
     }
     const imports = __wbg_get_imports();
 
