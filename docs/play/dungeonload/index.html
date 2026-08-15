@@ -810,7 +810,7 @@ body.controls-swapped #movement-joystick {
 <script type="module">
 import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=7';
 import { FontLoader, InputManager } from '../../engine.js';
-import { createDungeonLoadUi } from './ui.js?overlay=3';
+import { createDungeonLoadUi } from './ui.js?overlay=4';
 window.wasm = wasm;
 const ui = createDungeonLoadUi({ wasm });
 
@@ -1013,7 +1013,10 @@ async function start() {
 
     function update() {
       if (initialized) {
-        wasm.tick_roguelike(performance.now());
+        const tabPanelOpen = document.getElementById('ui-upper')?.classList.contains('panel-open');
+        if (!tabPanelOpen) {
+          wasm.tick_roguelike(performance.now());
+        }
         updateMobileWeaponSlots();
         render();
       }
