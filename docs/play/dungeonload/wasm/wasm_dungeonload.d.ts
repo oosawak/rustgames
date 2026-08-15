@@ -69,6 +69,8 @@ export function player_x_roguelike(): number;
 
 export function player_y_roguelike(): number;
 
+export function projectile_data_roguelike(): Int32Array;
+
 export function render_roguelike(canvas_id: string, width: number, height: number): void;
 
 export function scene_roguelike(): number;
@@ -129,6 +131,7 @@ export interface InitOutput {
     readonly player_equipped_weapon_roguelike: () => number;
     readonly player_x_roguelike: () => number;
     readonly player_y_roguelike: () => number;
+    readonly projectile_data_roguelike: () => [number, number];
     readonly render_roguelike: (a: number, b: number, c: number, d: number) => void;
     readonly scene_roguelike: () => number;
     readonly set_enemy_attack_interval_scale_roguelike: (a: number) => void;

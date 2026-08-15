@@ -35,6 +35,7 @@ export const player_equipped_armor_roguelike: () => number;
 export const player_equipped_weapon_roguelike: () => number;
 export const player_x_roguelike: () => number;
 export const player_y_roguelike: () => number;
+export const projectile_data_roguelike: () => [number, number];
 export const render_roguelike: (a: number, b: number, c: number, d: number) => void;
 export const scene_roguelike: () => number;
 export const set_enemy_attack_interval_scale_roguelike: (a: number) => void;

@@ -813,7 +813,7 @@ body.controls-swapped #movement-joystick {
   <span class="sh-arrow sh-right">▶</span>
 </div>
 <script type="module">
-import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=11';
+import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=12';
 import { FontLoader, InputManager } from '../../engine.js';
 import { createDungeonLoadUi } from './ui.js?overlay=4';
 window.wasm = wasm;
@@ -1088,7 +1088,7 @@ function drawDungeonMap() { ui.drawDungeonMap(); }
 let scene, camera, renderer;
 let cubes = [];
 let playerCube, enemies3d = [];
-let enemyHudSprites = [], damageSprites = [], attackEffectSprites = [];
+let enemyHudSprites = [], damageSprites = [], attackEffectSprites = [], projectileSprites = [];
 let is3dMode = false;
 let playerModel = null;
 let playerVrm = null;
@@ -1212,6 +1212,7 @@ function updateDungeon3d() {
   clearThreeObjects(enemyHudSprites);
   clearThreeObjects(damageSprites);
   clearThreeObjects(attackEffectSprites);
+  clearThreeObjects(projectileSprites);
   const mapWidth = wasm.map_width_roguelike();
   const mapHeight = wasm.map_height_roguelike();
   const playerX = wasm.player_x_roguelike();
@@ -1340,6 +1341,37 @@ function updateDungeon3d() {
     effectSprite.material.opacity = Math.max(0, ttlRatio);
     scene.add(effectSprite);
     attackEffectSprites.push(effectSprite);
+  }
+  const projectileData = typeof wasm.projectile_data_roguelike === 'function'
+    ? wasm.projectile_data_roguelike()
+    : [];
+  for (let i = 0; i + 5 < projectileData.length; i += 6) {
+    const fromX = projectileData[i] / 100;
+    const fromY = projectileData[i + 1] / 100;
+    const toX = projectileData[i + 2] / 100;
+    const toY = projectileData[i + 3] / 100;
+    const progress = projectileData[i + 4] / 1000;
+    const type = projectileData[i + 5];
+    const color = type === 2 ? '#ffe08a' : type === 3 ? '#ff6666' : '#66ffff';
+    const projectileSprite = createLabelSprite((ctx, width, height) => {
+      ctx.globalAlpha = 0.25;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(width / 2, height / 2, height * 0.42, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(width / 2, height / 2, height * 0.2, 0, Math.PI * 2);
+      ctx.fill();
+    }, 0.55, 0.55);
+    projectileSprite.position.set(
+      fromX + (toX - fromX) * progress,
+      1.0,
+      fromY + (toY - fromY) * progress,
+    );
+    scene.add(projectileSprite);
+    projectileSprites.push(projectileSprite);
   }
   camera.position.set(playerX, 12, playerY + 10);
   camera.lookAt(playerX, 0, playerY - 2);

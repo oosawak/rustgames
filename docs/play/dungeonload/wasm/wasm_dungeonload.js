@@ -283,6 +283,16 @@ export function player_y_roguelike() {
 }
 
 /**
+ * @returns {Int32Array}
+ */
+export function projectile_data_roguelike() {
+    const ret = wasm.projectile_data_roguelike();
+    var v1 = getArrayI32FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+    return v1;
+}
+
+/**
  * @param {string} canvas_id
  * @param {number} width
  * @param {number} height
@@ -856,7 +866,7 @@ async function __wbg_init(module_or_path) {
     }
 
     if (module_or_path === undefined) {
-        module_or_path = new URL('wasm_dungeonload_bg.wasm?canvas-scale=1&effects-3d=1', import.meta.url);
+        module_or_path = new URL('wasm_dungeonload_bg.wasm?canvas-scale=1&projectiles-3d=1', import.meta.url);
     }
     const imports = __wbg_get_imports();
 
