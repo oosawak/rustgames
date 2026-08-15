@@ -168,23 +168,16 @@ export function createDungeonLoadUi({ wasm }) {
   function updateMessageLog() {
     const scene = wasm.scene_roguelike();
     const msgLogEl = document.getElementById('message-log');
-    const latestMessageEl = document.getElementById('latest-message');
     if (scene === 1) {
       msgLogEl.style.display = 'block';
       const messages = wasm.messages_roguelike();
-      const latestMessage = messages[messages.length - 1] || '';
       msgLogEl.innerHTML = messages
-        .slice(-(logLineCount + 1), -1)
+        .slice(-logLineCount)
         .map(msg => '<div style="margin: 2px 0; word-break: break-word;">' + msg + '</div>')
         .join('');
-      if (latestMessageEl) {
-        latestMessageEl.textContent = latestMessage;
-        latestMessageEl.style.display = latestMessage ? 'block' : 'none';
-      }
       msgLogEl.scrollTop = msgLogEl.scrollHeight;
     } else {
       msgLogEl.style.display = 'none';
-      if (latestMessageEl) latestMessageEl.style.display = 'none';
     }
   }
 

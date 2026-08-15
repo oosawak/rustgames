@@ -546,7 +546,7 @@ body.controls-swapped #movement-joystick {
   position: fixed;
   left: 120px;
   right: 120px;
-  bottom: 58px;
+  bottom: 210px;
   z-index: 35;
   display: none;
   pointer-events: none;
@@ -556,20 +556,6 @@ body.controls-swapped #movement-joystick {
   display: block;
   max-height: 112px;
   margin: 0 0 6px;
-  pointer-events: auto;
-}
-#latest-message {
-  display: none;
-  margin: 0 0 6px;
-  padding: 6px 10px;
-  border: 1px solid rgba(0, 255, 255, 0.65);
-  border-radius: 4px;
-  background: rgba(0, 20, 30, 0.95);
-  color: #fff;
-  font-family: monospace;
-  font-size: 0.8em;
-  line-height: 1.4;
-  text-shadow: 0 0 6px #0ff;
   pointer-events: auto;
 }
 #game-controls {
@@ -595,10 +581,9 @@ body.controls-swapped #movement-joystick {
   #game-info-panel {
     left: 10px;
     right: 10px;
-    bottom: 195px;
+    bottom: 250px;
   }
   #game-info-panel #message-log { max-height: 110px; }
-  #latest-message { font-size: 0.7em; padding: 5px 8px; }
   #game-controls { font-size: 0.65em; padding: 5px 7px; }
   #game-controls-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px 8px; }
 }
@@ -765,7 +750,6 @@ body.controls-swapped #movement-joystick {
 </div>
 <div id="game-info-panel">
   <div id="message-log"></div>
-  <div id="latest-message"></div>
   <div id="game-controls">
     <div id="game-controls-title">Controls</div>
     <div id="game-controls-list">
