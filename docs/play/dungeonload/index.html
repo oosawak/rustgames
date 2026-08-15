@@ -1122,8 +1122,8 @@ function init3d() {
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x000008);
   camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-  camera.position.set(0, 40, 80);
-  camera.lookAt(0, 10, 0);
+  camera.position.set(0, 48, 72);
+  camera.lookAt(0, 0, 0);
   renderer.setSize(width, height, false);
   renderer.setPixelRatio(window.devicePixelRatio);
   const light = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -1166,7 +1166,7 @@ function updateDungeon3d() {
   const playerX = wasm.player_x_roguelike();
   const playerY = wasm.player_y_roguelike();
   const mapData = wasm.map_data_roguelike();
-  const viewRadius = 12;
+  const viewRadius = 18;
   const minX = Math.max(0, playerX - viewRadius);
   const maxX = Math.min(mapWidth - 1, playerX + viewRadius);
   const minY = Math.max(0, playerY - viewRadius);
@@ -1220,8 +1220,8 @@ function updateDungeon3d() {
     scene.add(enemyCube);
     enemies3d.push(enemyCube);
   }
-  camera.position.set(playerX, 7, playerY + 6);
-  camera.lookAt(playerX, 0.8, playerY - 2);
+  camera.position.set(playerX, 12, playerY + 10);
+  camera.lookAt(playerX, 0, playerY - 2);
 }
 let init3dAttempted = false;
 function render3d() {
