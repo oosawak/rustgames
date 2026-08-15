@@ -1190,7 +1190,13 @@ function updateDungeon3d() {
       else if (tile === 3) { color = 0xdddd00; h = 0.5; }
       else if (tile === 4) { color = 0x00dddd; h = 0.5; }
       const geom = new THREE.BoxGeometry(1, h, 1);
-      const mat = new THREE.MeshLambertMaterial({ color });
+      const foregroundWall = tile === 1 && y > playerY;
+      const mat = new THREE.MeshLambertMaterial({
+        color,
+        transparent: foregroundWall,
+        opacity: foregroundWall ? 0.24 : 1,
+        depthWrite: !foregroundWall,
+      });
       const cube = new THREE.Mesh(geom, mat);
       cube.position.set(x, h / 2, y);
       scene.add(cube);
