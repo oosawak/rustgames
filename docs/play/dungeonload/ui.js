@@ -10,6 +10,24 @@ export function createDungeonLoadUi({ wasm }) {
   } catch (_) {
     // localStorage may be unavailable in private browsing contexts.
   }
+  let controlsSwapped = false;
+  try {
+    controlsSwapped = localStorage.getItem('dungeonload-swap-controls') === 'true';
+  } catch (_) {
+    // Keep the default side when storage is unavailable.
+  }
+
+  function setControlsSwapped(enabled) {
+    controlsSwapped = Boolean(enabled);
+    document.body.classList.toggle('controls-swapped', controlsSwapped);
+    try {
+      localStorage.setItem('dungeonload-swap-controls', String(controlsSwapped));
+    } catch (_) {
+      // Keep the setting for this session if storage is unavailable.
+    }
+  }
+
+  setControlsSwapped(controlsSwapped);
 
   function updateStatusTab(panel) {
     if (!panel) return;
@@ -171,8 +189,8 @@ export function createDungeonLoadUi({ wasm }) {
     if (scene === 1) {
       msgLogEl.style.display = 'block';
       const messages = wasm.messages_roguelike();
+      msgLogEl.style.maxHeight = `${logLineCount * 1.4 + 1.5}em`;
       msgLogEl.innerHTML = messages
-        .slice(-logLineCount)
         .map(msg => '<div style="margin: 2px 0; word-break: break-word;">' + msg + '</div>')
         .join('');
       msgLogEl.scrollTop = msgLogEl.scrollHeight;
@@ -253,7 +271,7 @@ export function createDungeonLoadUi({ wasm }) {
           </div>
           <input id="log-lines-slider" type="range" min="3" max="8" step="1" value="${logLineCount}" style="width: 100%; margin-top: 14px; accent-color: #0ff;">
           <div style="color: rgba(180,220,240,0.75); font-size: 0.75em; line-height: 1.5; margin-top: 8px;">
-            Choose how many recent messages appear below the game canvas.
+            Choose how many log rows are visible at once. Scroll to view older messages.
           </div>
         </div>
 
@@ -265,6 +283,19 @@ export function createDungeonLoadUi({ wasm }) {
           <input id="enemy-interval-slider" type="range" min="50" max="250" step="10" value="${scale}" style="width: 100%; margin-top: 14px; accent-color: #0ff;">
           <div style="color: rgba(180,220,240,0.75); font-size: 0.75em; line-height: 1.5; margin-top: 8px;">
             Higher values make enemy attacks slower. Differences between enemy types are preserved.
+          </div>
+        </div>
+
+        <div class="stat-item" style="display: block; margin-top: 18px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+            <span class="stat-label">SWAP CONTROL SIDES</span>
+            <label style="display: flex; align-items: center; gap: 8px; color: #0ff; cursor: pointer; user-select: none;">
+              <input id="swap-controls-toggle" type="checkbox" ${controlsSwapped ? 'checked' : ''} style="accent-color: #0ff;">
+              <span id="swap-controls-label">${controlsSwapped ? 'ON' : 'OFF'}</span>
+            </label>
+          </div>
+          <div style="color: rgba(180,220,240,0.75); font-size: 0.75em; line-height: 1.5; margin-top: 8px;">
+            Move the attack and dodge buttons to the opposite side.
           </div>
         </div>
 
@@ -307,6 +338,13 @@ export function createDungeonLoadUi({ wasm }) {
         // Keep the setting for this session if storage is unavailable.
       }
       updateMessageLog();
+    });
+
+    const swapControlsToggle = panel.querySelector('#swap-controls-toggle');
+    const swapControlsLabel = panel.querySelector('#swap-controls-label');
+    swapControlsToggle.addEventListener('change', () => {
+      setControlsSwapped(swapControlsToggle.checked);
+      swapControlsLabel.textContent = swapControlsToggle.checked ? 'ON' : 'OFF';
     });
 
     const slider = panel.querySelector('#enemy-interval-slider');
@@ -429,6 +467,7 @@ export function createDungeonLoadUi({ wasm }) {
     updateEquipmentDisplay,
     updateItemsDisplay,
     updateMessageLog,
+    setControlsSwapped,
     flashHint,
     setupNavigation,
     updateTabContent,
