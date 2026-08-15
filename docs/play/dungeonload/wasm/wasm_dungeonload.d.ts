@@ -5,6 +5,8 @@ export function accessory_inventory_roguelike(): Int32Array;
 
 export function armor_inventory_roguelike(): Int32Array;
 
+export function attack_effect_data_roguelike(): Int32Array;
+
 export function clear_messages_roguelike(): void;
 
 export function damage_number_data_roguelike(): Int32Array;
@@ -95,6 +97,7 @@ export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly accessory_inventory_roguelike: () => [number, number];
     readonly armor_inventory_roguelike: () => [number, number];
+    readonly attack_effect_data_roguelike: () => [number, number];
     readonly clear_messages_roguelike: () => void;
     readonly damage_number_data_roguelike: () => [number, number];
     readonly depth_roguelike: () => number;

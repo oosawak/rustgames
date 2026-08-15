@@ -813,7 +813,7 @@ body.controls-swapped #movement-joystick {
   <span class="sh-arrow sh-right">▶</span>
 </div>
 <script type="module">
-import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=10';
+import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=11';
 import { FontLoader, InputManager } from '../../engine.js';
 import { createDungeonLoadUi } from './ui.js?overlay=4';
 window.wasm = wasm;
@@ -1088,7 +1088,7 @@ function drawDungeonMap() { ui.drawDungeonMap(); }
 let scene, camera, renderer;
 let cubes = [];
 let playerCube, enemies3d = [];
-let enemyHudSprites = [], damageSprites = [];
+let enemyHudSprites = [], damageSprites = [], attackEffectSprites = [];
 let is3dMode = false;
 let playerModel = null;
 let playerVrm = null;
@@ -1211,6 +1211,7 @@ function updateDungeon3d() {
   enemies3d = [];
   clearThreeObjects(enemyHudSprites);
   clearThreeObjects(damageSprites);
+  clearThreeObjects(attackEffectSprites);
   const mapWidth = wasm.map_width_roguelike();
   const mapHeight = wasm.map_height_roguelike();
   const playerX = wasm.player_x_roguelike();
@@ -1316,6 +1317,29 @@ function updateDungeon3d() {
     damageSprite.material.opacity = Math.max(0, ttlRatio);
     scene.add(damageSprite);
     damageSprites.push(damageSprite);
+  }
+  const effectData = typeof wasm.attack_effect_data_roguelike === 'function'
+    ? wasm.attack_effect_data_roguelike()
+    : [];
+  for (let i = 0; i + 3 < effectData.length; i += 4) {
+    const ttlRatio = effectData[i + 3] > 0 ? effectData[i + 2] / effectData[i + 3] : 0;
+    const effectSprite = createLabelSprite((ctx, width, height) => {
+      ctx.strokeStyle = '#0ff';
+      ctx.lineWidth = 8;
+      ctx.shadowBlur = 18;
+      ctx.shadowColor = '#0ff';
+      ctx.beginPath();
+      ctx.arc(width / 2, height / 2, height * 0.25, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(0,255,255,0.25)';
+      ctx.beginPath();
+      ctx.arc(width / 2, height / 2, height * 0.18, 0, Math.PI * 2);
+      ctx.fill();
+    }, 1.4, 1.4);
+    effectSprite.position.set(effectData[i], 0.12, effectData[i + 1]);
+    effectSprite.material.opacity = Math.max(0, ttlRatio);
+    scene.add(effectSprite);
+    attackEffectSprites.push(effectSprite);
   }
   camera.position.set(playerX, 12, playerY + 10);
   camera.lookAt(playerX, 0, playerY - 2);

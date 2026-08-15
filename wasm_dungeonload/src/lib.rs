@@ -268,6 +268,20 @@ pub fn damage_number_data_roguelike() -> Vec<i32> {
 }
 
 #[wasm_bindgen]
+pub fn attack_effect_data_roguelike() -> Vec<i32> {
+    DUNGEONLOAD_STATE.with(|s| {
+        if let Some(g) = s.borrow().as_ref() {
+            g.attack_effects
+                .iter()
+                .flat_map(|effect| [effect.x, effect.y, effect.ttl as i32, effect.max_ttl as i32])
+                .collect()
+        } else {
+            Vec::new()
+        }
+    })
+}
+
+#[wasm_bindgen]
 pub fn player_atk_roguelike() -> u32 {
     DUNGEONLOAD_STATE.with(|s| s.borrow().as_ref().map(|g| g.equipment.get_atk_bonus()).unwrap_or(0))
 }
