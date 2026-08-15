@@ -7,6 +7,8 @@ export function armor_inventory_roguelike(): Int32Array;
 
 export function clear_messages_roguelike(): void;
 
+export function damage_number_data_roguelike(): Int32Array;
+
 export function depth_roguelike(): number;
 
 export function enemy_attack_interval_scale_roguelike(): number;
@@ -94,6 +96,7 @@ export interface InitOutput {
     readonly accessory_inventory_roguelike: () => [number, number];
     readonly armor_inventory_roguelike: () => [number, number];
     readonly clear_messages_roguelike: () => void;
+    readonly damage_number_data_roguelike: () => [number, number];
     readonly depth_roguelike: () => number;
     readonly enemy_attack_interval_scale_roguelike: () => number;
     readonly enemy_count_roguelike: () => number;

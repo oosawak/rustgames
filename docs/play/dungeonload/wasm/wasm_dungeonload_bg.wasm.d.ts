@@ -4,6 +4,7 @@ export const memory: WebAssembly.Memory;
 export const accessory_inventory_roguelike: () => [number, number];
 export const armor_inventory_roguelike: () => [number, number];
 export const clear_messages_roguelike: () => void;
+export const damage_number_data_roguelike: () => [number, number];
 export const depth_roguelike: () => number;
 export const enemy_attack_interval_scale_roguelike: () => number;
 export const enemy_count_roguelike: () => number;

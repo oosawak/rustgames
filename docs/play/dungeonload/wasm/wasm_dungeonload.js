@@ -25,6 +25,16 @@ export function clear_messages_roguelike() {
 }
 
 /**
+ * @returns {Int32Array}
+ */
+export function damage_number_data_roguelike() {
+    const ret = wasm.damage_number_data_roguelike();
+    var v1 = getArrayI32FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+    return v1;
+}
+
+/**
  * @returns {number}
  */
 export function depth_roguelike() {
@@ -836,7 +846,7 @@ async function __wbg_init(module_or_path) {
     }
 
     if (module_or_path === undefined) {
-        module_or_path = new URL('wasm_dungeonload_bg.wasm?canvas-scale=1&icons-3d=1', import.meta.url);
+        module_or_path = new URL('wasm_dungeonload_bg.wasm?canvas-scale=1&icons-3d=2', import.meta.url);
     }
     const imports = __wbg_get_imports();
 
