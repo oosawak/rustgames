@@ -473,10 +473,29 @@ html, body {
 }
 #canvas-wrap {
   position: fixed;
-  inset: 0;
+  top: 42px;
+  right: 0;
+  bottom: 0;
+  left: 0;
   width: 100% !important;
-  height: 100% !important;
+  height: calc(100% - 42px) !important;
   z-index: 1;
+}
+#game-top-info {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 42px;
+  display: none;
+  align-items: center;
+  padding: 0 14px;
+  background: rgba(0, 10, 20, 0.9);
+  border-bottom: 1px solid rgba(0, 200, 255, 0.35);
+  color: rgba(190, 220, 240, 0.9);
+  font-size: 0.75em;
+  z-index: 35;
+  pointer-events: none;
 }
 #ui-toggle-btn { display: none !important; }
 #panel-close {
@@ -492,6 +511,51 @@ html, body {
   cursor: pointer;
 }
 #message-log { z-index: 40; }
+#game-info-panel {
+  position: fixed;
+  left: 120px;
+  right: 120px;
+  bottom: 58px;
+  z-index: 35;
+  display: none;
+  pointer-events: none;
+}
+#game-info-panel #message-log {
+  position: static;
+  display: block;
+  max-height: 82px;
+  margin: 0 0 6px;
+  pointer-events: auto;
+}
+#game-controls {
+  padding: 7px 10px;
+  border: 1px solid rgba(0, 200, 255, 0.45);
+  border-radius: 4px;
+  background: rgba(0, 20, 30, 0.86);
+  color: rgba(190, 220, 240, 0.9);
+  font-size: 0.72em;
+  line-height: 1.4;
+}
+#game-controls-title {
+  margin-bottom: 3px;
+  color: #0ff;
+  font-size: 11px;
+}
+#game-controls-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2px 14px;
+}
+@media (max-width: 768px) {
+  #game-info-panel {
+    left: 10px;
+    right: 10px;
+    bottom: 195px;
+  }
+  #game-info-panel #message-log { max-height: 58px; }
+  #game-controls { font-size: 0.65em; padding: 5px 7px; }
+  #game-controls-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px 8px; }
+}
 #message-log {
   position: fixed;
   bottom: 60px;
@@ -640,30 +704,33 @@ html, body {
       <div id="tab-settings" class="tab-panel"></div>
       <div id="tab-map" class="tab-panel">
         <div style="padding: 12px; display: flex; flex-direction: column; gap: 10px; height: 100%;">
-          <div style="border: 1px solid rgba(0,200,255,0.3); border-radius: 4px; padding: 10px 12px; color: rgba(190,220,240,0.9); font-size: 0.8em; line-height: 1.5; background: rgba(0, 20, 30, 0.45);">
-            <div style="font-size: 12px; color: #0ff; margin-bottom: 6px;">Controls</div>
-            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 16px;">
-              <div><b style="color: #fff;">WASD / Arrows</b> Move</div>
-              <div><b style="color: #fff;">Z</b> Weapon attack / Staff magic</div>
-              <div><b style="color: #fff;">X</b> Jump / dodge forward 3 tiles</div>
-              <div><b style="color: #fff;">C</b> Sword guard</div>
-              <div><b style="color: #fff;">1 - 4</b> Switch weapon</div>
-              <div><b style="color: #fff;">Shift + Arrows</b> Steer active staff magic</div>
-            </div>
-          </div>
           <canvas id="dungeon-map" style="width: 100%; flex: 1; min-height: 0; display: block; object-fit: contain;"></canvas>
         </div>
       </div>
     </div>
   </div>
 </div>
+<div id="game-top-info" aria-live="polite"></div>
 <div id="canvas-wrap">
   <canvas id="game-canvas" style="display: block; width: 100%; height: 100%; max-width: 100%;"></canvas>
   <canvas id="game-canvas-3d" style="display: none; width: 100%; height: 100%; max-width: 100%;"></canvas>
   <button id="view-toggle" style="position: absolute; top: 10px; right: 10px; z-index: 30; padding: 8px 16px; background: rgba(0,200,255,0.2); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 4px; font-family: monospace; font-size: 0.8em;">2D/3D</button>
   <button id="ui-toggle-btn" style="position: absolute; top: 50px; right: 10px; z-index: 30; padding: 6px 12px; background: rgba(0,200,255,0.2); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 4px; font-family: monospace; font-size: 0.8em; display: none;">▼ Hide UI</button>
 </div>
-<div id="message-log"></div>
+<div id="game-info-panel">
+  <div id="message-log"></div>
+  <div id="game-controls">
+    <div id="game-controls-title">Controls</div>
+    <div id="game-controls-list">
+      <div><b style="color: #fff;">WASD / Arrows</b> Move</div>
+      <div><b style="color: #fff;">Z</b> Weapon attack / Staff magic</div>
+      <div><b style="color: #fff;">X</b> Jump / dodge forward 3 tiles</div>
+      <div><b style="color: #fff;">C</b> Sword guard</div>
+      <div><b style="color: #fff;">1 - 4</b> Switch weapon</div>
+      <div><b style="color: #fff;">Shift + Arrows</b> Steer active staff magic</div>
+    </div>
+  </div>
+</div>
 <div id="mobile-action-pad" style="position: fixed; bottom: 70px; left: 10px; z-index: 50; display: none; align-items: flex-end; gap: 8px;">
   <div class="mobile-weapon-slots" aria-label="Weapon slots">
     <button id="weapon-prev-button" class="mobile-cycle-button" type="button" aria-label="Previous weapon">L</button>
@@ -767,6 +834,8 @@ async function start() {
       document.getElementById('nav-bar').style.display = 'flex';
       document.getElementById('mobile-action-pad').style.display = 'flex';
       document.getElementById('movement-joystick').style.display = 'flex';
+      document.getElementById('game-info-panel').style.display = 'block';
+      document.getElementById('game-top-info').style.display = 'flex';
       document.getElementById('attack-button').style.display = 'block';
       document.getElementById('jump-button').style.display = 'block';
       document.getElementById('weapon-prev-button').style.display = 'block';
@@ -786,6 +855,8 @@ async function start() {
       document.getElementById('game-over').style.display = 'none';
       document.getElementById('mobile-action-pad').style.display = 'flex';
       document.getElementById('movement-joystick').style.display = 'flex';
+      document.getElementById('game-info-panel').style.display = 'block';
+      document.getElementById('game-top-info').style.display = 'flex';
       document.getElementById('attack-button').style.display = 'block';
       document.getElementById('jump-button').style.display = 'block';
       document.getElementById('weapon-prev-button').style.display = 'block';
