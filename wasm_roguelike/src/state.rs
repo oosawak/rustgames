@@ -1419,7 +1419,9 @@ impl RoguelikeGame {
                 .collect();
 
             for (i, new_ex, new_ey) in enemy_moves {
-                if self.is_walkable(new_ex, new_ey) && new_ex != self.player_x || new_ey != self.player_y {
+                if self.is_walkable(new_ex, new_ey)
+                    && (new_ex != self.player_x || new_ey != self.player_y)
+                {
                     // 他の敵との重複チェック
                     let mut occupied = false;
                     for (j, other_enemy) in self.enemies.iter().enumerate() {
@@ -1527,7 +1529,7 @@ impl RoguelikeGame {
                     .any(|(j, e)| j != i && e.x == new_x && e.y == new_y);
                 let occupied_by_player = self.player_x == new_x && self.player_y == new_y;
 
-                if !occupied_by_other && !occupied_by_player {
+                if self.is_walkable(new_x, new_y) && !occupied_by_other && !occupied_by_player {
                     self.enemies[i].x = new_x;
                     self.enemies[i].y = new_y;
                 }
