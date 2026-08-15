@@ -400,9 +400,9 @@ impl RoguelikeGame {
             projectiles: vec![],
             attack_effects: vec![],
             damage_numbers: vec![],
-            // 150% keeps the current prototype readable while remaining adjustable in-game.
-            enemy_attack_interval_scale: 150,
-            no_damage_mode: false,
+            // Start in a relaxed, invulnerable practice mode; both remain adjustable in Settings.
+            enemy_attack_interval_scale: 1000,
+            no_damage_mode: true,
             exp: 0,
             next_level_exp: 100,
             equipment: Equipment::new(),
