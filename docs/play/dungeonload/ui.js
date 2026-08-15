@@ -1,6 +1,15 @@
 export function createDungeonLoadUi({ wasm }) {
   let selectedEquipmentSlot = 'weapon';
   let lastPlayerTile = -1;
+  let logLineCount = 5;
+  try {
+    const savedLogLineCount = Number(localStorage.getItem('dungeonload-log-lines'));
+    if (Number.isInteger(savedLogLineCount) && savedLogLineCount >= 3 && savedLogLineCount <= 8) {
+      logLineCount = savedLogLineCount;
+    }
+  } catch (_) {
+    // localStorage may be unavailable in private browsing contexts.
+  }
 
   function updateStatusTab(panel) {
     if (!panel) return;
@@ -163,7 +172,7 @@ export function createDungeonLoadUi({ wasm }) {
       msgLogEl.style.display = 'block';
       const messages = wasm.messages_roguelike();
       msgLogEl.innerHTML = messages
-        .slice(-5)
+        .slice(-logLineCount)
         .map(msg => '<div style="margin: 2px 0; word-break: break-word;">' + msg + '</div>')
         .join('');
       msgLogEl.scrollTop = msgLogEl.scrollHeight;
@@ -239,6 +248,17 @@ export function createDungeonLoadUi({ wasm }) {
       <div style="padding: 16px;">
         <div class="stat-item" style="display: block;">
           <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+            <span class="stat-label">LOG LINES</span>
+            <span class="stat-value" id="log-lines-value">${logLineCount}</span>
+          </div>
+          <input id="log-lines-slider" type="range" min="3" max="8" step="1" value="${logLineCount}" style="width: 100%; margin-top: 14px; accent-color: #0ff;">
+          <div style="color: rgba(180,220,240,0.75); font-size: 0.75em; line-height: 1.5; margin-top: 8px;">
+            Choose how many recent messages appear below the game canvas.
+          </div>
+        </div>
+
+        <div class="stat-item" style="display: block;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
             <span class="stat-label">ENEMY ATTACK INTERVAL</span>
             <span class="stat-value" id="enemy-interval-value">${scale}%</span>
           </div>
@@ -275,6 +295,19 @@ export function createDungeonLoadUi({ wasm }) {
           </div>
         </div>
       </div>`;
+
+    const logLinesSlider = panel.querySelector('#log-lines-slider');
+    const logLinesValue = panel.querySelector('#log-lines-value');
+    logLinesSlider.addEventListener('input', () => {
+      logLineCount = Number(logLinesSlider.value);
+      logLinesValue.textContent = String(logLineCount);
+      try {
+        localStorage.setItem('dungeonload-log-lines', String(logLineCount));
+      } catch (_) {
+        // Keep the setting for this session if storage is unavailable.
+      }
+      updateMessageLog();
+    });
 
     const slider = panel.querySelector('#enemy-interval-slider');
     const value = panel.querySelector('#enemy-interval-value');
