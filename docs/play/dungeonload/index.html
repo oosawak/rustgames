@@ -58,6 +58,51 @@ html, body {
   transition: top 0.3s ease;
 }
 #ui-toggle-btn.show { display: block; }
+.mobile-weapon-slots {
+  position: absolute;
+  left: 0;
+  bottom: 96px;
+  display: flex;
+  gap: 4px;
+  width: 100%;
+  justify-content: center;
+}
+.mobile-weapon-slot {
+  width: 40px;
+  height: 40px;
+  padding: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  background: rgba(0, 25, 40, 0.9);
+  border: 1px solid rgba(0, 200, 255, 0.65);
+  border-radius: 7px;
+  color: #0ff;
+  font-family: monospace;
+  cursor: pointer;
+  touch-action: none;
+}
+.mobile-weapon-slot .slot-number {
+  font-size: 9px;
+  line-height: 1;
+  opacity: 0.7;
+}
+.mobile-weapon-slot .slot-icon {
+  font-size: 17px;
+  line-height: 1;
+}
+.mobile-weapon-slot.active {
+  border-color: #fff;
+  background: rgba(0, 220, 255, 0.35);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.8);
+  color: #fff;
+}
+.mobile-weapon-slot.empty {
+  opacity: 0.3;
+  cursor: default;
+}
 #status-panel {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -535,6 +580,12 @@ html, body {
 </div>
 <div id="message-log"></div>
 <div id="mobile-action-pad" style="position: fixed; bottom: 70px; left: 10px; z-index: 50; display: none; align-items: flex-end; gap: 8px;">
+  <div class="mobile-weapon-slots" aria-label="Weapon slots">
+    <button class="mobile-weapon-slot" data-weapon-slot="0" type="button" aria-label="Weapon slot 1"><span class="slot-number">1</span><span class="slot-icon">⚔️</span></button>
+    <button class="mobile-weapon-slot" data-weapon-slot="1" type="button" aria-label="Weapon slot 2"><span class="slot-number">2</span><span class="slot-icon">🗡️</span></button>
+    <button class="mobile-weapon-slot" data-weapon-slot="2" type="button" aria-label="Weapon slot 3"><span class="slot-number">3</span><span class="slot-icon">🏹</span></button>
+    <button class="mobile-weapon-slot" data-weapon-slot="3" type="button" aria-label="Weapon slot 4"><span class="slot-number">4</span><span class="slot-icon">🪄</span></button>
+  </div>
   <button id="weapon-prev-button" type="button" style="width: 44px; height: 44px; background: rgba(0,200,255,0.18); border: 2px solid rgba(0,200,255,0.7); border-radius: 10px; color: #0ff; font-weight: bold; cursor: pointer; font-size: 18px; touch-action: none;">L</button>
   <button id="attack-button" type="button" style="width: 88px; height: 88px; background: rgba(0,255,255,0.2); border: 2px solid #0ff; border-radius: 50%; color: #0ff; font-weight: bold; cursor: pointer; font-size: 32px; touch-action: none;">⚔️</button>
   <button id="jump-button" type="button" style="width: 88px; height: 88px; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.8); border-radius: 50%; color: #fff; font-weight: bold; cursor: pointer; font-size: 28px; touch-action: none;">X</button>
@@ -708,7 +759,34 @@ async function start() {
     bindActionButton('jump-button', 5);
 
     const weaponNames = ['Wooden Sword', 'Iron Sword', 'Spear', 'Bow', 'Staff', 'Cursed Blade'];
+    const weaponIcons = ['⚔️', '🗡️', '🔱', '🏹', '🪄', '☠️'];
     const mobileWeaponLabel = document.getElementById('mobile-weapon-label');
+    const mobileWeaponSlots = Array.from(document.querySelectorAll('.mobile-weapon-slot'));
+    const updateMobileWeaponSlots = () => {
+      const inventory = initialized ? wasm.weapon_inventory_roguelike() : [];
+      const equippedWeapon = initialized ? wasm.player_equipped_weapon_roguelike() : -1;
+      mobileWeaponSlots.forEach((button, slot) => {
+        const icon = button.querySelector('.slot-icon');
+        const weaponId = inventory[slot];
+        const available = weaponId !== undefined;
+        button.classList.toggle('active', available && weaponId === equippedWeapon);
+        button.classList.toggle('empty', !available);
+        button.disabled = !available;
+        button.setAttribute('aria-label', available
+          ? `Weapon slot ${slot + 1}: ${weaponNames[weaponId] || 'Weapon'}`
+          : `Weapon slot ${slot + 1}: Empty`);
+        if (icon) icon.textContent = available ? (weaponIcons[weaponId] || '⚔️') : '·';
+      });
+    };
+    mobileWeaponSlots.forEach((button) => {
+      button.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!initialized || button.disabled) return;
+        const slot = Number(button.dataset.weaponSlot);
+        if (wasm.equip_weapon_roguelike(slot)) updateMobileWeaponSlots();
+      });
+    });
     const cycleWeapon = (direction) => {
       if (!initialized) return;
       const inventory = wasm.weapon_inventory_roguelike();
@@ -719,6 +797,7 @@ async function start() {
       const nextIndex = (currentIndex + direction + inventory.length) % inventory.length;
       if (wasm.equip_weapon_roguelike(nextIndex)) {
         mobileWeaponLabel.textContent = weaponNames[inventory[nextIndex]] || 'Weapon';
+        updateMobileWeaponSlots();
       }
     };
 
@@ -741,6 +820,7 @@ async function start() {
     function update() {
       if (initialized) {
         wasm.tick_roguelike(performance.now());
+        updateMobileWeaponSlots();
         render();
       }
       requestAnimationFrame(update);
@@ -760,6 +840,13 @@ function render() {
     const equippedWeapon = wasm.player_equipped_weapon_roguelike();
     mobileWeaponLabel.textContent = weaponNames[equippedWeapon] || 'No Weapon';
   }
+  document.querySelectorAll('.mobile-weapon-slot').forEach((button, slot) => {
+    const inventory = wasm.weapon_inventory_roguelike();
+    const weaponId = inventory[slot];
+    button.classList.toggle('active', weaponId !== undefined && weaponId === wasm.player_equipped_weapon_roguelike());
+    button.classList.toggle('empty', weaponId === undefined);
+    button.disabled = weaponId === undefined;
+  });
 
   const activeTab = document.querySelector('.nav-btn.active');
   if (activeTab) {
