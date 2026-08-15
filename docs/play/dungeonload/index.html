@@ -505,12 +505,29 @@ html, body {
 }
 #ui-toggle-btn { display: none !important; }
 body.controls-swapped #mobile-action-pad {
+  left: 10px !important;
+  right: auto;
+}
+body.controls-swapped #mobile-action-buttons {
   left: auto !important;
   right: 10px;
 }
 body.controls-swapped #movement-joystick {
-  right: auto !important;
+  right: 10px !important;
+  left: auto;
+}
+#mobile-action-pad {
+  width: calc(100vw - 20px);
+  height: 40px;
+}
+#mobile-action-buttons {
+  position: fixed;
+  bottom: 70px;
   left: 10px;
+  z-index: 50;
+  display: none;
+  align-items: flex-end;
+  gap: 8px;
 }
 #panel-close {
   align-self: flex-end;
@@ -754,9 +771,11 @@ body.controls-swapped #movement-joystick {
     <button class="mobile-weapon-slot" data-weapon-slot="3" type="button" aria-label="Weapon slot 4"><span class="slot-number">4</span><span class="slot-icon">🪄</span></button>
     <button id="weapon-next-button" class="mobile-cycle-button" type="button" aria-label="Next weapon">R</button>
   </div>
+  <div id="mobile-weapon-label" style="position: absolute; left: 0; bottom: -24px; width: 100%; color: #0ff; text-align: center; font-size: 11px; text-shadow: 0 0 6px #0ff;">Wooden Sword</div>
+</div>
+<div id="mobile-action-buttons">
   <button id="attack-button" type="button" style="width: 88px; height: 88px; background: rgba(0,255,255,0.2); border: 2px solid #0ff; border-radius: 50%; color: #0ff; font-weight: bold; cursor: pointer; font-size: 32px; touch-action: none;">⚔️</button>
   <button id="jump-button" type="button" style="width: 88px; height: 88px; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.8); border-radius: 50%; color: #fff; font-weight: bold; cursor: pointer; font-size: 28px; touch-action: none;">X</button>
-  <div id="mobile-weapon-label" style="position: absolute; left: 0; bottom: -24px; width: 100%; color: #0ff; text-align: center; font-size: 11px; text-shadow: 0 0 6px #0ff;">Wooden Sword</div>
 </div>
 <div id="movement-joystick" style="position: fixed; bottom: 60px; right: 10px; z-index: 50; display: none; width: 120px; height: 120px; background: rgba(0,200,255,0.2); border: 2px solid #0ff; border-radius: 50%; padding: 10px;">
   <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; height: 100%;">
@@ -847,6 +866,7 @@ async function start() {
       document.getElementById('title-screen').style.display = 'none';
       document.getElementById('nav-bar').style.display = 'flex';
       document.getElementById('mobile-action-pad').style.display = 'flex';
+      document.getElementById('mobile-action-buttons').style.display = 'flex';
       document.getElementById('movement-joystick').style.display = 'flex';
       document.getElementById('game-info-panel').style.display = 'block';
       document.getElementById('game-top-info').style.display = 'flex';
@@ -868,6 +888,7 @@ async function start() {
     document.getElementById('btn-retry').addEventListener('click', () => {
       document.getElementById('game-over').style.display = 'none';
       document.getElementById('mobile-action-pad').style.display = 'flex';
+      document.getElementById('mobile-action-buttons').style.display = 'flex';
       document.getElementById('movement-joystick').style.display = 'flex';
       document.getElementById('game-info-panel').style.display = 'block';
       document.getElementById('game-top-info').style.display = 'flex';
