@@ -184,11 +184,22 @@ export function createDungeonLoadUi({ wasm }) {
 
   function setupNavigation() {
     const navBtns = document.querySelectorAll('.nav-btn[data-tab]');
+    const uiUpper = document.getElementById('ui-upper');
+    const closePanel = () => {
+      uiUpper?.classList.remove('panel-open');
+      navBtns.forEach(b => b.classList.remove('active'));
+    };
+    document.getElementById('panel-close')?.addEventListener('click', closePanel);
     navBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         const tabName = btn.getAttribute('data-tab');
+        if (btn.classList.contains('active') && uiUpper?.classList.contains('panel-open')) {
+          closePanel();
+          return;
+        }
         navBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        uiUpper?.classList.add('panel-open');
         document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
         const tabPanel = document.getElementById(`tab-${tabName}`);
         if (tabPanel) tabPanel.classList.add('active');
