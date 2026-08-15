@@ -1063,7 +1063,11 @@ function render() {
       ui.updateItemsDisplay();
     }
   }
-  renderCanvas();
+  if (is3dMode) {
+    render3d();
+  } else {
+    renderCanvas();
+  }
   if (wasm.scene_roguelike() === 2) {
     const gameOver = document.getElementById('game-over');
     gameOver.style.display = 'flex';
