@@ -254,6 +254,17 @@ pub fn enemy_data_roguelike(index: usize) -> Vec<i32> {
 }
 
 #[wasm_bindgen]
+pub fn enemy_name_roguelike(index: usize) -> String {
+    DUNGEONLOAD_STATE.with(|s| {
+        s.borrow()
+            .as_ref()
+            .and_then(|g| g.enemies.get(index))
+            .map(|enemy| enemy.name.clone())
+            .unwrap_or_default()
+    })
+}
+
+#[wasm_bindgen]
 pub fn damage_number_data_roguelike() -> Vec<i32> {
     DUNGEONLOAD_STATE.with(|s| {
         if let Some(g) = s.borrow().as_ref() {

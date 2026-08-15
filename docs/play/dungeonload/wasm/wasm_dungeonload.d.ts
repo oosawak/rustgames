@@ -19,6 +19,8 @@ export function enemy_count_roguelike(): number;
 
 export function enemy_data_roguelike(index: number): Int32Array;
 
+export function enemy_name_roguelike(index: number): string;
+
 export function equip_accessory_roguelike(index: number): boolean;
 
 export function equip_armor_roguelike(index: number): boolean;
@@ -106,6 +108,7 @@ export interface InitOutput {
     readonly enemy_attack_interval_scale_roguelike: () => number;
     readonly enemy_count_roguelike: () => number;
     readonly enemy_data_roguelike: (a: number) => [number, number];
+    readonly enemy_name_roguelike: (a: number) => [number, number];
     readonly equip_accessory_roguelike: (a: number) => number;
     readonly equip_armor_roguelike: (a: number) => number;
     readonly equip_weapon_roguelike: (a: number) => number;

@@ -518,6 +518,44 @@ body.controls-swapped #movement-joystick {
   right: auto !important;
   left: 10px !important;
 }
+@media (min-width: 577px) {
+  #container,
+  #ui-upper,
+  #canvas-wrap,
+  #game-top-info,
+  #nav-bar {
+    width: 576px !important;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+  #canvas-wrap {
+    max-width: 576px;
+  }
+  #game-info-panel {
+    left: calc(50% - 268px) !important;
+    right: calc(50% - 268px) !important;
+  }
+  #mobile-action-pad {
+    left: calc(50% - 278px) !important;
+    width: 556px !important;
+  }
+  .mobile-weapon-slots {
+    width: 556px;
+  }
+  #mobile-action-buttons {
+    left: calc(50% - 278px) !important;
+  }
+  #movement-joystick {
+    right: calc(50% - 278px) !important;
+  }
+  body.controls-swapped #mobile-action-buttons {
+    right: calc(50% - 278px) !important;
+  }
+  body.controls-swapped #movement-joystick {
+    left: calc(50% - 278px) !important;
+  }
+}
 #mobile-action-pad {
   width: calc(100vw - 20px);
   height: 40px;
@@ -629,6 +667,91 @@ body.controls-swapped #movement-joystick {
     max-height: 100px;
     font-size: 0.7em;
     padding: 8px;
+  }
+}
+@media (min-width: 577px) {
+  html {
+    background: #111;
+  }
+  body {
+    position: relative;
+    width: 576px;
+    height: min(100vh, 1080px);
+    margin: max(0px, calc((100vh - 1080px) / 2)) auto;
+    overflow: hidden;
+  }
+  #container,
+  #ui-upper,
+  #canvas-wrap,
+  #game-top-info,
+  #nav-bar,
+  #game-info-panel,
+  #mobile-action-pad,
+  #mobile-action-buttons,
+  #movement-joystick {
+    position: absolute !important;
+    transform: none !important;
+  }
+  #container,
+  #ui-upper {
+    inset: 0 auto auto 0;
+    width: 576px !important;
+    height: 100%;
+  }
+  #canvas-wrap {
+    top: 42px;
+    right: auto;
+    bottom: 0;
+    left: 0;
+    width: 576px !important;
+    height: calc(100% - 42px) !important;
+  }
+  #game-top-info {
+    top: 0;
+    right: auto;
+    bottom: auto;
+    left: 0;
+    width: 576px;
+  }
+  #nav-bar {
+    right: auto;
+    bottom: 0;
+    left: 0;
+    width: 576px !important;
+  }
+  #game-info-panel {
+    right: 120px !important;
+    bottom: 210px;
+    left: 120px !important;
+  }
+  #mobile-action-pad {
+    top: auto;
+    right: auto !important;
+    bottom: 70px;
+    left: 10px !important;
+    width: 556px !important;
+  }
+  .mobile-weapon-slots {
+    width: 556px;
+  }
+  #mobile-action-buttons {
+    right: auto !important;
+    bottom: 70px;
+    left: 10px !important;
+  }
+  #movement-joystick {
+    top: auto;
+    right: 10px !important;
+    bottom: 60px;
+    left: auto !important;
+  }
+  body.controls-swapped #mobile-action-buttons {
+    right: 10px !important;
+    left: auto !important;
+  }
+  body.controls-swapped #movement-joystick {
+    right: auto !important;
+    left: 10px !important;
   }
 }
 </style>
@@ -813,7 +936,7 @@ body.controls-swapped #movement-joystick {
   <span class="sh-arrow sh-right">▶</span>
 </div>
 <script type="module">
-import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=12';
+import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=13';
 import { FontLoader, InputManager } from '../../engine.js';
 import { createDungeonLoadUi } from './ui.js?overlay=4';
 window.wasm = wasm;
@@ -1282,6 +1405,26 @@ function updateDungeon3d() {
     enemyCube.position.set(ex, 0.75, ey);
     scene.add(enemyCube);
     enemies3d.push(enemyCube);
+
+    const enemyName = typeof wasm.enemy_name_roguelike === 'function'
+      ? wasm.enemy_name_roguelike(i)
+      : '';
+    if (enemyName) {
+      const nameSprite = createLabelSprite((ctx, width, height) => {
+        ctx.font = 'bold 22px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = 'rgba(0,0,0,0.9)';
+        ctx.strokeText(enemyName, width / 2, height / 2);
+        ctx.fillStyle = '#aaf';
+        ctx.fillText(enemyName, width / 2, height / 2);
+      }, 1.7, 0.28);
+      nameSprite.position.set(ex, 0.18, ey);
+      nameSprite.material.depthTest = false;
+      scene.add(nameSprite);
+      enemyHudSprites.push(nameSprite);
+    }
 
     const hpSprite = createLabelSprite((ctx, width, height) => {
       const ratio = data[3] > 0 ? Math.max(0, data[2] / data[3]) : 0;

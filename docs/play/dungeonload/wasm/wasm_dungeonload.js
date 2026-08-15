@@ -81,6 +81,23 @@ export function enemy_data_roguelike(index) {
 
 /**
  * @param {number} index
+ * @returns {string}
+ */
+export function enemy_name_roguelike(index) {
+    let deferred1_0;
+    let deferred1_1;
+    try {
+        const ret = wasm.enemy_name_roguelike(index);
+        deferred1_0 = ret[0];
+        deferred1_1 = ret[1];
+        return getStringFromWasm0(ret[0], ret[1]);
+    } finally {
+        wasm.__wbindgen_free(deferred1_0, deferred1_1, 1);
+    }
+}
+
+/**
+ * @param {number} index
  * @returns {boolean}
  */
 export function equip_accessory_roguelike(index) {
@@ -866,7 +883,7 @@ async function __wbg_init(module_or_path) {
     }
 
     if (module_or_path === undefined) {
-        module_or_path = new URL('wasm_dungeonload_bg.wasm?canvas-scale=1&projectiles-3d=1', import.meta.url);
+        module_or_path = new URL('wasm_dungeonload_bg.wasm', import.meta.url);
     }
     const imports = __wbg_get_imports();
 
