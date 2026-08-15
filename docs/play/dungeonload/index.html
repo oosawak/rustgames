@@ -1297,7 +1297,9 @@ function updateDungeon3d() {
     enemyHudSprites.push(hpSprite);
   }
 
-  const damageData = wasm.damage_number_data_roguelike();
+  const damageData = typeof wasm.damage_number_data_roguelike === 'function'
+    ? wasm.damage_number_data_roguelike()
+    : [];
   for (let i = 0; i + 4 < damageData.length; i += 5) {
     const ttlRatio = damageData[i + 4] > 0 ? damageData[i + 3] / damageData[i + 4] : 0;
     const damageSprite = createLabelSprite((ctx, width, height) => {
@@ -1314,11 +1316,6 @@ function updateDungeon3d() {
     damageSprite.material.opacity = Math.max(0, ttlRatio);
     scene.add(damageSprite);
     damageSprites.push(damageSprite);
-  }
-  const hud = document.getElementById('game-3d-hud');
-  if (hud) {
-    hud.style.display = 'block';
-    hud.innerHTML = `<div style="color:#ff6666">HP ${wasm.hp_roguelike()}/${wasm.max_hp_roguelike()}</div><div style="color:#6688ff">MP ${wasm.mp_roguelike()}/${wasm.max_mp_roguelike()}</div>`;
   }
   camera.position.set(playerX, 12, playerY + 10);
   camera.lookAt(playerX, 0, playerY - 2);
@@ -1340,6 +1337,11 @@ function render3d() {
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+  }
+  const hud = document.getElementById('game-3d-hud');
+  if (hud) {
+    hud.style.display = 'block';
+    hud.innerHTML = `<div style="color:#ff6666">HP ${wasm.hp_roguelike()}/${wasm.max_hp_roguelike()}</div><div style="color:#6688ff">MP ${wasm.mp_roguelike()}/${wasm.max_mp_roguelike()}</div>`;
   }
   updateDungeon3d();
   renderer.render(scene, camera);
