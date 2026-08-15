@@ -307,6 +307,11 @@ const ENEMY_MASTER: &[EnemyData] = &[
 ];
 
 impl RoguelikeGame {
+    fn is_ranged_enemy_type(enemy_type: u32) -> bool {
+        // Bats, spiders, zombie warriors, priests, and wyverns stay back and fire.
+        matches!(enemy_type, 3 | 10 | 16 | 22 | 28)
+    }
+
     fn calc_map_size(depth: u32) -> (i32, i32) {
         let width = 120 + ((depth.saturating_sub(1)) as i32 * 4);
         let height = 80 + ((depth.saturating_sub(1)) as i32 * 2);
@@ -883,6 +888,63 @@ impl RoguelikeGame {
             self.scene = RogueScene::GameOver;
             self.add_message("💀 Game Over".to_string());
         }
+
+        self.enemy_attack_ranged();
+    }
+
+    fn has_clear_shot(&self, enemy: &Enemy) -> bool {
+        let dx = self.player_x - enemy.x;
+        let dy = self.player_y - enemy.y;
+        if dx == 0 && dy.abs() <= 1 || dy == 0 && dx.abs() <= 1 {
+            return false;
+        }
+        if dx != 0 && dy != 0 {
+            return false;
+        }
+
+        let step_x = dx.signum();
+        let step_y = dy.signum();
+        let mut x = enemy.x + step_x;
+        let mut y = enemy.y + step_y;
+        while x != self.player_x || y != self.player_y {
+            if !self.is_walkable(x, y) {
+                return false;
+            }
+            x += step_x;
+            y += step_y;
+        }
+        true
+    }
+
+    fn enemy_attack_ranged(&mut self) {
+        let shooters: Vec<(usize, i32)> = self.enemies.iter().enumerate()
+            .filter(|(_, enemy)| {
+                Self::is_ranged_enemy_type(enemy.enemy_type)
+                    && enemy.attack_cooldown == 0
+                    && self.has_clear_shot(enemy)
+            })
+            .map(|(index, enemy)| (index, enemy.atk as i32 + 2))
+            .collect();
+
+        for (enemy_index, damage) in shooters {
+            let (from_x, from_y) = {
+                let enemy = &self.enemies[enemy_index];
+                (enemy.x, enemy.y)
+            };
+            self.projectiles.push(Projectile {
+                from_x: from_x as f64,
+                from_y: from_y as f64,
+                to_x: self.player_x as f64,
+                to_y: self.player_y as f64,
+                progress: 0.0,
+                proj_type: 3,
+                damage: damage.max(1) as u32,
+                direction: 0,
+            });
+            self.enemies[enemy_index].attack_cooldown =
+                (42 * self.enemy_attack_interval_scale / 100).max(1);
+            self.add_message(format!("{} fires a ranged attack!", self.enemies[enemy_index].name));
+        }
     }
 
     fn cast_staff_magic(&mut self) {
@@ -1419,6 +1481,9 @@ impl RoguelikeGame {
                 .collect();
 
             for (i, new_ex, new_ey) in enemy_moves {
+                if Self::is_ranged_enemy_type(self.enemies[i].enemy_type) {
+                    continue;
+                }
                 if self.is_walkable(new_ex, new_ey)
                     && (new_ex != self.player_x || new_ey != self.player_y)
                 {
@@ -1493,7 +1558,9 @@ impl RoguelikeGame {
             // プレイヤーを見かけていたら追跡 AI
             let mut move_x = 0;
             let mut move_y = 0;
-            if can_see || self.enemies[i].can_see_player {
+            if Self::is_ranged_enemy_type(enemy.enemy_type) {
+                // Ranged enemies hold their position and attack from a clear line.
+            } else if can_see || self.enemies[i].can_see_player {
                 let pursuit_timer = self.enemies[i].pursuit_timer + 1;
                 if pursuit_timer >= 60 {  // 60フレーム毎に移動
                     // プレイヤー方向に移動（Manhattan distance 最小化）
@@ -1599,6 +1666,7 @@ impl RoguelikeGame {
         // Check projectile collision with enemies and damage them
         let mut hit_projectiles = std::collections::HashSet::new();
         let mut projectile_damage_numbers = Vec::new();
+        let mut player_projectile_hits = Vec::new();
         for (proj_idx, projectile) in self.projectiles.iter().enumerate() {
             if (projectile.proj_type == 1 || projectile.proj_type == 2) && projectile.progress > 0.1 {
                 let current_x = projectile.from_x + (projectile.to_x - projectile.from_x) * projectile.progress;
@@ -1622,11 +1690,49 @@ impl RoguelikeGame {
                         break;
                     }
                 }
+            } else if projectile.proj_type == 3 && projectile.progress > 0.1 {
+                let current_x = projectile.from_x + (projectile.to_x - projectile.from_x) * projectile.progress;
+                let current_y = projectile.from_y + (projectile.to_y - projectile.from_y) * projectile.progress;
+                if current_x as i32 == self.player_x && current_y as i32 == self.player_y {
+                    player_projectile_hits.push((proj_idx, projectile.damage));
+                }
             }
         }
 
         for (x, y, amount) in projectile_damage_numbers {
             self.push_damage_number(x, y, amount, "#ffd45c");
+        }
+
+        for (proj_idx, base_damage) in player_projectile_hits {
+            let player_def = self.equipment.get_def_bonus() as i32;
+            let reduced_damage = (base_damage as i32 - (player_def * 80 / 100)).max(1) as u32;
+            let guarding = self.guard_timer > 0
+                && Self::weapon_style(self.equipment.weapon.unwrap_or(WeaponType::WoodenSword)) == WeaponStyle::Sword;
+            let damage = if guarding { (reduced_damage / 3).max(1) } else { reduced_damage };
+            let final_damage = if self.no_damage_mode { 0 } else { damage };
+            self.push_attack_effects(
+                &[(self.player_x, self.player_y)],
+                if self.no_damage_mode { "rgba(120, 220, 255, 0.92)" } else { "rgba(255, 80, 80, 0.92)" },
+                10,
+            );
+            if !self.no_damage_mode {
+                self.hp = (self.hp as i32 - final_damage as i32).max(0) as u32;
+            }
+            self.push_damage_number(self.player_x, self.player_y, final_damage, if self.no_damage_mode { "#66ccff" } else { "#ff6666" });
+            if self.no_damage_mode {
+                self.add_message("Ranged attack blocked by no-damage mode".to_string());
+            } else if guarding {
+                self.add_message(format!("Guard! Ranged attack reduced to {} damage.", damage));
+            } else {
+                self.add_message(format!("Ranged attack hits! {} damage.", damage));
+            }
+            hit_projectiles.insert(proj_idx);
+            self.player_shake = 5;
+        }
+
+        if self.hp == 0 {
+            self.scene = RogueScene::GameOver;
+            self.add_message("💀 Game Over".to_string());
         }
 
         // Add messages after the loop and gain exp
@@ -1642,9 +1748,15 @@ impl RoguelikeGame {
         self.enemies.retain(|e| e.hp > 0);
         self.enemy_shake.truncate(self.enemies.len());
 
-        // Check projectile collision with walls
+        // Remove projectiles after a hit or when they reach their target.
+        let mut projectile_index = 0;
         self.projectiles.retain(|p| {
-            if p.proj_type == 1 || p.proj_type == 2 {
+            let current_index = projectile_index;
+            projectile_index += 1;
+            if hit_projectiles.contains(&current_index) {
+                return false;
+            }
+            if p.proj_type == 1 || p.proj_type == 2 || p.proj_type == 3 {
                 // Only check collision after progress > 0.1 to avoid colliding with starting position
                 if p.progress > 0.1 {
                     let current_x = p.from_x + (p.to_x - p.from_x) * p.progress;
@@ -2123,6 +2235,27 @@ pub fn render_canvas(game: &RoguelikeGame, canvas_id: &str, width: i32, height: 
                         ctx.set_fill_style(&"rgba(255, 250, 220, 0.95)".into());
                         ctx.begin_path();
                         ctx.arc(head_x, head_y, cell_w * 0.04, 0.0, std::f64::consts::PI * 2.0).ok();
+                        ctx.fill();
+                    } else if projectile.proj_type == 3 {
+                        // Enemy ranged attacks use a red bolt so they are distinct from staff magic.
+                        let dx = projectile.to_x - projectile.from_x;
+                        let dy = projectile.to_y - projectile.from_y;
+                        let len = (dx * dx + dy * dy).sqrt().max(1.0);
+                        let ux = dx / len;
+                        let uy = dy / len;
+                        ctx.set_stroke_style(&"rgba(255, 70, 70, 0.9)".into());
+                        ctx.set_line_width(4.0);
+                        ctx.begin_path();
+                        ctx.move_to(icon_x - ux * cell_w * 0.25, icon_y - uy * cell_h * 0.25);
+                        ctx.line_to(icon_x + ux * cell_w * 0.18, icon_y + uy * cell_h * 0.18);
+                        ctx.stroke();
+                        ctx.set_fill_style(&"rgba(255, 40, 40, 0.35)".into());
+                        ctx.begin_path();
+                        ctx.arc(icon_x, icon_y, cell_w * 0.18, 0.0, std::f64::consts::PI * 2.0).ok();
+                        ctx.fill();
+                        ctx.set_fill_style(&"#ff7777".into());
+                        ctx.begin_path();
+                        ctx.arc(icon_x, icon_y, cell_w * 0.09, 0.0, std::f64::consts::PI * 2.0).ok();
                         ctx.fill();
                     } else {
                         // Draw magic as a glowing orb (cyan) - shrinks as it travels
