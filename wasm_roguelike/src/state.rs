@@ -303,10 +303,10 @@ const ENEMY_MASTER: &[EnemyData] = &[
     EnemyData { name: "Ogre", base_hp: 45, base_atk: 10, base_color: (0.8, 0.6, 0.3), drop_rate: 50, min_depth: 16, max_depth: 25 },
     EnemyData { name: "Ogre Warlord", base_hp: 58, base_atk: 14, base_color: (0.6, 0.4, 0.1), drop_rate: 60, min_depth: 20, max_depth: 30 },
 
-    // Wyvern (27-29)
-    EnemyData { name: "Young Wyvern", base_hp: 38, base_atk: 9, base_color: (1.0, 0.5, 0.3), drop_rate: 45, min_depth: 18, max_depth: 24 },
-    EnemyData { name: "Wyvern", base_hp: 50, base_atk: 12, base_color: (1.0, 0.3, 0.1), drop_rate: 50, min_depth: 20, max_depth: 29 },
-    EnemyData { name: "Hell Wyvern", base_hp: 65, base_atk: 16, base_color: (0.8, 0.1, 0.0), drop_rate: 60, min_depth: 24, max_depth: 30 },
+    // Dragon (27-29)
+    EnemyData { name: "Young Dragon", base_hp: 38, base_atk: 9, base_color: (1.0, 0.5, 0.3), drop_rate: 45, min_depth: 18, max_depth: 24 },
+    EnemyData { name: "Dragon", base_hp: 50, base_atk: 12, base_color: (1.0, 0.3, 0.1), drop_rate: 50, min_depth: 20, max_depth: 29 },
+    EnemyData { name: "King Dragon", base_hp: 65, base_atk: 16, base_color: (0.8, 0.1, 0.0), drop_rate: 60, min_depth: 24, max_depth: 30 },
 ];
 
 impl RoguelikeGame {
@@ -457,7 +457,9 @@ impl RoguelikeGame {
 
             let room_enemy_count = 2 + (rng.next() % 3) as usize;  // 2-4体の敵
             for _ in 0..room_enemy_count {
-                if let Some((enemy_type, variant)) = Self::spawn_random_enemy_for_floor(self.depth, &mut rng) {
+                let is_boss = is_boss_room && !boss_spawned;
+                if let Some((random_enemy_type, variant)) = Self::spawn_random_enemy_for_floor(self.depth, &mut rng) {
+                    let enemy_type = if is_boss { 29 } else { random_enemy_type };
 
                     // 敵を配置する位置を探す（重複なし、歩行可能タイル）
                     let mut ex = room.x + (rng.next() as i32 % room.width);
@@ -474,7 +476,6 @@ impl RoguelikeGame {
                         attempts += 1;
                     }
 
-                    let is_boss = is_boss_room && !boss_spawned;
                     let (mut hp, mut atk) = Self::get_enemy_stats(enemy_type, variant);
 
                     if is_boss {

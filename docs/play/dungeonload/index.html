@@ -930,7 +930,7 @@ body.controls-swapped #movement-joystick {
   <img id="enemy-25" src="../roguelike/icons/lorc/cyclops.png" width="64" height="64">
   <img id="enemy-26" src="../roguelike/icons/delapouite/golem-head.png" width="64" height="64">
   <img id="enemy-27" src="../roguelike/icons/lorc/wyvern.png" width="64" height="64">
-  <img id="enemy-28" src="../roguelike/icons/lorc/wyvern.png" width="64" height="64">
+  <img id="enemy-28" src="../roguelike/icons/faithtoken/dragon-head.png" width="64" height="64">
   <img id="enemy-29" src="../roguelike/icons/lorc/dragon-head.png" width="64" height="64">
 </div>
 <div id="loading">
@@ -1075,14 +1075,14 @@ body.controls-swapped #movement-joystick {
   <span class="sh-arrow sh-right">▶</span>
 </div>
 <script type="module">
-import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=26&pit=10';
+import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=27&pit=10';
 import { FontLoader, InputManager } from '../../engine.js';
 import { createDungeonLoadUi } from './ui.js?overlay=15';
 window.wasm = wasm;
 const ui = createDungeonLoadUi({ wasm });
 
 const clearScreenIconIds = ['player-icon', ...Array.from({ length: 30 }, (_, index) => `enemy-${index}`)];
-const clearScreenIconNames = ['HERO', 'Young Goblin', 'Goblin', 'Hobgoblin', 'Young Bat', 'Bat', 'Giant Bat', 'Skeleton', 'Skeleton Warrior', 'Skeleton Knight', 'Young Spider', 'Spider', 'Giant Spider', 'Young Troll', 'Troll', 'Troll King', 'Zombie', 'Zombie Warrior', 'Zombie Lord', 'Spirit', 'Ghost', 'Phantom', 'Mummy', 'Mummy Priest', 'Pharaoh', 'Young Ogre', 'Ogre', 'Ogre Warlord', 'Young Wyvern', 'Wyvern', 'Hell Wyvern'];
+const clearScreenIconNames = ['HERO', 'Young Goblin', 'Goblin', 'Hobgoblin', 'Young Bat', 'Bat', 'Giant Bat', 'Skeleton', 'Skeleton Warrior', 'Skeleton Knight', 'Young Spider', 'Spider', 'Giant Spider', 'Young Troll', 'Troll', 'Troll King', 'Zombie', 'Zombie Warrior', 'Zombie Lord', 'Spirit', 'Ghost', 'Phantom', 'Mummy', 'Mummy Priest', 'Pharaoh', 'Young Ogre', 'Ogre', 'Ogre Warlord', 'Young Dragon', 'Dragon', 'King Dragon'];
 const titleIconFilters = [
   'sepia(1) saturate(4) hue-rotate(145deg) drop-shadow(0 0 8px #0ff)',
   'sepia(1) saturate(5) hue-rotate(165deg) drop-shadow(0 0 8px #08f)',
@@ -1776,7 +1776,7 @@ function updateDungeon3d() {
       'Spirit', 'Ghost', 'Phantom',
       'Mummy', 'Mummy Priest', 'Pharaoh',
       'Young Ogre', 'Ogre', 'Ogre Warlord',
-      'Young Wyvern', 'Wyvern', 'Hell Wyvern',
+      'Young Dragon', 'Dragon', 'King Dragon',
     ];
     const enemyNameFromWasm = typeof wasm.enemy_name_roguelike === 'function'
       ? String(wasm.enemy_name_roguelike(i) || '')
