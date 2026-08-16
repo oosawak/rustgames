@@ -1578,16 +1578,15 @@ function updateDungeon3d() {
     }
 
     const hpSprite = createLabelSprite((ctx, width, height) => {
-      const ratio = data[3] > 0 ? Math.max(0, data[2] / data[3]) : 0;
-      ctx.fillStyle = 'rgba(0,0,0,0.8)';
-      ctx.fillRect(0, 0, width, height);
-      ctx.fillStyle = '#d33';
-      ctx.fillRect(3, 4, width - 6, height - 8);
-      ctx.fillStyle = '#35e86b';
-      ctx.fillRect(3, 4, (width - 6) * ratio, height - 8);
-      ctx.strokeStyle = '#fff';
-      ctx.strokeRect(3, 4, width - 6, height - 8);
-    }, 1.15, 0.2);
+      ctx.font = 'bold 16px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = 'rgba(0,0,0,0.9)';
+      ctx.strokeText(`HP:${data[2]}`, width / 2, height / 2);
+      ctx.fillStyle = '#fff';
+      ctx.fillText(`HP:${data[2]}`, width / 2, height / 2);
+    }, 1.25, 0.24);
     hpSprite.position.set(ex, 1.65, ey);
     hpSprite.material.depthTest = false;
     hpSprite.renderOrder = 21;
