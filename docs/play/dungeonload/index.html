@@ -1555,6 +1555,10 @@ function updateDungeon3d() {
     const playerDir = wasm.player_direction_roguelike();
     playerCube.rotation.y = playerDir === 0
       ? Math.PI - Math.PI / 9
+      : playerDir === 1
+        ? -Math.PI / 2
+        : playerDir === 2
+          ? Math.PI / 2
       : playerDir === 3
         ? Math.PI / 9
         : 0;
