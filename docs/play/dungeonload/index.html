@@ -976,7 +976,7 @@ body.controls-swapped #movement-joystick {
   <span class="sh-arrow sh-right">▶</span>
 </div>
 <script type="module">
-import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=20';
+import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=21';
 import { FontLoader, InputManager } from '../../engine.js';
 import { createDungeonLoadUi } from './ui.js?overlay=4';
 window.wasm = wasm;
@@ -1574,7 +1574,7 @@ function updateDungeon3d() {
     const enemyName = enemyNameFromWasm || enemyNameFallbacks[data[4]] || 'Enemy';
     if (enemyName) {
       const nameSprite = createLabelSprite((ctx, width, height) => {
-        ctx.font = 'bold 16px monospace';
+        ctx.font = 'bold 30px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.lineWidth = 5;
@@ -1582,8 +1582,8 @@ function updateDungeon3d() {
         ctx.strokeText(enemyName, width / 2, height / 2);
         ctx.fillStyle = '#aaf';
         ctx.fillText(enemyName, width / 2, height / 2);
-      }, 3.0, 0.34);
-      nameSprite.position.set(ex, 2.35, ey);
+      }, 4.2, 0.5);
+      nameSprite.position.set(ex, 2.45, ey);
       nameSprite.material.depthTest = false;
       nameSprite.material.depthWrite = false;
       nameSprite.material.opacity = 1;
@@ -1594,7 +1594,7 @@ function updateDungeon3d() {
     }
 
     const hpSprite = createLabelSprite((ctx, width, height) => {
-      ctx.font = 'bold 16px monospace';
+      ctx.font = 'bold 28px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.lineWidth = 5;
@@ -1602,8 +1602,8 @@ function updateDungeon3d() {
       ctx.strokeText(`HP:${data[2]}`, width / 2, height / 2);
       ctx.fillStyle = '#fff';
       ctx.fillText(`HP:${data[2]}`, width / 2, height / 2);
-    }, 1.7, 0.24);
-    hpSprite.position.set(ex, 1.92, ey);
+    }, 2.5, 0.42);
+    hpSprite.position.set(ex, 2.02, ey);
     hpSprite.material.depthTest = false;
     hpSprite.material.depthWrite = false;
     hpSprite.material.opacity = 1;
