@@ -2038,6 +2038,31 @@ pub fn render_canvas(game: &RoguelikeGame, canvas_id: &str, width: i32, height: 
                                     icon_size,
                                     icon_size
                                 ).ok();
+                                ctx.set_font("7px monospace");
+                                ctx.set_text_align("center");
+                                ctx.set_text_baseline("middle");
+                                ctx.set_stroke_style(&"rgba(0,0,0,0.9)".into());
+                                ctx.set_line_width(3.0);
+                                let stair_label = if matches!(tile_type, crate::state::TileType::StairDown) {
+                                    "DOWN"
+                                } else {
+                                    "UP"
+                                };
+                                ctx.stroke_text(
+                                    stair_label,
+                                    cell_w * 0.5,
+                                    cell_h * 0.93,
+                                ).ok();
+                                ctx.set_fill_style(&if matches!(tile_type, crate::state::TileType::StairDown) {
+                                    "#dd0"
+                                } else {
+                                    "#0dd"
+                                }.into());
+                                ctx.fill_text(
+                                    stair_label,
+                                    cell_w * 0.5,
+                                    cell_h * 0.93,
+                                ).ok();
                                 ctx.restore();
                             }
                         }

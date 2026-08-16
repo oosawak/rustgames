@@ -531,6 +531,9 @@ function __wbg_get_imports() {
         __wbg_set_textAlign_2293f6bbd3877cb0: function(arg0, arg1, arg2) {
             arg0.textAlign = getStringFromWasm0(arg1, arg2);
         },
+        __wbg_set_textBaseline_68cf9979f06f859b: function(arg0, arg1, arg2) {
+            arg0.textBaseline = getStringFromWasm0(arg1, arg2);
+        },
         __wbg_set_width_d2ec5d6689655fa9: function(arg0, arg1) {
             arg0.width = arg1 >>> 0;
         },
