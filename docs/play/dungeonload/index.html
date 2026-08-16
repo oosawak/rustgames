@@ -1561,18 +1561,16 @@ function updateDungeon3d() {
     const enemyName = enemyNameFromWasm || enemyNameFallbacks[data[4]] || 'Enemy';
     if (enemyName) {
       const nameSprite = createLabelSprite((ctx, width, height) => {
-        ctx.font = 'bold 18px monospace';
+        ctx.font = 'bold 16px monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillStyle = 'rgba(0,0,0,0.72)';
-        ctx.fillRect(2, 3, width - 4, height - 6);
         ctx.lineWidth = 5;
         ctx.strokeStyle = 'rgba(0,0,0,0.9)';
         ctx.strokeText(enemyName, width / 2, height / 2);
         ctx.fillStyle = '#aaf';
         ctx.fillText(enemyName, width / 2, height / 2);
-      }, 2.4, 0.34);
-      nameSprite.position.set(ex, 1.98, ey);
+      }, 1.9, 0.24);
+      nameSprite.position.set(ex, 0.14, ey);
       nameSprite.material.depthTest = false;
       nameSprite.renderOrder = 20;
       scene.add(nameSprite);
