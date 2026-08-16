@@ -469,6 +469,13 @@ html, body {
   justify-content: center;
   gap: 4px;
 }
+.nav-btn .nav-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  vertical-align: -3px;
+  filter: brightness(0) invert(1);
+}
 .nav-btn .ra {
   font-size: 1.3em;
   color: rgba(0, 200, 255, 0.6);
@@ -1055,7 +1062,7 @@ body.controls-swapped #movement-joystick {
 </div>
 <div id="nav-bar">
   <button class="nav-btn" data-tab="status"><i class="ra ra-player"></i> Status</button>
-  <button class="nav-btn" data-tab="equipment"><i class="ra ra-broadsword"></i> Equipment</button>
+  <button class="nav-btn" data-tab="equipment"><img class="nav-icon" src="../roguelike/icons/lorc/broadsword.png" alt=""> Equipment</button>
   <button class="nav-btn" data-tab="items"><i class="ra ra-potion"></i> Items</button>
   <button class="nav-btn" data-tab="settings"><i class="ra ra-cog"></i> Settings</button>
   <button class="nav-btn" data-tab="log"><i class="ra ra-scroll-unfurled"></i> Log</button>
@@ -1070,7 +1077,7 @@ body.controls-swapped #movement-joystick {
 <script type="module">
 import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=25&pit=10';
 import { FontLoader, InputManager } from '../../engine.js';
-import { createDungeonLoadUi } from './ui.js?overlay=14';
+import { createDungeonLoadUi } from './ui.js?overlay=15';
 window.wasm = wasm;
 const ui = createDungeonLoadUi({ wasm });
 
