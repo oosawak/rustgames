@@ -434,6 +434,7 @@ impl RoguelikeGame {
         self.enemies.clear();
         self.enemy_shake.clear();
         let mut rng = LcgRng::new(self.depth.wrapping_mul(9999));
+        let mut boss_spawned = false;
 
         // 各部屋に複数の敵を配置（階段のある部屋は除外）
         for i in 0..self.rooms.len().min(8) {
@@ -469,7 +470,7 @@ impl RoguelikeGame {
                         attempts += 1;
                     }
 
-                    let is_boss = is_boss_floor && i == 0 && self.enemies.is_empty();
+                    let is_boss = is_boss_floor && !boss_spawned;
                     let (mut hp, mut atk) = Self::get_enemy_stats(enemy_type, variant);
 
                     if is_boss {
@@ -509,6 +510,9 @@ impl RoguelikeGame {
                         attack_cooldown: 0,
                     });
                     self.enemy_shake.push(0);
+                    if is_boss {
+                        boss_spawned = true;
+                    }
                 }
             }
         }
