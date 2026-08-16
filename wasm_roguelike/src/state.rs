@@ -195,7 +195,7 @@ pub struct RoguelikeGame {
     pub damage_numbers: Vec<DamageNumber>,
     pub enemy_attack_interval_scale: u32,
     pub no_damage_mode: bool,
-    pub visual_palette: u32, // 0=blue, 1=red
+    pub visual_palette: u32, // 0=neutral, 1=blue, 2=red
     pub exp: u32,
     pub next_level_exp: u32,
     pub equipment: Equipment,
@@ -2282,10 +2282,12 @@ pub fn render_canvas(game: &RoguelikeGame, canvas_id: &str, width: i32, height: 
                             ).ok();
                             let brightness = (enemy.color[0] + enemy.color[1] + enemy.color[2]) / 3.0;
                             let intensity = 0.65 + brightness * 0.45;
-                            let (r, g, b) = if game.visual_palette == 1 {
+                            let (r, g, b) = if game.visual_palette == 2 {
                                 (intensity, 0.12 * intensity, 0.16 * intensity)
-                            } else {
+                            } else if game.visual_palette == 1 {
                                 (0.12 * intensity, 0.55 * intensity, intensity)
+                            } else {
+                                (enemy.color[0], enemy.color[1], enemy.color[2])
                             };
                             let tint = format!("rgba({},{},{},0.88)", (r * 255.0) as u8, (g * 255.0) as u8, (b * 255.0) as u8);
                             ctx.set_global_composite_operation("source-atop").ok();
@@ -2343,10 +2345,12 @@ pub fn render_canvas(game: &RoguelikeGame, canvas_id: &str, width: i32, height: 
                         icon_size,
                         icon_size
                     ).ok();
-                    let tint = if game.visual_palette == 1 {
+                    let tint = if game.visual_palette == 2 {
                         "rgba(255,40,50,0.9)"
-                    } else {
+                    } else if game.visual_palette == 1 {
                         "rgba(40,180,255,0.9)"
+                    } else {
+                        "rgba(255,255,255,0.9)"
                     };
                     ctx.set_global_composite_operation("source-atop").ok();
                     ctx.set_fill_style(&tint.into());

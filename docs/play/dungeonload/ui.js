@@ -31,7 +31,8 @@ export function createDungeonLoadUi({ wasm }) {
 
   let gamePalette = 0;
   try {
-    gamePalette = localStorage.getItem('dungeonload-game-palette') === 'red' ? 1 : 0;
+    const savedPalette = localStorage.getItem('dungeonload-game-palette');
+    gamePalette = savedPalette === 'red' ? 2 : savedPalette === 'blue' ? 1 : 0;
   } catch (_) {
     // Keep the blue palette when storage is unavailable.
   }
@@ -380,8 +381,9 @@ export function createDungeonLoadUi({ wasm }) {
           <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
             <span class="stat-label">GAME PALETTE</span>
             <select id="game-palette-select" style="background: #001520; border: 1px solid #0ff; color: #0ff; padding: 5px 8px; font-family: inherit;">
-              <option value="blue" ${gamePalette === 0 ? 'selected' : ''}>BLUE</option>
-              <option value="red" ${gamePalette === 1 ? 'selected' : ''}>RED</option>
+              <option value="neutral" ${gamePalette === 0 ? 'selected' : ''}>NEUTRAL</option>
+              <option value="blue" ${gamePalette === 1 ? 'selected' : ''}>BLUE</option>
+              <option value="red" ${gamePalette === 2 ? 'selected' : ''}>RED</option>
             </select>
           </div>
           <div style="color: rgba(180,220,240,0.75); font-size: 0.75em; line-height: 1.5; margin-top: 8px;">
@@ -471,10 +473,10 @@ export function createDungeonLoadUi({ wasm }) {
 
     const paletteSelect = panel.querySelector('#game-palette-select');
     paletteSelect.addEventListener('change', () => {
-      gamePalette = paletteSelect.value === 'red' ? 1 : 0;
+      gamePalette = paletteSelect.value === 'red' ? 2 : paletteSelect.value === 'blue' ? 1 : 0;
       applyGamePalette();
       try {
-        localStorage.setItem('dungeonload-game-palette', gamePalette === 1 ? 'red' : 'blue');
+        localStorage.setItem('dungeonload-game-palette', gamePalette === 2 ? 'red' : gamePalette === 1 ? 'blue' : 'neutral');
       } catch (_) {
         // Keep the setting for this session if storage is unavailable.
       }

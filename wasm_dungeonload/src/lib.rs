@@ -117,7 +117,7 @@ pub fn game_palette_roguelike() -> u32 {
 pub fn set_game_palette_roguelike(value: u32) {
     DUNGEONLOAD_STATE.with(|s| {
         if let Some(game) = s.borrow_mut().as_mut() {
-            game.visual_palette = value.min(1);
+            game.visual_palette = value.min(2);
         }
     });
 }
