@@ -1202,6 +1202,7 @@ async function start() {
 
     document.getElementById('btn-retry').addEventListener('click', () => {
       document.getElementById('game-over').style.display = 'none';
+      document.getElementById('game-over').classList.remove('victory');
       document.getElementById('mobile-action-pad').style.display = 'flex';
       document.getElementById('mobile-action-buttons').style.display = 'flex';
       document.getElementById('movement-joystick').style.display = 'flex';
@@ -1212,6 +1213,8 @@ async function start() {
       document.getElementById('weapon-prev-button').style.display = 'block';
       document.getElementById('weapon-next-button').style.display = 'block';
       document.getElementById('ui-toggle-btn').classList.add('show');
+      wasm.init_roguelike();
+      ui.applyGamePalette();
       wasm.start_game_roguelike();
     });
 
