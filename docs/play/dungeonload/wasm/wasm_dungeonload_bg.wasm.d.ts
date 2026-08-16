@@ -10,6 +10,7 @@ export const depth_roguelike: () => number;
 export const enemy_attack_interval_scale_roguelike: () => number;
 export const enemy_count_roguelike: () => number;
 export const enemy_data_roguelike: (a: number) => [number, number];
+export const enemy_name_roguelike: (a: number) => [number, number];
 export const equip_accessory_roguelike: (a: number) => number;
 export const equip_armor_roguelike: (a: number) => number;
 export const equip_weapon_roguelike: (a: number) => number;

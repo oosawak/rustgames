@@ -657,14 +657,34 @@ impl RoguelikeGame {
 
             let orientation = (room.x as u32 ^ room.y as u32 ^ room.width as u32) & 1;
             if orientation == 0 {
-                let pit_y = room.y + room.height / 2;
+                let center_y = room.y + room.height / 2;
+                let pit_y = [center_y, center_y - 1, center_y + 1, center_y - 2, center_y + 2]
+                    .into_iter()
+                    .find(|&candidate_y| {
+                        let corridor_left = room.x > 0
+                            && map[candidate_y as usize][(room.x - 1) as usize] == TileType::Floor;
+                        let corridor_right = room.x + room.width < width
+                            && map[candidate_y as usize][(room.x + room.width) as usize] == TileType::Floor;
+                        !corridor_left && !corridor_right
+                    });
+                let Some(pit_y) = pit_y else { continue; };
                 for pit_x in (room.x + 1)..(room.x + room.width - 1) {
                     if map[pit_y as usize][pit_x as usize] == TileType::Room {
                         map[pit_y as usize][pit_x as usize] = TileType::Pit;
                     }
                 }
             } else {
-                let pit_x = room.x + room.width / 2;
+                let center_x = room.x + room.width / 2;
+                let pit_x = [center_x, center_x - 1, center_x + 1, center_x - 2, center_x + 2]
+                    .into_iter()
+                    .find(|&candidate_x| {
+                        let corridor_top = room.y > 0
+                            && map[(room.y - 1) as usize][candidate_x as usize] == TileType::Floor;
+                        let corridor_bottom = room.y + room.height < height
+                            && map[(room.y + room.height) as usize][candidate_x as usize] == TileType::Floor;
+                        !corridor_top && !corridor_bottom
+                    });
+                let Some(pit_x) = pit_x else { continue; };
                 for pit_y in (room.y + 1)..(room.y + room.height - 1) {
                     if map[pit_y as usize][pit_x as usize] == TileType::Room {
                         map[pit_y as usize][pit_x as usize] = TileType::Pit;
