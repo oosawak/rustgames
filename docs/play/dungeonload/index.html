@@ -1538,6 +1538,12 @@ function updateDungeon3d() {
       playerCube = new THREE.Mesh(playerGeom, playerMat);
     }
     playerCube.position.set(playerX, 0.9, playerY);
+    const playerDir = wasm.player_direction_roguelike();
+    playerCube.material.rotation = playerDir === 0
+      ? -Math.PI / 4
+      : playerDir === 3
+        ? Math.PI / 4
+        : 0;
     scene.add(playerCube);
   }
   const enemyCount = wasm.enemy_count_roguelike();
