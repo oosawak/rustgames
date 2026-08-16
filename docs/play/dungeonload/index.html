@@ -1319,7 +1319,7 @@ function render() {
       if (!stream.dataset.ready) {
         const track = document.createElement('div');
         track.id = 'clear-monster-track';
-        const monsterIds = ['player-icon', 'enemy-0', 'enemy-3', 'enemy-6', 'enemy-9', 'enemy-12', 'enemy-18', 'enemy-24', 'enemy-27'];
+        const monsterIds = ['player-icon', ...Array.from({ length: 30 }, (_, index) => `enemy-${index}`)];
         [...monsterIds, ...monsterIds].forEach((id) => {
           const source = document.getElementById(id);
           if (!source) return;
