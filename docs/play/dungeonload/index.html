@@ -1555,14 +1555,12 @@ function updateDungeon3d() {
     const playerDir = wasm.player_direction_roguelike();
     playerCube.scale.x = playerDir === 1 ? -1 : 1;
     playerCube.scale.y = 1;
-    playerCube.rotation.y = playerDir === 0
+    playerCube.rotation.y = playerDir === 0 || playerDir === 3
       ? Math.PI - Math.PI / 9
-      : playerDir === 3
-        ? -Math.PI * 40 / 180
       : playerDir === 2
         ? Math.PI / 9
         : 0;
-    playerCube.rotation.z = playerDir === 3 ? Math.PI : 0;
+    playerCube.rotation.z = 0;
     scene.add(playerCube);
   }
   const enemyCount = wasm.enemy_count_roguelike();
