@@ -310,18 +310,18 @@ html, body {
 }
 #game-over button:active { background: rgba(244, 68, 68, 0.2); }
 #game-over.victory {
-  background: radial-gradient(circle at center, rgba(0, 70, 90, 0.45), rgba(0, 0, 8, 0.96) 68%);
+  background: radial-gradient(circle at center, rgba(100, 15, 25, 0.5), rgba(8, 0, 4, 0.97) 68%);
 }
 #game-over.victory h2 {
-  color: #0ff;
-  text-shadow: 0 0 14px #0ff, 0 0 36px #08f;
+  color: #f44;
+  text-shadow: 0 0 14px #f44, 0 0 36px #900;
 }
-#game-over.victory p { color: #9ff; text-shadow: 0 0 8px #0ff; }
+#game-over.victory p { color: #f88; text-shadow: 0 0 8px #f44; }
 #game-over.victory button {
-  border-color: #0ff;
-  color: #0ff;
-  text-shadow: 0 0 8px #0ff;
-  box-shadow: 0 0 16px #0ff;
+  border-color: #f44;
+  color: #f44;
+  text-shadow: 0 0 8px #f44;
+  box-shadow: 0 0 16px #f44;
 }
 #clear-monster-stream {
   width: min(520px, 88vw);
@@ -1347,10 +1347,10 @@ function render() {
     const victory = sceneState === 3;
     gameOver.classList.toggle('victory', victory);
     title.textContent = victory ? 'DUNGEON//LOAD COMPLETE' : '💀 GAME OVER 💀';
-    title.style.color = victory ? '#0ff' : '#f44';
-    title.style.textShadow = victory ? '0 0 20px #0ff' : '0 0 20px #f44';
+    title.style.color = '#f44';
+    title.style.textShadow = '0 0 20px #f44';
     message.textContent = victory ? 'The warp hole carried you beyond the dungeon.' : 'Cartridge analysis failed.';
-    message.style.color = victory ? '#8ff' : '#f88';
+    message.style.color = '#f88';
     retry.textContent = victory ? '↺ RESTART' : '↺ RELOAD';
     if (victory) {
       const stream = document.getElementById('clear-monster-stream');
