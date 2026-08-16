@@ -1305,27 +1305,15 @@ impl RoguelikeGame {
 
         let mut new_x = self.player_x;
         let mut new_y = self.player_y;
-        let mut last_safe_x = self.player_x;
-        let mut last_safe_y = self.player_y;
         for _ in 0..move_steps {
             let next_x = new_x + dx;
             let next_y = new_y + dy;
-            if self.is_walkable(next_x, next_y) || (action == 5 && self.is_pit(next_x, next_y)) {
+            if self.is_walkable(next_x, next_y) || self.is_pit(next_x, next_y) {
                 new_x = next_x;
                 new_y = next_y;
-                if self.is_walkable(next_x, next_y) {
-                    last_safe_x = next_x;
-                    last_safe_y = next_y;
-                }
             } else {
                 break;
             }
-        }
-
-        // A dodge may cross a pit, but never ends by standing inside one.
-        if action == 5 && self.is_pit(new_x, new_y) {
-            new_x = last_safe_x;
-            new_y = last_safe_y;
         }
 
         let moved = new_x != self.player_x || new_y != self.player_y;
