@@ -9,6 +9,7 @@ pub enum TileType {
     Pit,
     StairDown,
     StairUp,
+    WarpHole,
 }
 
 #[derive(Clone)]
@@ -208,6 +209,7 @@ pub enum RogueScene {
     Title = 0,
     Playing = 1,
     GameOver = 2,
+    Victory = 3,
 }
 
 impl RogueScene {
@@ -719,7 +721,7 @@ impl RoguelikeGame {
             return false;
         }
         matches!(self.map[y as usize][x as usize],
-            TileType::Floor | TileType::Room | TileType::StairDown | TileType::StairUp)
+            TileType::Floor | TileType::Room | TileType::StairDown | TileType::StairUp | TileType::WarpHole)
     }
 
     fn is_pit(&self, x: i32, y: i32) -> bool {
@@ -738,6 +740,13 @@ impl RoguelikeGame {
         }
         self.next_floor();
         self.add_message("🕳️ Fell into a pit and dropped to the next floor.".to_string());
+    }
+
+    fn activate_warp_hole(&mut self, x: i32, y: i32) {
+        if self.depth == 30 && x >= 0 && x < self.map_width && y >= 0 && y < self.map_height {
+            self.map[y as usize][x as usize] = TileType::WarpHole;
+            self.add_message("WARP HOLE CREATED. Enter it to complete the dungeon.".to_string());
+        }
     }
 
     fn get_room_at(&self, x: i32, y: i32) -> Option<usize> {
@@ -1178,6 +1187,9 @@ impl RoguelikeGame {
                         }
                     }
 
+                    if is_boss && self.depth == 30 {
+                        self.activate_warp_hole(self.enemies[i].x, self.enemies[i].y);
+                    }
                     self.gain_exp(exp_gain);
                     self.enemies.remove(i);
                     self.enemy_shake.remove(i);
@@ -1421,6 +1433,9 @@ impl RoguelikeGame {
                         }
                     }
 
+                    if is_boss && self.depth == 30 {
+                        self.activate_warp_hole(self.enemies[i].x, self.enemies[i].y);
+                    }
                     self.gain_exp(exp_gain);
                     self.enemies.remove(i);
                     self.enemy_shake.remove(i);
@@ -1444,6 +1459,14 @@ impl RoguelikeGame {
 
         // マップの壁判定と階段チェック
         let tile = self.map[new_y as usize][new_x as usize];
+
+        if tile == TileType::WarpHole {
+            self.player_x = new_x;
+            self.player_y = new_y;
+            self.scene = RogueScene::Victory;
+            self.add_message("DUNGEON//LOAD COMPLETE".to_string());
+            return;
+        }
 
         if tile == TileType::Pit {
             self.enter_pit();
@@ -2028,6 +2051,7 @@ pub fn render_canvas(game: &RoguelikeGame, canvas_id: &str, width: i32, height: 
                             crate::state::TileType::Pit => "#080812",
                             crate::state::TileType::StairDown => "#dd0",
                             crate::state::TileType::StairUp => "#0dd",
+                            crate::state::TileType::WarpHole => "#061a24",
                         };
 
                         ctx.set_fill_style(&color.into());
@@ -2100,6 +2124,32 @@ pub fn render_canvas(game: &RoguelikeGame, canvas_id: &str, width: i32, height: 
                                 std::f64::consts::PI * 2.0,
                             ).ok();
                             ctx.fill();
+                            ctx.restore();
+                        }
+
+                        if tile_type == crate::state::TileType::WarpHole {
+                            ctx.save();
+                            ctx.set_fill_style(&"#020205".into());
+                            ctx.set_shadow_color("rgba(0, 255, 255, 0.9)");
+                            ctx.set_shadow_blur(16.0);
+                            ctx.begin_path();
+                            ctx.arc(
+                                screen_x + cell_w * 0.5,
+                                screen_y + cell_h * 0.5,
+                                cell_w * 0.34,
+                                0.0,
+                                std::f64::consts::PI * 2.0,
+                            ).ok();
+                            ctx.fill();
+                            ctx.set_fill_style(&"#0ff".into());
+                            ctx.set_font("bold 7px monospace");
+                            ctx.set_text_align("center");
+                            ctx.set_text_baseline("middle");
+                            ctx.fill_text(
+                                "WARP",
+                                screen_x + cell_w * 0.5,
+                                screen_y + cell_h * 0.92,
+                            ).ok();
                             ctx.restore();
                         }
                     }

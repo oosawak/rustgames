@@ -117,6 +117,7 @@ pub fn map_data_roguelike() -> Vec<u8> {
                     crate::state::TileType::Room => 2u8,
                     crate::state::TileType::StairDown => 3u8,
                     crate::state::TileType::StairUp => 4u8,
+                    crate::state::TileType::WarpHole => 6u8,
                 })
             }).collect()
         } else {

@@ -936,7 +936,7 @@ body.controls-swapped #movement-joystick {
   <span class="sh-arrow sh-right">▶</span>
 </div>
 <script type="module">
-import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=15';
+import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=16';
 import { FontLoader, InputManager } from '../../engine.js';
 import { createDungeonLoadUi } from './ui.js?overlay=4';
 window.wasm = wasm;
@@ -1192,8 +1192,19 @@ function render() {
   } else {
     renderCanvas();
   }
-  if (wasm.scene_roguelike() === 2) {
+  const sceneState = wasm.scene_roguelike();
+  if (sceneState === 2 || sceneState === 3) {
     const gameOver = document.getElementById('game-over');
+    const title = gameOver.querySelector('h2');
+    const message = document.getElementById('game-over-msg');
+    const retry = document.getElementById('btn-retry');
+    const victory = sceneState === 3;
+    title.textContent = victory ? 'DUNGEON//LOAD COMPLETE' : '💀 GAME OVER 💀';
+    title.style.color = victory ? '#0ff' : '#f44';
+    title.style.textShadow = victory ? '0 0 20px #0ff' : '0 0 20px #f44';
+    message.textContent = victory ? 'The warp hole carried you beyond the dungeon.' : 'Cartridge analysis failed.';
+    message.style.color = victory ? '#8ff' : '#f88';
+    retry.textContent = victory ? '↺ RESTART' : '↺ RELOAD';
     gameOver.style.display = 'flex';
   }
 }
@@ -1357,10 +1368,10 @@ function updateDungeon3d() {
       if (tile === 1) { color = 0x333344; h = 2.0; }
       else if (tile === 2) { color = 0x446688; h = 0.2; }
       else if (tile === 3 || tile === 4) { color = 0x446688; h = 0.2; }
-      if (tile === 5) {
+      if (tile === 5 || tile === 6) {
         const hole = new THREE.Mesh(
           new THREE.CylinderGeometry(0.42, 0.52, 0.12, 24),
-          new THREE.MeshBasicMaterial({ color: 0x020205 })
+          new THREE.MeshBasicMaterial({ color: tile === 6 ? 0x001820 : 0x020205 })
         );
         hole.position.set(x, -0.28, y);
         scene.add(hole);
@@ -1368,12 +1379,29 @@ function updateDungeon3d() {
 
         const holeEdge = new THREE.Mesh(
           new THREE.TorusGeometry(0.46, 0.035, 8, 24),
-          new THREE.MeshBasicMaterial({ color: 0x7828aa })
+          new THREE.MeshBasicMaterial({ color: tile === 6 ? 0x00ffff : 0x7828aa })
         );
         holeEdge.rotation.x = Math.PI / 2;
         holeEdge.position.set(x, 0.03, y);
         scene.add(holeEdge);
         cubes.push(holeEdge);
+
+        if (tile === 6) {
+          const warpLabel = createLabelSprite((ctx, width, height) => {
+            ctx.font = 'bold 20px monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.lineWidth = 5;
+            ctx.strokeStyle = 'rgba(0,0,0,0.9)';
+            ctx.strokeText('WARP', width / 2, height / 2);
+            ctx.fillStyle = '#00ffff';
+            ctx.fillText('WARP', width / 2, height / 2);
+          }, 1.35, 0.3);
+          warpLabel.position.set(x, 0.06, y);
+          warpLabel.material.depthTest = false;
+          scene.add(warpLabel);
+          worldIconSprites.push(warpLabel);
+        }
         continue;
       }
       const geom = new THREE.BoxGeometry(1, h, 1);
