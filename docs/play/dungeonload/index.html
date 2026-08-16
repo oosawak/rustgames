@@ -1068,7 +1068,7 @@ body.controls-swapped #movement-joystick {
   <span class="sh-arrow sh-right">▶</span>
 </div>
 <script type="module">
-import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=23&pit=10';
+import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=24&pit=10';
 import { FontLoader, InputManager } from '../../engine.js';
 import { createDungeonLoadUi } from './ui.js?overlay=13';
 window.wasm = wasm;
@@ -1124,7 +1124,7 @@ const KEYMAP = {
 const audio = { ensure: () => {}, play: () => {}, startAmbient: () => {}, setAmbVolume: () => {}, setSeVolume: () => {} };
 const input = new InputManager({ swipeMin: 35 });
 let initialized = false;
-let lastPitFallDepth = 0;
+let lastPitFallMessageCount = 0;
 
 function updatePitFallTransition() {
   const messages = wasm.messages_roguelike();
@@ -1132,9 +1132,8 @@ function updatePitFallTransition() {
   if (!latest.includes('Fell into a pit')) {
     return;
   }
-  const currentDepth = wasm.depth_roguelike();
-  if (currentDepth === lastPitFallDepth) return;
-  lastPitFallDepth = currentDepth;
+  if (messages.length === lastPitFallMessageCount) return;
+  lastPitFallMessageCount = messages.length;
   const overlay = document.getElementById('pit-fall-overlay');
   if (!overlay) return;
   overlay.classList.remove('active');
