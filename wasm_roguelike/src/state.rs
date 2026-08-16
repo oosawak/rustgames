@@ -766,7 +766,8 @@ impl RoguelikeGame {
             self.add_message("🕳️ There is a pit here, but you cannot go any lower.".to_string());
             return;
         }
-        self.next_floor();
+        let source = (self.player_x, self.player_y);
+        self.advance_to_next_floor(Some(source));
         self.add_message("🕳️ Fell into a pit and dropped to the next floor.".to_string());
     }
 
@@ -1924,6 +1925,39 @@ impl RoguelikeGame {
         self.mark_visible();
     }
 
+    fn place_in_nearest_room(&mut self, source_x: i32, source_y: i32) -> bool {
+        let Some((room_index, room)) = self.rooms.iter().enumerate().min_by_key(|(_, room)| {
+            let center_x = room.x + room.width / 2;
+            let center_y = room.y + room.height / 2;
+            (center_x - source_x).pow(2) + (center_y - source_y).pow(2)
+        }).map(|(index, room)| (index, room.clone())) else {
+            return false;
+        };
+
+        let mut landing = None;
+        for y in room.y..room.y + room.height {
+            for x in room.x..room.x + room.width {
+                if self.is_walkable(x, y)
+                    && !self.enemies.iter().any(|enemy| enemy.x == x && enemy.y == y)
+                {
+                    let distance = (x - source_x).pow(2) + (y - source_y).pow(2);
+                    if landing.map_or(true, |(_, _, best)| distance < best) {
+                        landing = Some((x, y, distance));
+                    }
+                }
+            }
+        }
+
+        if let Some((x, y, _)) = landing {
+            self.player_x = x;
+            self.player_y = y;
+            self.current_room = Some(room_index);
+            self.mark_visible();
+            return true;
+        }
+        false
+    }
+
     fn place_on_stair(&mut self, stair: TileType) -> bool {
         for (y, row) in self.map.iter().enumerate() {
             if let Some(x) = row.iter().position(|tile| *tile == stair) {
@@ -1947,7 +1981,7 @@ impl RoguelikeGame {
         self.enemy_shake.clear();
     }
 
-    pub fn next_floor(&mut self) {
+    fn advance_to_next_floor(&mut self, landing_source: Option<(i32, i32)>) {
         if self.depth >= 30 {
             self.add_message("You are already on the deepest floor.".to_string());
             return;
@@ -1963,7 +1997,9 @@ impl RoguelikeGame {
         self.reset_transition_state();
 
         self.load_floor(self.depth);
-        self.place_on_stair(TileType::StairUp);
+        if landing_source.map_or(true, |(x, y)| !self.place_in_nearest_room(x, y)) {
+            self.place_on_stair(TileType::StairUp);
+        }
 
         self.spawn_enemies(Self::should_spawn_boss(self.depth));
 
@@ -1972,6 +2008,10 @@ impl RoguelikeGame {
             && self.player_x >= 0 && self.player_x < self.map_width {
             self.visited[self.player_y as usize][self.player_x as usize] = true;
         }
+    }
+
+    pub fn next_floor(&mut self) {
+        self.advance_to_next_floor(None);
     }
 
     pub fn prev_floor(&mut self) {
