@@ -70,12 +70,12 @@ export function createDungeonLoadUi({ wasm }) {
     downPreviewRenderer.setSize(width, height, false);
     downPreviewScene = new three.Scene();
     downPreviewCamera = new three.PerspectiveCamera(75, width / height, 0.1, 100);
-    downPreviewCamera.position.set(0, 12, 10);
+    downPreviewCamera.position.set(0, 6, 6);
     downPreviewCamera.lookAt(0, 0, -2);
     const texture = new three.Texture(image);
     texture.needsUpdate = true;
     const material = new three.MeshBasicMaterial({ map: texture, transparent: true, side: three.DoubleSide });
-    downPreviewMesh = new three.Mesh(new three.PlaneGeometry(1.5, 1.5), material);
+    downPreviewMesh = new three.Mesh(new three.PlaneGeometry(4.5, 4.5), material);
     downPreviewScene.add(downPreviewMesh);
     renderDownPreview();
     const refreshTexture = () => {
