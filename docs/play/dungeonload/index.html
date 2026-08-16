@@ -1076,6 +1076,19 @@ const ui = createDungeonLoadUi({ wasm });
 
 const clearScreenIconIds = ['player-icon', ...Array.from({ length: 30 }, (_, index) => `enemy-${index}`)];
 const clearScreenIconNames = ['HERO', 'Young Goblin', 'Goblin', 'Hobgoblin', 'Young Bat', 'Bat', 'Giant Bat', 'Skeleton', 'Skeleton Warrior', 'Skeleton Knight', 'Young Spider', 'Spider', 'Giant Spider', 'Young Troll', 'Troll', 'Troll King', 'Zombie', 'Zombie Warrior', 'Zombie Lord', 'Spirit', 'Ghost', 'Phantom', 'Mummy', 'Mummy Priest', 'Pharaoh', 'Young Ogre', 'Ogre', 'Ogre Warlord', 'Young Wyvern', 'Wyvern', 'Hell Wyvern'];
+const titleIconFilters = [
+  'sepia(1) saturate(4) hue-rotate(145deg) drop-shadow(0 0 8px #0ff)',
+  'sepia(1) saturate(5) hue-rotate(165deg) drop-shadow(0 0 8px #08f)',
+  'sepia(1) saturate(5) hue-rotate(195deg) drop-shadow(0 0 8px #08f)',
+  'sepia(1) saturate(4) hue-rotate(225deg) drop-shadow(0 0 8px #66f)',
+  'sepia(1) saturate(4) hue-rotate(105deg) drop-shadow(0 0 8px #0f8)',
+];
+const clearIconFilters = [
+  'sepia(1) saturate(5) hue-rotate(310deg) drop-shadow(0 0 8px #f33)',
+  'sepia(1) saturate(5) hue-rotate(330deg) drop-shadow(0 0 8px #f60)',
+  'sepia(1) saturate(5) hue-rotate(280deg) drop-shadow(0 0 8px #f0f)',
+  'sepia(1) saturate(5) hue-rotate(350deg) drop-shadow(0 0 8px #f44)',
+];
 const titleMonsterTrack = document.getElementById('title-monster-track');
 if (titleMonsterTrack) {
   [...clearScreenIconIds, ...clearScreenIconIds].forEach((id, streamIndex) => {
@@ -1085,6 +1098,7 @@ if (titleMonsterTrack) {
     card.className = 'icon-card';
     const icon = source.cloneNode(true);
     icon.removeAttribute('id');
+    icon.style.filter = titleIconFilters[streamIndex % titleIconFilters.length];
     const label = document.createElement('span');
     label.className = 'icon-label';
     label.textContent = clearScreenIconNames[streamIndex % clearScreenIconNames.length];
@@ -1394,6 +1408,7 @@ function render() {
           const icon = source.cloneNode(true);
           icon.removeAttribute('id');
           if (id === 'player-icon') icon.classList.add('clear-hero');
+          icon.style.filter = clearIconFilters[streamIndex % clearIconFilters.length];
           const label = document.createElement('span');
           label.className = 'icon-label';
           label.textContent = clearScreenIconNames[streamIndex % clearScreenIconNames.length];
