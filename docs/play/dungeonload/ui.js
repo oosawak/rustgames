@@ -29,6 +29,20 @@ export function createDungeonLoadUi({ wasm }) {
 
   setControlsSwapped(controlsSwapped);
 
+  const downRotation = { x: 0, y: 160, z: 0 };
+  ['x', 'y', 'z'].forEach((axis) => {
+    try {
+      const saved = Number(localStorage.getItem(`dungeonload-down-rotation-${axis}`));
+      if (Number.isFinite(saved) && saved >= -180 && saved <= 180) downRotation[axis] = saved;
+    } catch (_) {
+      // Keep the default rotation when storage is unavailable.
+    }
+  });
+
+  function getDownRotation() {
+    return { ...downRotation };
+  }
+
   function updateStatusTab(panel) {
     if (!panel) return;
     const level = wasm.level_roguelike();
@@ -279,6 +293,7 @@ export function createDungeonLoadUi({ wasm }) {
     const scale = wasm.enemy_attack_interval_scale_roguelike();
     const noDamageMode = wasm.no_damage_mode_roguelike();
     const depth = wasm.depth_roguelike();
+    const rotation = getDownRotation();
     panel.innerHTML = `
       <div style="padding: 16px;">
         <div class="stat-item" style="display: block;">
@@ -340,6 +355,20 @@ export function createDungeonLoadUi({ wasm }) {
             Jump to any floor from F1 to F30.
           </div>
         </div>
+
+        <div class="stat-item" style="display: block; margin-top: 18px;">
+          <div class="stat-label">DOWN ICON ROTATION</div>
+          <div style="color: rgba(180,220,240,0.75); font-size: 0.75em; line-height: 1.5; margin: 8px 0 14px;">
+            Adjust the 3D player icon when facing down.
+          </div>
+          ${['x', 'y', 'z'].map((axis) => `
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 10px;">
+              <span class="stat-label">${axis.toUpperCase()} AXIS</span>
+              <span class="stat-value" id="down-rotation-${axis}-value">${rotation[axis]}°</span>
+            </div>
+            <input id="down-rotation-${axis}-slider" type="range" min="-180" max="180" step="1" value="${rotation[axis]}" style="width: 100%; margin-top: 8px; accent-color: #0ff;">
+          `).join('')}
+        </div>
       </div>`;
 
     const logLinesSlider = panel.querySelector('#log-lines-slider');
@@ -395,6 +424,20 @@ export function createDungeonLoadUi({ wasm }) {
     };
     floorSlider.addEventListener('input', updateFloorSelection);
     floorButton.addEventListener('click', jumpToFloor);
+
+    ['x', 'y', 'z'].forEach((axis) => {
+      const rotationSlider = panel.querySelector(`#down-rotation-${axis}-slider`);
+      const rotationValue = panel.querySelector(`#down-rotation-${axis}-value`);
+      rotationSlider.addEventListener('input', () => {
+        downRotation[axis] = Number(rotationSlider.value);
+        rotationValue.textContent = `${downRotation[axis]}°`;
+        try {
+          localStorage.setItem(`dungeonload-down-rotation-${axis}`, String(downRotation[axis]));
+        } catch (_) {
+          // Keep the setting for this session if storage is unavailable.
+        }
+      });
+    });
   }
 
   function drawDungeonMap() {
@@ -484,6 +527,7 @@ export function createDungeonLoadUi({ wasm }) {
     updateLogTab,
     updateMessageLog,
     setControlsSwapped,
+    getDownRotation,
     flashHint,
     setupNavigation,
     updateTabContent,
