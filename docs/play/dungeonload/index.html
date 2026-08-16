@@ -1068,9 +1068,9 @@ body.controls-swapped #movement-joystick {
   <span class="sh-arrow sh-right">▶</span>
 </div>
 <script type="module">
-import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=21&pit=5';
+import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=21&pit=6';
 import { FontLoader, InputManager } from '../../engine.js';
-import { createDungeonLoadUi } from './ui.js?overlay=9';
+import { createDungeonLoadUi } from './ui.js?overlay=10';
 window.wasm = wasm;
 const ui = createDungeonLoadUi({ wasm });
 
@@ -1704,6 +1704,10 @@ function updateDungeon3d() {
     }
     playerCube.position.set(playerX, 0.9, playerY);
     const playerDir = wasm.player_direction_roguelike();
+    if (playerCube.material?.color) {
+      const palette = typeof wasm.game_palette_roguelike === 'function' ? wasm.game_palette_roguelike() : 0;
+      playerCube.material.color.set(palette === 1 ? 0xff4050 : 0x40c8ff);
+    }
     playerCube.scale.x = playerDir === 1 ? -1 : 1;
     playerCube.scale.y = 1;
     const downRotation = ui.getDownRotation();
@@ -1734,7 +1738,11 @@ function updateDungeon3d() {
     enemyCube.position.set(ex, 0.75, ey);
     const enemyTintPalette = [0x66ddff, 0x66ff88, 0x88aaff, 0xffaa55, 0xff77cc, 0xcc88ff];
     if (enemyCube.material?.color) {
-      enemyCube.material.color.set(isBoss ? 0xff3333 : enemyTintPalette[data[4] % enemyTintPalette.length]);
+      const palette = typeof wasm.game_palette_roguelike === 'function' ? wasm.game_palette_roguelike() : 0;
+      const redPalette = [0xff5555, 0xff8844, 0xff6688, 0xff3333, 0xff77aa, 0xcc4466];
+      enemyCube.material.color.set(isBoss
+        ? (palette === 1 ? 0xff3333 : 0x4488ff)
+        : (palette === 1 ? redPalette[data[4] % redPalette.length] : enemyTintPalette[data[4] % enemyTintPalette.length]));
     }
     scene.add(enemyCube);
     enemies3d.push(enemyCube);

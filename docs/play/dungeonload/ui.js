@@ -29,6 +29,16 @@ export function createDungeonLoadUi({ wasm }) {
 
   setControlsSwapped(controlsSwapped);
 
+  let gamePalette = 0;
+  try {
+    gamePalette = localStorage.getItem('dungeonload-game-palette') === 'red' ? 1 : 0;
+  } catch (_) {
+    // Keep the blue palette when storage is unavailable.
+  }
+  if (typeof wasm.set_game_palette_roguelike === 'function') {
+    wasm.set_game_palette_roguelike(gamePalette);
+  }
+
   const downRotation = { x: 0, y: 160, z: 0 };
   let downPreviewRenderer = null;
   let downPreviewScene = null;
@@ -366,6 +376,19 @@ export function createDungeonLoadUi({ wasm }) {
 
         <div class="stat-item" style="display: block; margin-top: 18px;">
           <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+            <span class="stat-label">GAME PALETTE</span>
+            <select id="game-palette-select" style="background: #001520; border: 1px solid #0ff; color: #0ff; padding: 5px 8px; font-family: inherit;">
+              <option value="blue" ${gamePalette === 0 ? 'selected' : ''}>BLUE</option>
+              <option value="red" ${gamePalette === 1 ? 'selected' : ''}>RED</option>
+            </select>
+          </div>
+          <div style="color: rgba(180,220,240,0.75); font-size: 0.75em; line-height: 1.5; margin-top: 8px;">
+            Change the player and enemy colors in the dungeon.
+          </div>
+        </div>
+
+        <div class="stat-item" style="display: block; margin-top: 18px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
             <span class="stat-label">SWAP CONTROL SIDES</span>
             <label style="display: flex; align-items: center; gap: 8px; color: #0ff; cursor: pointer; user-select: none;">
               <input id="swap-controls-toggle" type="checkbox" ${controlsSwapped ? 'checked' : ''} style="accent-color: #0ff;">
@@ -442,6 +465,19 @@ export function createDungeonLoadUi({ wasm }) {
     swapControlsToggle.addEventListener('change', () => {
       setControlsSwapped(swapControlsToggle.checked);
       swapControlsLabel.textContent = swapControlsToggle.checked ? 'ON' : 'OFF';
+    });
+
+    const paletteSelect = panel.querySelector('#game-palette-select');
+    paletteSelect.addEventListener('change', () => {
+      gamePalette = paletteSelect.value === 'red' ? 1 : 0;
+      if (typeof wasm.set_game_palette_roguelike === 'function') {
+        wasm.set_game_palette_roguelike(gamePalette);
+      }
+      try {
+        localStorage.setItem('dungeonload-game-palette', gamePalette === 1 ? 'red' : 'blue');
+      } catch (_) {
+        // Keep the setting for this session if storage is unavailable.
+      }
     });
 
     const slider = panel.querySelector('#enemy-interval-slider');

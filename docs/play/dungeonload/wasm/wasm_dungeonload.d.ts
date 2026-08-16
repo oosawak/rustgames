@@ -27,6 +27,8 @@ export function equip_armor_roguelike(index: number): boolean;
 
 export function equip_weapon_roguelike(index: number): boolean;
 
+export function game_palette_roguelike(): number;
+
 export function hp_roguelike(): number;
 
 export function init_roguelike(): void;
@@ -79,6 +81,8 @@ export function scene_roguelike(): number;
 
 export function set_enemy_attack_interval_scale_roguelike(value: number): void;
 
+export function set_game_palette_roguelike(value: number): void;
+
 export function set_no_damage_mode_roguelike(enabled: boolean): void;
 
 export function start_game_roguelike(): void;
@@ -112,6 +116,7 @@ export interface InitOutput {
     readonly equip_accessory_roguelike: (a: number) => number;
     readonly equip_armor_roguelike: (a: number) => number;
     readonly equip_weapon_roguelike: (a: number) => number;
+    readonly game_palette_roguelike: () => number;
     readonly hp_roguelike: () => number;
     readonly init_roguelike: () => void;
     readonly inventory_roguelike: () => [number, number];
@@ -138,6 +143,7 @@ export interface InitOutput {
     readonly render_roguelike: (a: number, b: number, c: number, d: number) => void;
     readonly scene_roguelike: () => number;
     readonly set_enemy_attack_interval_scale_roguelike: (a: number) => void;
+    readonly set_game_palette_roguelike: (a: number) => void;
     readonly set_no_damage_mode_roguelike: (a: number) => void;
     readonly start_game_roguelike: () => void;
     readonly tick_roguelike: (a: number) => void;

@@ -133,6 +133,14 @@ export function equip_weapon_roguelike(index) {
 /**
  * @returns {number}
  */
+export function game_palette_roguelike() {
+    const ret = wasm.game_palette_roguelike();
+    return ret >>> 0;
+}
+
+/**
+ * @returns {number}
+ */
 export function hp_roguelike() {
     const ret = wasm.hp_roguelike();
     return ret >>> 0;
@@ -345,6 +353,14 @@ export function scene_roguelike() {
 export function set_enemy_attack_interval_scale_roguelike(value) {
     _assertNum(value);
     wasm.set_enemy_attack_interval_scale_roguelike(value);
+}
+
+/**
+ * @param {number} value
+ */
+export function set_game_palette_roguelike(value) {
+    _assertNum(value);
+    wasm.set_game_palette_roguelike(value);
 }
 
 /**
