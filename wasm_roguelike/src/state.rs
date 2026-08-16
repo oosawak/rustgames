@@ -312,6 +312,11 @@ impl RoguelikeGame {
         matches!(enemy_type, 3 | 10 | 16 | 22 | 28)
     }
 
+    // Flying enemies can cross pit lines; grounded enemies must route around them.
+    fn enemy_can_fly(enemy_type: u32) -> bool {
+        matches!(enemy_type, 3 | 4 | 5 | 18 | 19 | 20 | 27 | 28 | 29)
+    }
+
     fn calc_map_size(depth: u32) -> (i32, i32) {
         let width = 120 + ((depth.saturating_sub(1)) as i32 * 4);
         let height = 80 + ((depth.saturating_sub(1)) as i32 * 2);
@@ -641,19 +646,27 @@ impl RoguelikeGame {
             }
         }
 
-        // Add traversal holes to interior rooms. Normal movement enters a hole;
-        // dodge movement can cross it and land on the other side.
+        // Add one-tile-wide pit lines that divide interior rooms. A jump crosses
+        // the line, while grounded enemies must find a route around it.
         for room in rooms.iter().skip(1).take(5) {
             if room.width < 5 || room.height < 5 {
                 continue;
             }
-            let candidates = [
-                (room.x + 2, room.y + 2),
-                (room.x + room.width - 3, room.y + room.height - 3),
-            ];
-            for (pit_x, pit_y) in candidates {
-                if map[pit_y as usize][pit_x as usize] == TileType::Room {
-                    map[pit_y as usize][pit_x as usize] = TileType::Pit;
+
+            let orientation = (room.x as u32 ^ room.y as u32 ^ room.width as u32) & 1;
+            if orientation == 0 {
+                let pit_y = room.y + room.height / 2;
+                for pit_x in (room.x + 1)..(room.x + room.width - 1) {
+                    if map[pit_y as usize][pit_x as usize] == TileType::Room {
+                        map[pit_y as usize][pit_x as usize] = TileType::Pit;
+                    }
+                }
+            } else {
+                let pit_x = room.x + room.width / 2;
+                for pit_y in (room.y + 1)..(room.y + room.height - 1) {
+                    if map[pit_y as usize][pit_x as usize] == TileType::Room {
+                        map[pit_y as usize][pit_x as usize] = TileType::Pit;
+                    }
                 }
             }
         }
@@ -712,6 +725,10 @@ impl RoguelikeGame {
     fn is_pit(&self, x: i32, y: i32) -> bool {
         x >= 0 && x < self.map_width && y >= 0 && y < self.map_height
             && self.map[y as usize][x as usize] == TileType::Pit
+    }
+
+    fn is_enemy_walkable(&self, enemy_type: u32, x: i32, y: i32) -> bool {
+        self.is_walkable(x, y) || (Self::enemy_can_fly(enemy_type) && self.is_pit(x, y))
     }
 
     fn enter_pit(&mut self) {
@@ -1281,7 +1298,7 @@ impl RoguelikeGame {
         for _ in 0..move_steps {
             let next_x = new_x + dx;
             let next_y = new_y + dy;
-            if self.is_walkable(next_x, next_y) || self.is_pit(next_x, next_y) {
+            if self.is_walkable(next_x, next_y) || (action == 5 && self.is_pit(next_x, next_y)) {
                 new_x = next_x;
                 new_y = next_y;
                 if self.is_walkable(next_x, next_y) {
@@ -1484,7 +1501,7 @@ impl RoguelikeGame {
                 if Self::is_ranged_enemy_type(self.enemies[i].enemy_type) {
                     continue;
                 }
-                if self.is_walkable(new_ex, new_ey)
+                if self.is_enemy_walkable(self.enemies[i].enemy_type, new_ex, new_ey)
                     && (new_ex != self.player_x || new_ey != self.player_y)
                 {
                     // 他の敵との重複チェック
@@ -1572,7 +1589,7 @@ impl RoguelikeGame {
                         let new_x = enemy.x + dx_test;
                         let new_y = enemy.y + dy_test;
 
-                        if self.is_walkable(new_x, new_y) {
+                        if self.is_enemy_walkable(enemy.enemy_type, new_x, new_y) {
                             let new_distance = ((self.player_x - new_x).abs() + (self.player_y - new_y).abs()) as i32;
                             if new_distance < best_distance {
                                 best_distance = new_distance;
@@ -1597,7 +1614,9 @@ impl RoguelikeGame {
                     .any(|(j, e)| j != i && e.x == new_x && e.y == new_y);
                 let occupied_by_player = self.player_x == new_x && self.player_y == new_y;
 
-                if self.is_walkable(new_x, new_y) && !occupied_by_other && !occupied_by_player {
+                if self.is_enemy_walkable(self.enemies[i].enemy_type, new_x, new_y)
+                    && !occupied_by_other && !occupied_by_player
+                {
                     self.enemies[i].x = new_x;
                     self.enemies[i].y = new_y;
                 }
