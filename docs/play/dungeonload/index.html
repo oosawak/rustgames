@@ -285,6 +285,50 @@ html, body {
   transition: background 0.2s;
 }
 #game-over button:active { background: rgba(244, 68, 68, 0.2); }
+#game-over.victory {
+  background: radial-gradient(circle at center, rgba(0, 70, 90, 0.45), rgba(0, 0, 8, 0.96) 68%);
+}
+#game-over.victory h2 {
+  color: #0ff;
+  text-shadow: 0 0 14px #0ff, 0 0 36px #08f;
+}
+#game-over.victory p { color: #9ff; text-shadow: 0 0 8px #0ff; }
+#game-over.victory button {
+  border-color: #0ff;
+  color: #0ff;
+  text-shadow: 0 0 8px #0ff;
+  box-shadow: 0 0 16px #0ff;
+}
+#clear-monster-stream {
+  width: min(520px, 88vw);
+  height: 76px;
+  margin-top: 24px;
+  overflow: hidden;
+  border-top: 1px solid rgba(0,255,255,0.55);
+  border-bottom: 1px solid rgba(255,50,80,0.55);
+  background: rgba(0, 20, 35, 0.55);
+}
+#clear-monster-track {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  width: max-content;
+  height: 100%;
+  animation: clear-monsters-slide 13s linear infinite;
+}
+#clear-monster-track img {
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+  filter: sepia(1) saturate(5) hue-rotate(310deg) drop-shadow(0 0 8px #f33);
+}
+#clear-monster-track img.clear-hero {
+  filter: sepia(1) saturate(4) hue-rotate(145deg) drop-shadow(0 0 8px #0ff);
+}
+@keyframes clear-monsters-slide {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
 #loading {
   position: fixed;
   inset: 0;
@@ -851,6 +895,7 @@ body.controls-swapped #movement-joystick {
   <h2>💀 GAME OVER 💀</h2>
   <p id="game-over-msg">Cartridge analysis failed.</p>
   <button id="btn-retry">↺ RELOAD</button>
+  <div id="clear-monster-stream" aria-hidden="true"></div>
 </div>
 <div id="pit-fall-overlay" aria-hidden="true">
   <img id="pit-fall-player" src="../roguelike/icons/cathelineau/swordman.png" alt="">
@@ -1262,12 +1307,31 @@ function render() {
     const message = document.getElementById('game-over-msg');
     const retry = document.getElementById('btn-retry');
     const victory = sceneState === 3;
+    gameOver.classList.toggle('victory', victory);
     title.textContent = victory ? 'DUNGEON//LOAD COMPLETE' : '💀 GAME OVER 💀';
     title.style.color = victory ? '#0ff' : '#f44';
     title.style.textShadow = victory ? '0 0 20px #0ff' : '0 0 20px #f44';
     message.textContent = victory ? 'The warp hole carried you beyond the dungeon.' : 'Cartridge analysis failed.';
     message.style.color = victory ? '#8ff' : '#f88';
     retry.textContent = victory ? '↺ RESTART' : '↺ RELOAD';
+    if (victory) {
+      const stream = document.getElementById('clear-monster-stream');
+      if (!stream.dataset.ready) {
+        const track = document.createElement('div');
+        track.id = 'clear-monster-track';
+        const monsterIds = ['player-icon', 'enemy-0', 'enemy-3', 'enemy-6', 'enemy-9', 'enemy-12', 'enemy-18', 'enemy-24', 'enemy-27'];
+        [...monsterIds, ...monsterIds].forEach((id) => {
+          const source = document.getElementById(id);
+          if (!source) return;
+          const icon = source.cloneNode(true);
+          icon.removeAttribute('id');
+          if (id === 'player-icon') icon.classList.add('clear-hero');
+          track.appendChild(icon);
+        });
+        stream.appendChild(track);
+        stream.dataset.ready = 'true';
+      }
+    }
     gameOver.style.display = 'flex';
   }
 }
