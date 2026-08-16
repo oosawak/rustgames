@@ -976,7 +976,7 @@ body.controls-swapped #movement-joystick {
   <span class="sh-arrow sh-right">▶</span>
 </div>
 <script type="module">
-import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=21&pit=1';
+import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=21&pit=2';
 import { FontLoader, InputManager } from '../../engine.js';
 import { createDungeonLoadUi } from './ui.js?overlay=9';
 window.wasm = wasm;
@@ -1573,13 +1573,17 @@ function updateDungeon3d() {
     if (data.length < 3) continue;
     const ex = data[0];
     const ey = data[1];
+    const isBoss = data[5] === 1;
     if (ex < minX || ex > maxX || ey < minY || ey > maxY) continue;
-    const enemyCube = createIconSprite(`enemy-${data[4]}`, 1.25)
+    const enemyCube = createIconSprite(`enemy-${data[4]}`, isBoss ? 2.5 : 1.25)
       || new THREE.Mesh(
         new THREE.BoxGeometry(0.6, 1.1, 0.6),
         new THREE.MeshLambertMaterial({ color: 0xff4444 })
       );
     enemyCube.position.set(ex, 0.75, ey);
+    if (isBoss && enemyCube.material?.color) {
+      enemyCube.material.color.set(0xff3333);
+    }
     scene.add(enemyCube);
     enemies3d.push(enemyCube);
 
@@ -1607,10 +1611,10 @@ function updateDungeon3d() {
         ctx.lineWidth = 5;
         ctx.strokeStyle = 'rgba(0,0,0,0.9)';
         ctx.strokeText(enemyName, width / 2, height / 2);
-        ctx.fillStyle = '#aaf';
+        ctx.fillStyle = isBoss ? '#ff5555' : '#aaf';
         ctx.fillText(enemyName, width / 2, height / 2);
       }, 4.2, 0.5);
-      nameSprite.position.set(ex, 2.45, ey);
+      nameSprite.position.set(ex, isBoss ? 3.0 : 2.45, ey);
       nameSprite.material.depthTest = false;
       nameSprite.material.depthWrite = false;
       nameSprite.material.opacity = 1;

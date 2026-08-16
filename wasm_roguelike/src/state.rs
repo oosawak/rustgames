@@ -2254,10 +2254,14 @@ pub fn render_canvas(game: &RoguelikeGame, canvas_id: &str, width: i32, height: 
                             ctx.save();
                             ctx.translate(icon_x, icon_y).ok();
 
-                            // ボス敵は金色の枠を描画
+                            // ボス敵は赤い背景と枠で強調する
                             if enemy.is_boss {
-                                ctx.set_stroke_style(&"gold".into());
-                                ctx.set_line_width(2.0);
+                                ctx.set_fill_style(&"rgba(255,40,40,0.24)".into());
+                                ctx.begin_path();
+                                ctx.arc(icon_x, icon_y, icon_size * 0.62, 0.0, std::f64::consts::TAU).ok();
+                                ctx.fill();
+                                ctx.set_stroke_style(&"#ff3333".into());
+                                ctx.set_line_width(3.0);
                                 ctx.stroke_rect(-icon_size * 0.5, -icon_size * 0.5, icon_size, icon_size);
                             }
 
