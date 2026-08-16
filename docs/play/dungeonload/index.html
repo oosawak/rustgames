@@ -1432,13 +1432,35 @@ function updateDungeon3d() {
       else if (tile === 2) { color = 0x446688; h = 0.2; }
       else if (tile === 3 || tile === 4) { color = 0x446688; h = 0.2; }
       if (tile === 5 || tile === 6) {
-        const hole = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.42, 0.52, 0.12, 24),
-          new THREE.MeshBasicMaterial({ color: tile === 6 ? 0x001820 : 0x020205 })
+        const holeColor = tile === 6 ? 0x001820 : 0x020205;
+        const shaft = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.48, 0.28, 0.9, 24, 1, true),
+          new THREE.MeshBasicMaterial({
+            color: tile === 6 ? 0x00303a : 0x13001b,
+            side: THREE.DoubleSide,
+          })
         );
-        hole.position.set(x, -0.28, y);
-        scene.add(hole);
-        cubes.push(hole);
+        shaft.position.set(x, -0.35, y);
+        scene.add(shaft);
+        cubes.push(shaft);
+
+        const holeBottom = new THREE.Mesh(
+          new THREE.CircleGeometry(0.28, 24),
+          new THREE.MeshBasicMaterial({ color: holeColor, side: THREE.DoubleSide })
+        );
+        holeBottom.rotation.x = -Math.PI / 2;
+        holeBottom.position.set(x, -0.8, y);
+        scene.add(holeBottom);
+        cubes.push(holeBottom);
+
+        const opening = new THREE.Mesh(
+          new THREE.CircleGeometry(0.42, 24),
+          new THREE.MeshBasicMaterial({ color: holeColor, side: THREE.DoubleSide })
+        );
+        opening.rotation.x = -Math.PI / 2;
+        opening.position.set(x, 0.035, y);
+        scene.add(opening);
+        cubes.push(opening);
 
         const holeEdge = new THREE.Mesh(
           new THREE.TorusGeometry(0.46, 0.035, 8, 24),
