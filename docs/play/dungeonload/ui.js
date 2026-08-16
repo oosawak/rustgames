@@ -368,6 +368,12 @@ export function createDungeonLoadUi({ wasm }) {
             </div>
             <input id="down-rotation-${axis}-slider" type="range" min="-180" max="180" step="1" value="${rotation[axis]}" style="width: 100%; margin-top: 8px; accent-color: #0ff;">
           `).join('')}
+          <div style="margin-top: 18px; text-align: center;">
+            <div class="stat-label" style="margin-bottom: 8px;">PLAYER PREVIEW</div>
+            <div style="height: 126px; display: grid; place-items: center; background: rgba(0,20,32,0.65); border: 1px solid rgba(0,200,255,0.35); border-radius: 4px; perspective: 420px; overflow: hidden;">
+              <img id="down-rotation-preview" src="../roguelike/icons/cathelineau/swordman.png" alt="Player preview" width="96" height="96" style="image-rendering: auto; transform-style: preserve-3d;">
+            </div>
+          </div>
         </div>
       </div>`;
 
@@ -438,6 +444,14 @@ export function createDungeonLoadUi({ wasm }) {
         }
       });
     });
+    const preview = panel.querySelector('#down-rotation-preview');
+    const updatePreview = () => {
+      preview.style.transform = `rotateX(${downRotation.x}deg) rotateY(${downRotation.y}deg) rotateZ(${downRotation.z}deg)`;
+    };
+    ['x', 'y', 'z'].forEach((axis) => {
+      panel.querySelector(`#down-rotation-${axis}-slider`).addEventListener('input', updatePreview);
+    });
+    updatePreview();
   }
 
   function drawDungeonMap() {
