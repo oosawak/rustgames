@@ -332,12 +332,10 @@ export function createDungeonLoadUi({ wasm }) {
         <div class="stat-item" style="display: block; margin-top: 18px;">
           <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
             <span class="stat-label">FLOOR JUMP</span>
-            <span class="stat-value">F${depth}</span>
+            <span class="stat-value" id="floor-jump-value">F${depth}</span>
           </div>
-          <div style="display: flex; gap: 8px; margin-top: 12px;">
-            <input id="floor-jump-input" type="number" min="1" max="30" step="1" value="${depth}" style="flex: 1; padding: 8px; background: rgba(0, 20, 30, 0.9); border: 1px solid rgba(0,200,255,0.3); color: #0ff; font-family: inherit;">
-            <button id="floor-jump-button" style="padding: 8px 14px; background: rgba(0,200,255,0.15); border: 1px solid #0ff; color: #0ff; cursor: pointer; font-family: inherit;">JUMP</button>
-          </div>
+          <input id="floor-jump-slider" type="range" min="1" max="30" step="1" value="${depth}" style="width: 100%; margin-top: 14px; accent-color: #0ff;">
+          <button id="floor-jump-button" style="width: 100%; margin-top: 10px; padding: 8px 14px; background: rgba(0,200,255,0.15); border: 1px solid #0ff; color: #0ff; cursor: pointer; font-family: inherit;">JUMP TO F${depth}</button>
           <div id="floor-jump-status" style="color: rgba(180,220,240,0.75); font-size: 0.75em; line-height: 1.5; margin-top: 8px;">
             Jump to any floor from F1 to F30.
           </div>
@@ -380,23 +378,23 @@ export function createDungeonLoadUi({ wasm }) {
       noDamageLabel.textContent = enabled ? 'ON' : 'OFF';
     });
 
-    const floorInput = panel.querySelector('#floor-jump-input');
+    const floorSlider = panel.querySelector('#floor-jump-slider');
+    const floorValue = panel.querySelector('#floor-jump-value');
     const floorButton = panel.querySelector('#floor-jump-button');
+    const updateFloorSelection = () => {
+      const nextFloor = Number(floorSlider.value);
+      floorValue.textContent = `F${nextFloor}`;
+      floorButton.textContent = `JUMP TO F${nextFloor}`;
+    };
     const jumpToFloor = () => {
-      const raw = Number(floorInput.value);
-      const nextFloor = Number.isFinite(raw) ? Math.min(30, Math.max(1, Math.round(raw))) : depth;
-      floorInput.value = String(nextFloor);
+      const nextFloor = Number(floorSlider.value);
       wasm.jump_to_floor_roguelike(nextFloor);
       updateTabContent('status');
       updateSettingsTab(panel);
       updateTabContent('map');
     };
+    floorSlider.addEventListener('input', updateFloorSelection);
     floorButton.addEventListener('click', jumpToFloor);
-    floorInput.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') {
-        jumpToFloor();
-      }
-    });
   }
 
   function drawDungeonMap() {
