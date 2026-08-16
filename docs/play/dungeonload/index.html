@@ -297,6 +297,42 @@ html, body {
   font-size: 1.2em;
   text-shadow: 0 0 8px #0ff;
 }
+#pit-fall-overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  background: #000;
+  z-index: 90;
+  pointer-events: none;
+}
+#pit-fall-player {
+  position: absolute;
+  top: 32%;
+  left: 50%;
+  width: 64px;
+  height: 64px;
+  opacity: 0;
+  transform: translateX(-50%);
+}
+#pit-fall-overlay.active {
+  display: block;
+  animation: pit-fall-blackout 0.6s ease-in-out;
+}
+#pit-fall-overlay.active #pit-fall-player {
+  animation: pit-fall-player-drop 0.6s ease-in-out;
+}
+@keyframes pit-fall-blackout {
+  0% { opacity: 0; }
+  18%, 82% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes pit-fall-player-drop {
+  0% { opacity: 0; transform: translate(-50%, -12px) rotate(0deg); }
+  18% { opacity: 1; transform: translate(-50%, 0) rotate(-12deg); }
+  42% { transform: translate(calc(-50% - 12px), 35px) rotate(16deg); }
+  68% { transform: translate(calc(-50% + 10px), 82px) rotate(170deg); }
+  100% { opacity: 0; transform: translate(-50%, 150px) rotate(360deg); }
+}
 .spin {
   width: 40px;
   height: 40px;
@@ -816,6 +852,9 @@ body.controls-swapped #movement-joystick {
   <p id="game-over-msg">Cartridge analysis failed.</p>
   <button id="btn-retry">↺ RELOAD</button>
 </div>
+<div id="pit-fall-overlay" aria-hidden="true">
+  <img id="pit-fall-player" src="../roguelike/icons/cathelineau/swordman.png" alt="">
+</div>
 <div id="container">
   <div id="ui-upper">
     <div id="tab-content">
@@ -959,6 +998,24 @@ const KEYMAP = {
 const audio = { ensure: () => {}, play: () => {}, startAmbient: () => {}, setAmbVolume: () => {}, setSeVolume: () => {} };
 const input = new InputManager({ swipeMin: 35 });
 let initialized = false;
+let lastPitFallMessage = '';
+
+function updatePitFallTransition() {
+  const messages = wasm.messages_roguelike();
+  const latest = messages[messages.length - 1] || '';
+  if (!latest.includes('Fell into a pit')) {
+    lastPitFallMessage = '';
+    return;
+  }
+  if (latest === lastPitFallMessage) return;
+  lastPitFallMessage = latest;
+  const overlay = document.getElementById('pit-fall-overlay');
+  if (!overlay) return;
+  overlay.classList.remove('active');
+  void overlay.offsetWidth;
+  overlay.classList.add('active');
+  window.setTimeout(() => overlay.classList.remove('active'), 650);
+}
 
 async function start() {
   try {
@@ -1158,6 +1215,7 @@ async function start() {
 
 function render() {
   if (!initialized) return;
+  updatePitFallTransition();
   ui.updateMessageLog();
   const mobileWeaponLabel = document.getElementById('mobile-weapon-label');
   if (mobileWeaponLabel) {
