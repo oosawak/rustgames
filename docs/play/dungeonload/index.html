@@ -1481,11 +1481,11 @@ function updateDungeon3d() {
     enemies3d.push(enemyCube);
 
     const enemyName = typeof wasm.enemy_name_roguelike === 'function'
-      ? wasm.enemy_name_roguelike(i)
+      ? String(wasm.enemy_name_roguelike(i) || '')
       : '';
     if (enemyName) {
       const nameSprite = createLabelSprite((ctx, width, height) => {
-        ctx.font = 'bold 22px monospace';
+        ctx.font = 'bold 18px monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.lineWidth = 5;
@@ -1493,9 +1493,10 @@ function updateDungeon3d() {
         ctx.strokeText(enemyName, width / 2, height / 2);
         ctx.fillStyle = '#aaf';
         ctx.fillText(enemyName, width / 2, height / 2);
-      }, 1.7, 0.28);
-      nameSprite.position.set(ex, 0.18, ey);
+      }, 2.2, 0.32);
+      nameSprite.position.set(ex, 0.24, ey);
       nameSprite.material.depthTest = false;
+      nameSprite.renderOrder = 20;
       scene.add(nameSprite);
       enemyHudSprites.push(nameSprite);
     }
@@ -1512,6 +1513,8 @@ function updateDungeon3d() {
       ctx.strokeRect(3, 4, width - 6, height - 8);
     }, 1.15, 0.2);
     hpSprite.position.set(ex, 1.65, ey);
+    hpSprite.material.depthTest = false;
+    hpSprite.renderOrder = 21;
     scene.add(hpSprite);
     enemyHudSprites.push(hpSprite);
   }
