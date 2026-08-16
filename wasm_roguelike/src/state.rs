@@ -2014,7 +2014,6 @@ impl RoguelikeGame {
         self.level += 1;
         self.hp = self.max_hp;
         self.mp = self.max_mp;
-        self.messages.clear();
         self.messages.push(format!("Arrived at F{}", self.depth));
         self.reset_transition_state();
 
@@ -2047,7 +2046,6 @@ impl RoguelikeGame {
         self.level = self.depth;
         self.hp = self.max_hp;
         self.mp = self.max_mp;
-        self.messages.clear();
         self.messages.push(format!("Returned to F{}", self.depth));
         self.reset_transition_state();
 
@@ -2080,7 +2078,6 @@ impl RoguelikeGame {
         self.level = target_depth;
         self.hp = self.max_hp;
         self.mp = self.max_mp;
-        self.messages.clear();
         self.messages.push(format!("Jumped to F{}", self.depth));
         self.reset_transition_state();
 
