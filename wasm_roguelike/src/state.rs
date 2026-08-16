@@ -1896,6 +1896,19 @@ impl RoguelikeGame {
         self.mark_visible();
     }
 
+    fn place_on_stair(&mut self, stair: TileType) -> bool {
+        for (y, row) in self.map.iter().enumerate() {
+            if let Some(x) = row.iter().position(|tile| *tile == stair) {
+                self.player_x = x as i32;
+                self.player_y = y as i32;
+                self.current_room = self.get_room_at(self.player_x, self.player_y);
+                self.mark_visible();
+                return true;
+            }
+        }
+        false
+    }
+
     fn reset_transition_state(&mut self) {
         self.projectiles.clear();
         self.attack_effects.clear();
@@ -1922,6 +1935,7 @@ impl RoguelikeGame {
         self.reset_transition_state();
 
         self.load_floor(self.depth);
+        self.place_on_stair(TileType::StairUp);
 
         self.spawn_enemies(Self::should_spawn_boss(self.depth));
 
@@ -1948,6 +1962,7 @@ impl RoguelikeGame {
         self.reset_transition_state();
 
         self.load_floor(self.depth);
+        self.place_on_stair(TileType::StairDown);
 
         self.spawn_enemies(Self::should_spawn_boss(self.depth));
 
