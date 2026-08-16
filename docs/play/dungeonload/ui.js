@@ -35,8 +35,10 @@ export function createDungeonLoadUi({ wasm }) {
   } catch (_) {
     // Keep the blue palette when storage is unavailable.
   }
-  if (typeof wasm.set_game_palette_roguelike === 'function') {
-    wasm.set_game_palette_roguelike(gamePalette);
+  function applyGamePalette() {
+    if (typeof wasm.set_game_palette_roguelike === 'function') {
+      wasm.set_game_palette_roguelike(gamePalette);
+    }
   }
 
   const downRotation = { x: 0, y: 160, z: 0 };
@@ -470,9 +472,7 @@ export function createDungeonLoadUi({ wasm }) {
     const paletteSelect = panel.querySelector('#game-palette-select');
     paletteSelect.addEventListener('change', () => {
       gamePalette = paletteSelect.value === 'red' ? 1 : 0;
-      if (typeof wasm.set_game_palette_roguelike === 'function') {
-        wasm.set_game_palette_roguelike(gamePalette);
-      }
+      applyGamePalette();
       try {
         localStorage.setItem('dungeonload-game-palette', gamePalette === 1 ? 'red' : 'blue');
       } catch (_) {
@@ -621,6 +621,7 @@ export function createDungeonLoadUi({ wasm }) {
     updateMessageLog,
     setControlsSwapped,
     getDownRotation,
+    applyGamePalette,
     flashHint,
     setupNavigation,
     updateTabContent,
