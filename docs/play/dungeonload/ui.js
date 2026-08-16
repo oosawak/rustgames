@@ -245,7 +245,7 @@ export function createDungeonLoadUi({ wasm }) {
           ? 'border: 1px solid rgba(0,255,180,0.65); border-radius: 4px; padding: 8px; text-align: center; cursor: pointer;'
           : 'border: 1px solid rgba(0,200,255,0.3); border-radius: 4px; padding: 8px; text-align: center;';
         itemsHtml += `
-          <div style="${cardStyle}" ${isHealthPotion ? 'onclick="useHealthPotion(event)" title="Use Health Potion"' : ''}>
+          <div style="${cardStyle}" ${isHealthPotion ? 'data-use-item="health-potion" title="Use Health Potion"' : ''}>
             <div style="font-size: 24px; margin-bottom: 4px;">${itemEmojis[i]}</div>
             <div style="font-size: 11px; color: rgba(0,200,255,0.7); margin-bottom: 4px;">${itemNames[i]}</div>
             <div style="font-size: 14px; color: #0ff; font-weight: bold;">×${inventory[i] || 0}</div>
@@ -255,6 +255,11 @@ export function createDungeonLoadUi({ wasm }) {
     }
     itemsHtml += '</div>';
     panel.innerHTML = itemsHtml;
+    const healthPotionCard = panel.querySelector('[data-use-item="health-potion"]');
+    healthPotionCard?.addEventListener('click', (event) => {
+      event.stopPropagation();
+      if (wasm.use_item_roguelike(0)) updateItemsDisplay();
+    });
   }
 
   function updateMessageLog() {
