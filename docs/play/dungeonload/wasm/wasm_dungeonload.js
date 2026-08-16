@@ -535,6 +535,9 @@ function __wbg_get_imports() {
         __wbg_set_globalAlpha_58134ccb891b6e21: function() { return logError(function (arg0, arg1) {
             arg0.globalAlpha = arg1;
         }, arguments); },
+        __wbg_set_globalCompositeOperation_5df253492507d568: function() { return handleError(function (arg0, arg1, arg2) {
+            arg0.globalCompositeOperation = getStringFromWasm0(arg1, arg2);
+        }, arguments); },
         __wbg_set_height_89a4ecd0f9cc3dfa: function() { return logError(function (arg0, arg1) {
             arg0.height = arg1 >>> 0;
         }, arguments); },
