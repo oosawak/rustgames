@@ -1075,7 +1075,7 @@ body.controls-swapped #movement-joystick {
   <span class="sh-arrow sh-right">▶</span>
 </div>
 <script type="module">
-import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=29&pit=10';
+import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=30&pit=10';
 import { FontLoader, InputManager } from '../../engine.js';
 import { createDungeonLoadUi } from './ui.js?overlay=15';
 window.wasm = wasm;
@@ -1878,24 +1878,64 @@ function updateDungeon3d() {
     const toY = projectileData[i + 3] / 100;
     const progress = projectileData[i + 4] / 1000;
     const type = projectileData[i + 5];
-    const color = type === 2 ? '#ffe08a' : type === 3 ? '#ff6666' : '#66ffff';
-    const projectileSprite = createLabelSprite((ctx, width, height) => {
-      ctx.globalAlpha = 0.25;
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(width / 2, height / 2, height * 0.42, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(width / 2, height / 2, height * 0.2, 0, Math.PI * 2);
-      ctx.fill();
-    }, 0.55, 0.55);
+    const color = type === 2 ? '#ffe08a' : type === 3 ? '#ff4050' : '#b56cff';
+    const projectileCanvas = document.createElement('canvas');
+    projectileCanvas.width = 96;
+    projectileCanvas.height = 96;
+    const projectileContext = projectileCanvas.getContext('2d');
+    projectileContext.clearRect(0, 0, 96, 96);
+    projectileContext.shadowColor = color;
+    projectileContext.shadowBlur = type === 2 ? 12 : 24;
+    projectileContext.strokeStyle = color;
+    projectileContext.fillStyle = color;
+    if (type === 2) {
+      const angle = Math.atan2(toY - fromY, toX - fromX);
+      projectileContext.translate(48, 48);
+      projectileContext.rotate(angle);
+      projectileContext.lineWidth = 6;
+      projectileContext.beginPath();
+      projectileContext.moveTo(-30, 0);
+      projectileContext.lineTo(24, 0);
+      projectileContext.stroke();
+      projectileContext.beginPath();
+      projectileContext.moveTo(24, 0);
+      projectileContext.lineTo(8, -12);
+      projectileContext.lineTo(8, 12);
+      projectileContext.closePath();
+      projectileContext.fill();
+      projectileContext.strokeStyle = '#fff4c2';
+      projectileContext.lineWidth = 2;
+      projectileContext.beginPath();
+      projectileContext.moveTo(-30, 0);
+      projectileContext.lineTo(24, 0);
+      projectileContext.stroke();
+    } else {
+      projectileContext.globalAlpha = 0.28;
+      projectileContext.beginPath();
+      projectileContext.arc(48, 48, 30, 0, Math.PI * 2);
+      projectileContext.fill();
+      projectileContext.globalAlpha = 1;
+      projectileContext.beginPath();
+      projectileContext.arc(48, 48, 14, 0, Math.PI * 2);
+      projectileContext.fill();
+      projectileContext.strokeStyle = '#fff';
+      projectileContext.lineWidth = 3;
+      projectileContext.stroke();
+    }
+    const projectileTexture = new THREE.CanvasTexture(projectileCanvas);
+    const projectileSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: projectileTexture,
+      transparent: true,
+      depthTest: false,
+      depthWrite: false,
+    }));
+    projectileSprite.scale.set(type === 2 ? 1.15 : 1.0, type === 2 ? 1.15 : 1.0, 1);
     projectileSprite.position.set(
       fromX + (toX - fromX) * progress,
-      1.0,
+      1.25,
       fromY + (toY - fromY) * progress,
     );
+    projectileSprite.renderOrder = 30;
     scene.add(projectileSprite);
     projectileSprites.push(projectileSprite);
   }
