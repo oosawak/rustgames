@@ -999,17 +999,17 @@ const KEYMAP = {
 const audio = { ensure: () => {}, play: () => {}, startAmbient: () => {}, setAmbVolume: () => {}, setSeVolume: () => {} };
 const input = new InputManager({ swipeMin: 35 });
 let initialized = false;
-let lastPitFallMessage = '';
+let lastPitFallDepth = 0;
 
 function updatePitFallTransition() {
   const messages = wasm.messages_roguelike();
   const latest = messages[messages.length - 1] || '';
   if (!latest.includes('Fell into a pit')) {
-    lastPitFallMessage = '';
     return;
   }
-  if (latest === lastPitFallMessage) return;
-  lastPitFallMessage = latest;
+  const currentDepth = wasm.depth_roguelike();
+  if (currentDepth === lastPitFallDepth) return;
+  lastPitFallDepth = currentDepth;
   const overlay = document.getElementById('pit-fall-overlay');
   if (!overlay) return;
   overlay.classList.remove('active');
@@ -1571,8 +1571,8 @@ function updateDungeon3d() {
         ctx.strokeText(enemyName, width / 2, height / 2);
         ctx.fillStyle = '#aaf';
         ctx.fillText(enemyName, width / 2, height / 2);
-      }, 2.2, 0.32);
-      nameSprite.position.set(ex, 0.24, ey);
+      }, 2.4, 0.34);
+      nameSprite.position.set(ex, 1.98, ey);
       nameSprite.material.depthTest = false;
       nameSprite.renderOrder = 20;
       scene.add(nameSprite);
