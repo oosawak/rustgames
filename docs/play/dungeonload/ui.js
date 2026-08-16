@@ -30,6 +30,10 @@ export function createDungeonLoadUi({ wasm }) {
   setControlsSwapped(controlsSwapped);
 
   const downRotation = { x: 0, y: 160, z: 0 };
+  let downPreviewRenderer = null;
+  let downPreviewScene = null;
+  let downPreviewCamera = null;
+  let downPreviewMesh = null;
   ['x', 'y', 'z'].forEach((axis) => {
     try {
       const saved = Number(localStorage.getItem(`dungeonload-down-rotation-${axis}`));
@@ -41,6 +45,39 @@ export function createDungeonLoadUi({ wasm }) {
 
   function getDownRotation() {
     return { ...downRotation };
+  }
+
+  function renderDownPreview() {
+    if (!downPreviewRenderer || !downPreviewMesh) return;
+    downPreviewMesh.rotation.set(
+      downRotation.x * Math.PI / 180,
+      downRotation.y * Math.PI / 180,
+      downRotation.z * Math.PI / 180,
+    );
+    downPreviewRenderer.render(downPreviewScene, downPreviewCamera);
+  }
+
+  function setupDownPreview(panel) {
+    const canvas = panel.querySelector('#down-rotation-preview');
+    const three = window.THREE;
+    if (!canvas || !three) return;
+    const image = panel.querySelector('#down-rotation-preview-image');
+    const width = Math.max(160, canvas.clientWidth || 320);
+    const height = 126;
+    downPreviewRenderer?.dispose();
+    downPreviewRenderer = new three.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    downPreviewRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    downPreviewRenderer.setSize(width, height, false);
+    downPreviewScene = new three.Scene();
+    downPreviewCamera = new three.PerspectiveCamera(75, width / height, 0.1, 100);
+    downPreviewCamera.position.set(0, 12, 10);
+    downPreviewCamera.lookAt(0, 0, -2);
+    const texture = new three.Texture(image);
+    texture.needsUpdate = true;
+    const material = new three.MeshBasicMaterial({ map: texture, transparent: true, side: three.DoubleSide });
+    downPreviewMesh = new three.Mesh(new three.PlaneGeometry(1.5, 1.5), material);
+    downPreviewScene.add(downPreviewMesh);
+    renderDownPreview();
   }
 
   function updateStatusTab(panel) {
@@ -290,6 +327,9 @@ export function createDungeonLoadUi({ wasm }) {
 
   function updateSettingsTab(panel) {
     if (!panel) return;
+    downPreviewRenderer?.dispose();
+    downPreviewRenderer = null;
+    downPreviewMesh = null;
     const scale = wasm.enemy_attack_interval_scale_roguelike();
     const noDamageMode = wasm.no_damage_mode_roguelike();
     const depth = wasm.depth_roguelike();
@@ -371,7 +411,8 @@ export function createDungeonLoadUi({ wasm }) {
           <div style="margin-top: 18px; text-align: center;">
             <div class="stat-label" style="margin-bottom: 8px;">PLAYER PREVIEW</div>
             <div style="height: 126px; display: grid; place-items: center; background: rgba(0,20,32,0.65); border: 1px solid rgba(0,200,255,0.35); border-radius: 4px; perspective: 420px; overflow: hidden;">
-              <img id="down-rotation-preview" src="../roguelike/icons/cathelineau/swordman.png" alt="Player preview" width="96" height="96" style="image-rendering: auto; transform-style: preserve-3d;">
+              <canvas id="down-rotation-preview" width="320" height="126" style="display: block; width: 100%; height: 126px;"></canvas>
+              <img id="down-rotation-preview-image" src="../roguelike/icons/cathelineau/swordman.png" alt="Player preview source" width="1" height="1" style="display: none;">
             </div>
           </div>
         </div>
@@ -444,14 +485,10 @@ export function createDungeonLoadUi({ wasm }) {
         }
       });
     });
-    const preview = panel.querySelector('#down-rotation-preview');
-    const updatePreview = () => {
-      preview.style.transform = `rotateX(${downRotation.x}deg) rotateY(${downRotation.y}deg) rotateZ(${downRotation.z}deg)`;
-    };
     ['x', 'y', 'z'].forEach((axis) => {
-      panel.querySelector(`#down-rotation-${axis}-slider`).addEventListener('input', updatePreview);
+      panel.querySelector(`#down-rotation-${axis}-slider`).addEventListener('input', renderDownPreview);
     });
-    updatePreview();
+    setupDownPreview(panel);
   }
 
   function drawDungeonMap() {
