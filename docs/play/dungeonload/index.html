@@ -1333,6 +1333,20 @@ function createIconSprite(imageId, size) {
   sprite.scale.set(size, size, 1);
   return sprite;
 }
+function createIconPlane(imageId, size) {
+  const image = document.getElementById(imageId);
+  if (!image) return null;
+  const texture = new THREE.Texture(image);
+  texture.needsUpdate = true;
+  const material = new THREE.MeshBasicMaterial({
+    map: texture,
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  });
+  const plane = new THREE.Mesh(new THREE.PlaneGeometry(size, size), material);
+  return plane;
+}
 function createLabelSprite(drawLabel, width = 1.2, height = 0.24) {
   const canvas = document.createElement('canvas');
   canvas.width = 256;
@@ -1531,7 +1545,7 @@ function updateDungeon3d() {
     playerModel.rotation.y = dirToRot[dir] ?? 0;
     if (playerVrm) playerVrm.update(1 / 60);
   } else {
-    playerCube = createIconSprite('player-icon', 1.5);
+    playerCube = createIconPlane('player-icon', 1.5);
     if (!playerCube) {
       const playerGeom = new THREE.BoxGeometry(0.7, 1.4, 0.7);
       const playerMat = new THREE.MeshLambertMaterial({ color: 0x00ff00 });
@@ -1539,7 +1553,7 @@ function updateDungeon3d() {
     }
     playerCube.position.set(playerX, 0.9, playerY);
     const playerDir = wasm.player_direction_roguelike();
-    playerCube.material.rotation = playerDir === 0
+    playerCube.rotation.y = playerDir === 0
       ? -Math.PI / 4
       : playerDir === 3
         ? Math.PI / 4
