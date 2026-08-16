@@ -1510,7 +1510,7 @@ function updateDungeon3d() {
       if (tile === 3 || tile === 4) {
         const stairSprite = createIconSprite('stairs-icon', 0.9);
         if (stairSprite) {
-          stairSprite.position.set(x, 0.58, y);
+          stairSprite.position.set(x, tile === 3 ? 0.22 : 0.58, y);
           scene.add(stairSprite);
           worldIconSprites.push(stairSprite);
         }
