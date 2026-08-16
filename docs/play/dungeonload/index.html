@@ -873,9 +873,9 @@ body.controls-swapped #movement-joystick {
 </div>
 <div id="game-top-info" aria-live="polite"></div>
 <div id="canvas-wrap">
-  <canvas id="game-canvas" style="display: block; width: 100%; height: 100%; max-width: 100%;"></canvas>
-  <canvas id="game-canvas-3d" style="display: none; width: 100%; height: 100%; max-width: 100%;"></canvas>
-  <button id="view-toggle" style="position: absolute; top: 10px; right: 10px; z-index: 30; padding: 8px 16px; background: rgba(0,200,255,0.2); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 4px; font-family: monospace; font-size: 0.8em;">2D/3D</button>
+  <canvas id="game-canvas" style="display: none; width: 100%; height: 100%; max-width: 100%;"></canvas>
+  <canvas id="game-canvas-3d" style="display: block; width: 100%; height: 100%; max-width: 100%;"></canvas>
+  <button id="view-toggle" style="position: absolute; top: 10px; right: 10px; z-index: 30; padding: 8px 16px; background: rgba(0,200,255,0.2); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 4px; font-family: monospace; font-size: 0.8em;">2D</button>
   <button id="ui-toggle-btn" style="position: absolute; top: 50px; right: 10px; z-index: 30; padding: 6px 12px; background: rgba(0,200,255,0.2); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 4px; font-family: monospace; font-size: 0.8em; display: none;">▼ Hide UI</button>
   <div id="game-3d-hud" style="display: none; position: absolute; top: 10px; left: 10px; z-index: 30; min-width: 150px; padding: 7px 9px; border: 1px solid rgba(0,200,255,0.7); border-radius: 4px; background: rgba(0,10,20,0.82); color: #0ff; font: 12px monospace; line-height: 1.5; text-shadow: 0 0 5px #0ff;"></div>
 </div>
@@ -1212,7 +1212,8 @@ let scene, camera, renderer;
 let cubes = [];
 let playerCube, enemies3d = [];
 let enemyHudSprites = [], damageSprites = [], attackEffectSprites = [], projectileSprites = [];
-let is3dMode = false;
+let is3dMode = true;
+document.body.classList.add('mode-3d');
 let playerModel = null;
 let playerVrm = null;
 let playerModelYOffset = 0;
