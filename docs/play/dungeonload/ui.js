@@ -78,6 +78,12 @@ export function createDungeonLoadUi({ wasm }) {
     downPreviewMesh = new three.Mesh(new three.PlaneGeometry(1.5, 1.5), material);
     downPreviewScene.add(downPreviewMesh);
     renderDownPreview();
+    const refreshTexture = () => {
+      texture.needsUpdate = true;
+      renderDownPreview();
+    };
+    if (image.complete && image.naturalWidth > 0) refreshTexture();
+    else image.addEventListener('load', refreshTexture, { once: true });
   }
 
   function updateStatusTab(panel) {
