@@ -1553,10 +1553,12 @@ function updateDungeon3d() {
     }
     playerCube.position.set(playerX, 0.9, playerY);
     const playerDir = wasm.player_direction_roguelike();
-    playerCube.scale.x = playerDir === 1 ? -1 : 1;
+    playerCube.scale.x = playerDir === 1 || playerDir === 2 ? -1 : 1;
     playerCube.scale.y = 1;
     playerCube.rotation.y = playerDir === 0
       ? Math.PI - Math.PI / 9
+      : playerDir === 2
+        ? -Math.PI * 40 / 180
       : playerDir === 3
         ? Math.PI / 9
         : 0;
