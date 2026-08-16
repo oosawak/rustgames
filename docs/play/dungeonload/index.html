@@ -1211,7 +1211,7 @@ function drawDungeonMap() { ui.drawDungeonMap(); }
 let scene, camera, renderer;
 let cubes = [];
 let playerCube, enemies3d = [];
-let enemyHudSprites = [], damageSprites = [], attackEffectSprites = [], projectileSprites = [];
+let enemyHudSprites = [], worldIconSprites = [], damageSprites = [], attackEffectSprites = [], projectileSprites = [];
 let is3dMode = true;
 document.body.classList.add('mode-3d');
 let playerModel = null;
@@ -1333,6 +1333,7 @@ function updateDungeon3d() {
     disposeThreeObject(e);
   });
   enemies3d = [];
+  clearThreeObjects(worldIconSprites);
   clearThreeObjects(enemyHudSprites);
   clearThreeObjects(damageSprites);
   clearThreeObjects(attackEffectSprites);
@@ -1369,6 +1370,15 @@ function updateDungeon3d() {
       cube.position.set(x, h / 2, y);
       scene.add(cube);
       cubes.push(cube);
+
+      if (tile === 3 || tile === 4) {
+        const stairSprite = createIconSprite('stairs-icon', 0.9);
+        if (stairSprite) {
+          stairSprite.position.set(x, 0.58, y);
+          scene.add(stairSprite);
+          worldIconSprites.push(stairSprite);
+        }
+      }
     }
   }
   if (playerModel) {
