@@ -1357,6 +1357,25 @@ function updateDungeon3d() {
       if (tile === 1) { color = 0x333344; h = 2.0; }
       else if (tile === 2) { color = 0x446688; h = 0.2; }
       else if (tile === 3 || tile === 4) { color = 0x446688; h = 0.2; }
+      if (tile === 5) {
+        const hole = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.42, 0.52, 0.12, 24),
+          new THREE.MeshBasicMaterial({ color: 0x020205 })
+        );
+        hole.position.set(x, -0.28, y);
+        scene.add(hole);
+        cubes.push(hole);
+
+        const holeEdge = new THREE.Mesh(
+          new THREE.TorusGeometry(0.46, 0.035, 8, 24),
+          new THREE.MeshBasicMaterial({ color: 0x7828aa })
+        );
+        holeEdge.rotation.x = Math.PI / 2;
+        holeEdge.position.set(x, 0.03, y);
+        scene.add(holeEdge);
+        cubes.push(holeEdge);
+        continue;
+      }
       const geom = new THREE.BoxGeometry(1, h, 1);
       const foregroundWall = tile === 1 && y > playerY;
       const mat = new THREE.MeshLambertMaterial({
