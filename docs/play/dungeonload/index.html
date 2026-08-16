@@ -263,11 +263,31 @@ html, body {
   animation: clear-monsters-slide 13s linear infinite;
 }
 #title-monster-track img {
-  width: 58px;
-  height: 58px;
+  width: 46px;
+  height: 46px;
   object-fit: contain;
   filter: sepia(1) saturate(5) hue-rotate(165deg) drop-shadow(0 0 8px #08f);
   transform: rotateY(180deg);
+}
+#title-monster-track .icon-card,
+#clear-monster-track .icon-card {
+  flex: 0 0 70px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+#title-monster-track .icon-label,
+#clear-monster-track .icon-label {
+  max-width: 70px;
+  overflow: hidden;
+  color: #66ccff;
+  font: 9px monospace;
+  line-height: 1;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 @keyframes pulse {
   from { opacity: 0.8; }
@@ -341,12 +361,13 @@ html, body {
   animation: clear-monsters-slide 13s linear infinite;
 }
 #clear-monster-track img {
-  width: 58px;
-  height: 58px;
+  width: 46px;
+  height: 46px;
   object-fit: contain;
   filter: sepia(1) saturate(5) hue-rotate(310deg) drop-shadow(0 0 8px #f33);
   transform: rotateY(180deg);
 }
+#clear-monster-track .icon-label { color: #ff7777; }
 #clear-monster-track img.clear-hero {
   filter: sepia(1) saturate(5) hue-rotate(310deg) drop-shadow(0 0 8px #f33);
 }
@@ -1054,14 +1075,21 @@ window.wasm = wasm;
 const ui = createDungeonLoadUi({ wasm });
 
 const clearScreenIconIds = ['player-icon', ...Array.from({ length: 30 }, (_, index) => `enemy-${index}`)];
+const clearScreenIconNames = ['HERO', 'Young Goblin', 'Goblin', 'Hobgoblin', 'Young Bat', 'Bat', 'Giant Bat', 'Skeleton', 'Skeleton Warrior', 'Skeleton Knight', 'Young Spider', 'Spider', 'Giant Spider', 'Young Troll', 'Troll', 'Troll King', 'Zombie', 'Zombie Warrior', 'Zombie Lord', 'Spirit', 'Ghost', 'Phantom', 'Mummy', 'Mummy Priest', 'Pharaoh', 'Young Ogre', 'Ogre', 'Ogre Warlord', 'Young Wyvern', 'Wyvern', 'Hell Wyvern'];
 const titleMonsterTrack = document.getElementById('title-monster-track');
 if (titleMonsterTrack) {
-  [...clearScreenIconIds, ...clearScreenIconIds].forEach((id) => {
+  [...clearScreenIconIds, ...clearScreenIconIds].forEach((id, streamIndex) => {
     const source = document.getElementById(id);
     if (!source) return;
+    const card = document.createElement('div');
+    card.className = 'icon-card';
     const icon = source.cloneNode(true);
     icon.removeAttribute('id');
-    titleMonsterTrack.appendChild(icon);
+    const label = document.createElement('span');
+    label.className = 'icon-label';
+    label.textContent = clearScreenIconNames[streamIndex % clearScreenIconNames.length];
+    card.append(icon, label);
+    titleMonsterTrack.appendChild(card);
   });
 }
 
@@ -1358,13 +1386,19 @@ function render() {
         const track = document.createElement('div');
         track.id = 'clear-monster-track';
         const monsterIds = ['player-icon', ...Array.from({ length: 30 }, (_, index) => `enemy-${index}`)];
-        [...monsterIds, ...monsterIds].forEach((id) => {
+        [...monsterIds, ...monsterIds].forEach((id, streamIndex) => {
           const source = document.getElementById(id);
           if (!source) return;
+          const card = document.createElement('div');
+          card.className = 'icon-card';
           const icon = source.cloneNode(true);
           icon.removeAttribute('id');
           if (id === 'player-icon') icon.classList.add('clear-hero');
-          track.appendChild(icon);
+          const label = document.createElement('span');
+          label.className = 'icon-label';
+          label.textContent = clearScreenIconNames[streamIndex % clearScreenIconNames.length];
+          card.append(icon, label);
+          track.appendChild(card);
         });
         stream.appendChild(track);
         stream.dataset.ready = 'true';
