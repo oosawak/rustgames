@@ -1560,6 +1560,7 @@ function updateDungeon3d() {
       : playerDir === 3
         ? Math.PI / 9
         : 0;
+    playerCube.rotation.z = playerDir === 3 ? Math.PI : 0;
     scene.add(playerCube);
   }
   const enemyCount = wasm.enemy_count_roguelike();
