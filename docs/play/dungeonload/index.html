@@ -1356,8 +1356,7 @@ function updateDungeon3d() {
       let h = 0.2;
       if (tile === 1) { color = 0x333344; h = 2.0; }
       else if (tile === 2) { color = 0x446688; h = 0.2; }
-      else if (tile === 3) { color = 0xdddd00; h = 0.5; }
-      else if (tile === 4) { color = 0x00dddd; h = 0.5; }
+      else if (tile === 3 || tile === 4) { color = 0x446688; h = 0.2; }
       const geom = new THREE.BoxGeometry(1, h, 1);
       const foregroundWall = tile === 1 && y > playerY;
       const mat = new THREE.MeshLambertMaterial({
@@ -1390,8 +1389,8 @@ function updateDungeon3d() {
           ctx.strokeText(stairLabel, width / 2, height / 2);
           ctx.fillStyle = stairColor;
           ctx.fillText(stairLabel, width / 2, height / 2);
-        }, 1.15, 0.25);
-        labelSprite.position.set(x, 0.16, y);
+        }, 1.35, 0.3);
+        labelSprite.position.set(x, 0.06, y);
         labelSprite.material.depthTest = false;
         scene.add(labelSprite);
         worldIconSprites.push(labelSprite);
