@@ -756,9 +756,9 @@ body.controls-swapped #movement-joystick {
     width: 576px !important;
   }
   #game-info-panel {
-    right: 120px !important;
+    right: 10px !important;
     bottom: 210px;
-    left: 120px !important;
+    left: 10px !important;
   }
   #mobile-action-pad {
     top: auto;
@@ -976,7 +976,7 @@ body.controls-swapped #movement-joystick {
   <span class="sh-arrow sh-right">▶</span>
 </div>
 <script type="module">
-import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=17';
+import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=18';
 import { FontLoader, InputManager } from '../../engine.js';
 import { createDungeonLoadUi } from './ui.js?overlay=4';
 window.wasm = wasm;
@@ -1543,14 +1543,29 @@ function updateDungeon3d() {
     scene.add(enemyCube);
     enemies3d.push(enemyCube);
 
-    const enemyName = typeof wasm.enemy_name_roguelike === 'function'
+    const enemyNameFallbacks = [
+      'Young Goblin', 'Goblin', 'Hobgoblin',
+      'Young Bat', 'Bat', 'Giant Bat',
+      'Skeleton', 'Skeleton Warrior', 'Skeleton Knight',
+      'Young Spider', 'Spider', 'Giant Spider',
+      'Young Troll', 'Troll', 'Troll King',
+      'Zombie', 'Zombie Warrior', 'Zombie Lord',
+      'Spirit', 'Ghost', 'Phantom',
+      'Mummy', 'Mummy Priest', 'Pharaoh',
+      'Young Ogre', 'Ogre', 'Ogre Warlord',
+      'Young Wyvern', 'Wyvern', 'Hell Wyvern',
+    ];
+    const enemyNameFromWasm = typeof wasm.enemy_name_roguelike === 'function'
       ? String(wasm.enemy_name_roguelike(i) || '')
       : '';
+    const enemyName = enemyNameFromWasm || enemyNameFallbacks[data[4]] || 'Enemy';
     if (enemyName) {
       const nameSprite = createLabelSprite((ctx, width, height) => {
         ctx.font = 'bold 18px monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
+        ctx.fillStyle = 'rgba(0,0,0,0.72)';
+        ctx.fillRect(2, 3, width - 4, height - 6);
         ctx.lineWidth = 5;
         ctx.strokeStyle = 'rgba(0,0,0,0.9)';
         ctx.strokeText(enemyName, width / 2, height / 2);
