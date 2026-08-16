@@ -453,6 +453,15 @@ export function createDungeonLoadUi({ wasm }) {
             </div>
           </div>
         </div>
+
+        <div class="stat-item" style="display: block; margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(0,200,255,0.2);">
+          <div class="stat-label">ICON CREDITS</div>
+          <div style="color: rgba(180,220,240,0.75); font-size: 0.75em; line-height: 1.6; margin-top: 8px;">
+            Icons by Game-icons.net contributors, including Lorc, Delapouite, Cathelineau, and Caro Asercion.<br>
+            Licensed under CC BY 3.0.<br>
+            <a href="https://game-icons.net/" target="_blank" rel="noopener noreferrer" style="color: #0ff;">https://game-icons.net/</a>
+          </div>
+        </div>
       </div>`;
 
     const logLinesSlider = panel.querySelector('#log-lines-slider');
