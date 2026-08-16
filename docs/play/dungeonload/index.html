@@ -1068,9 +1068,9 @@ body.controls-swapped #movement-joystick {
   <span class="sh-arrow sh-right">▶</span>
 </div>
 <script type="module">
-import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=21&pit=9';
+import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=22&pit=10';
 import { FontLoader, InputManager } from '../../engine.js';
-import { createDungeonLoadUi } from './ui.js?overlay=12';
+import { createDungeonLoadUi } from './ui.js?overlay=13';
 window.wasm = wasm;
 const ui = createDungeonLoadUi({ wasm });
 
@@ -1432,6 +1432,12 @@ function updateEquipmentTab(panel) { ui.updateEquipmentTab(panel); }
 function selectEquipmentSlot(slot, event) { ui.selectEquipmentSlot(slot, event); }
 function updateEquipmentDisplay() { ui.updateEquipmentDisplay(); }
 function updateItemsDisplay() { ui.updateItemsDisplay(); }
+function useHealthPotion(event) {
+  if (event) event.stopPropagation();
+  if (wasm.use_item_roguelike(0)) {
+    ui.updateItemsDisplay();
+  }
+}
 function updateMessageLog() { ui.updateMessageLog(); }
 function flashHint(action) { ui.flashHint(action); }
 function setupNavigation() { ui.setupNavigation(); }
@@ -1977,6 +1983,7 @@ window.selectEquipmentSlot = selectEquipmentSlot;
 window.updateEquipmentTab = updateEquipmentTab;
 window.updateEquipmentDisplay = updateEquipmentDisplay;
 window.updateItemsDisplay = updateItemsDisplay;
+window.useHealthPotion = useHealthPotion;
 window.drawDungeonMap = drawDungeonMap;
 window.flashHint = flashHint;
 start();

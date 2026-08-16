@@ -395,6 +395,16 @@ export function unequip_weapon_roguelike() {
 }
 
 /**
+ * @param {number} item_index
+ * @returns {boolean}
+ */
+export function use_item_roguelike(item_index) {
+    _assertNum(item_index);
+    const ret = wasm.use_item_roguelike(item_index);
+    return ret !== 0;
+}
+
+/**
  * @returns {Uint8Array}
  */
 export function visited_data_roguelike() {

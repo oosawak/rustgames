@@ -400,6 +400,13 @@ pub fn inventory_roguelike() -> Vec<u32> {
 }
 
 #[wasm_bindgen]
+pub fn use_item_roguelike(item_index: u32) -> bool {
+    DUNGEONLOAD_STATE.with(|s| {
+        s.borrow_mut().as_mut().map(|g| g.use_item(item_index)).unwrap_or(false)
+    })
+}
+
+#[wasm_bindgen]
 pub fn weapon_inventory_roguelike() -> Vec<i32> {
     DUNGEONLOAD_STATE.with(|s| {
         s.borrow()

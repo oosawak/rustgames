@@ -95,6 +95,8 @@ export function unequip_armor_roguelike(): void;
 
 export function unequip_weapon_roguelike(): void;
 
+export function use_item_roguelike(item_index: number): boolean;
+
 export function visited_data_roguelike(): Uint8Array;
 
 export function weapon_inventory_roguelike(): Int32Array;
@@ -150,6 +152,7 @@ export interface InitOutput {
     readonly unequip_accessory_roguelike: () => void;
     readonly unequip_armor_roguelike: () => void;
     readonly unequip_weapon_roguelike: () => void;
+    readonly use_item_roguelike: (a: number) => number;
     readonly visited_data_roguelike: () => [number, number];
     readonly weapon_inventory_roguelike: () => [number, number];
     readonly __wbindgen_malloc: (a: number, b: number) => number;

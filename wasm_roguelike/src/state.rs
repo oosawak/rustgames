@@ -416,7 +416,7 @@ impl RoguelikeGame {
             next_level_exp: 100,
             equipment: Equipment::new(),
             current_room: None,
-            inventory: [0; 8],  // HealthPotion, ManaPotion, PoisonPotion, EnergyDrink, Gem, SkeletonKey, Scroll, GoldenCoin
+            inventory: [10, 0, 0, 0, 0, 0, 0, 0],  // HealthPotion, ManaPotion, PoisonPotion, EnergyDrink, Gem, SkeletonKey, Scroll, GoldenCoin
             eq_inventory: EquipmentInventory {
                 // Keep the three prototype weapon styles available from the start.
                 weapons: vec![
@@ -742,6 +742,28 @@ impl RoguelikeGame {
         }
 
         self.spawn_enemies(Self::should_spawn_boss(self.depth));
+    }
+
+    pub fn use_item(&mut self, item_index: u32) -> bool {
+        if self.scene != RogueScene::Playing || item_index != ItemType::HealthPotion as u32 {
+            return false;
+        }
+
+        let item_index = ItemType::HealthPotion as usize;
+        if self.inventory[item_index] == 0 {
+            self.add_message("No Health Potion available.".to_string());
+            return false;
+        }
+        if self.hp >= self.max_hp {
+            self.add_message("HP is already full.".to_string());
+            return false;
+        }
+
+        self.inventory[item_index] -= 1;
+        let previous_hp = self.hp;
+        self.hp = self.hp.saturating_add(50).min(self.max_hp);
+        self.add_message(format!("Used Health Potion. HP +{}", self.hp - previous_hp));
+        true
     }
 
     fn is_walkable(&self, x: i32, y: i32) -> bool {

@@ -48,6 +48,7 @@ export const tick_roguelike: (a: number) => void;
 export const unequip_accessory_roguelike: () => void;
 export const unequip_armor_roguelike: () => void;
 export const unequip_weapon_roguelike: () => void;
+export const use_item_roguelike: (a: number) => number;
 export const visited_data_roguelike: () => [number, number];
 export const weapon_inventory_roguelike: () => [number, number];
 export const __wbindgen_malloc: (a: number, b: number) => number;

@@ -240,8 +240,12 @@ export function createDungeonLoadUi({ wasm }) {
     let itemsHtml = '<div style="padding: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">';
     for (let i = 0; i < Math.min(inventory.length, itemNames.length); i++) {
       if (inventory[i] > 0 || i < 5) {
+        const isHealthPotion = i === 0;
+        const cardStyle = isHealthPotion
+          ? 'border: 1px solid rgba(0,255,180,0.65); border-radius: 4px; padding: 8px; text-align: center; cursor: pointer;'
+          : 'border: 1px solid rgba(0,200,255,0.3); border-radius: 4px; padding: 8px; text-align: center;';
         itemsHtml += `
-          <div style="border: 1px solid rgba(0,200,255,0.3); border-radius: 4px; padding: 8px; text-align: center;">
+          <div style="${cardStyle}" ${isHealthPotion ? 'onclick="useHealthPotion(event)" title="Use Health Potion"' : ''}>
             <div style="font-size: 24px; margin-bottom: 4px;">${itemEmojis[i]}</div>
             <div style="font-size: 11px; color: rgba(0,200,255,0.7); margin-bottom: 4px;">${itemNames[i]}</div>
             <div style="font-size: 14px; color: #0ff; font-weight: bold;">×${inventory[i] || 0}</div>
