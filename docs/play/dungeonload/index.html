@@ -1378,6 +1378,23 @@ function updateDungeon3d() {
           scene.add(stairSprite);
           worldIconSprites.push(stairSprite);
         }
+
+        const stairLabel = tile === 3 ? 'DOWN' : 'UP';
+        const stairColor = tile === 3 ? '#dddd00' : '#00dddd';
+        const labelSprite = createLabelSprite((ctx, width, height) => {
+          ctx.font = 'bold 20px monospace';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.lineWidth = 5;
+          ctx.strokeStyle = 'rgba(0,0,0,0.9)';
+          ctx.strokeText(stairLabel, width / 2, height / 2);
+          ctx.fillStyle = stairColor;
+          ctx.fillText(stairLabel, width / 2, height / 2);
+        }, 1.15, 0.25);
+        labelSprite.position.set(x, 0.16, y);
+        labelSprite.material.depthTest = false;
+        scene.add(labelSprite);
+        worldIconSprites.push(labelSprite);
       }
     }
   }
