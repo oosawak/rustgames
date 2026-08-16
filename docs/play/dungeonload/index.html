@@ -1068,7 +1068,7 @@ body.controls-swapped #movement-joystick {
   <span class="sh-arrow sh-right">▶</span>
 </div>
 <script type="module">
-import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=21&pit=4';
+import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=21&pit=5';
 import { FontLoader, InputManager } from '../../engine.js';
 import { createDungeonLoadUi } from './ui.js?overlay=9';
 window.wasm = wasm;
@@ -1732,8 +1732,9 @@ function updateDungeon3d() {
         new THREE.MeshLambertMaterial({ color: 0xff4444 })
       );
     enemyCube.position.set(ex, 0.75, ey);
-    if (isBoss && enemyCube.material?.color) {
-      enemyCube.material.color.set(0xff3333);
+    const enemyTintPalette = [0x66ddff, 0x66ff88, 0x88aaff, 0xffaa55, 0xff77cc, 0xcc88ff];
+    if (enemyCube.material?.color) {
+      enemyCube.material.color.set(isBoss ? 0xff3333 : enemyTintPalette[data[4] % enemyTintPalette.length]);
     }
     scene.add(enemyCube);
     enemies3d.push(enemyCube);

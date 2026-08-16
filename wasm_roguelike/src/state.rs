@@ -2278,6 +2278,15 @@ pub fn render_canvas(game: &RoguelikeGame, canvas_id: &str, width: i32, height: 
                                 icon_size,
                                 icon_size
                             ).ok();
+                            let tint = format!(
+                                "rgba({},{},{},0.88)",
+                                (enemy.color[0] * 255.0) as u8,
+                                (enemy.color[1] * 255.0) as u8,
+                                (enemy.color[2] * 255.0) as u8,
+                            );
+                            ctx.set_global_composite_operation("source-atop").ok();
+                            ctx.set_fill_style(&tint.into());
+                            ctx.fill_rect(-icon_size * 0.5, -icon_size * 0.5, icon_size, icon_size);
                             ctx.restore();
                         }
                     }
