@@ -437,7 +437,8 @@ impl RoguelikeGame {
         let mut boss_spawned = false;
 
         // 各部屋に複数の敵を配置（階段のある部屋は除外）
-        for i in 0..self.rooms.len().min(8) {
+        let room_limit = if is_boss_floor { self.rooms.len() } else { self.rooms.len().min(8) };
+        for i in 0..room_limit {
             let room = &self.rooms[i];
 
             // 部屋に階段があるかチェック
@@ -447,7 +448,8 @@ impl RoguelikeGame {
                 })
             });
 
-            if has_stairs {
+            let is_boss_room = is_boss_floor && i + 1 == self.rooms.len();
+            if has_stairs && !is_boss_room {
                 continue;  // 階段のある部屋はスキップ
             }
 
@@ -470,7 +472,7 @@ impl RoguelikeGame {
                         attempts += 1;
                     }
 
-                    let is_boss = is_boss_floor && !boss_spawned;
+                    let is_boss = is_boss_room && !boss_spawned;
                     let (mut hp, mut atk) = Self::get_enemy_stats(enemy_type, variant);
 
                     if is_boss {
