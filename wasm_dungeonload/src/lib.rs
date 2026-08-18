@@ -386,6 +386,11 @@ pub fn messages_roguelike() -> Vec<String> {
 }
 
 #[wasm_bindgen]
+pub fn pit_fall_event_roguelike() -> u32 {
+    DUNGEONLOAD_STATE.with(|s| s.borrow().as_ref().map(|g| g.pit_fall_event).unwrap_or(0))
+}
+
+#[wasm_bindgen]
 pub fn clear_messages_roguelike() {
     DUNGEONLOAD_STATE.with(|s| {
         if let Some(g) = s.borrow_mut().as_mut() {

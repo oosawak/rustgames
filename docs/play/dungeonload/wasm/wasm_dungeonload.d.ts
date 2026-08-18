@@ -57,6 +57,8 @@ export function mp_roguelike(): number;
 
 export function no_damage_mode_roguelike(): boolean;
 
+export function pit_fall_event_roguelike(): number;
+
 export function player_atk_roguelike(): number;
 
 export function player_def_roguelike(): number;
@@ -133,6 +135,7 @@ export interface InitOutput {
     readonly move_roguelike: (a: number) => void;
     readonly mp_roguelike: () => number;
     readonly no_damage_mode_roguelike: () => number;
+    readonly pit_fall_event_roguelike: () => number;
     readonly player_atk_roguelike: () => number;
     readonly player_def_roguelike: () => number;
     readonly player_direction_roguelike: () => number;

@@ -193,6 +193,7 @@ pub struct RoguelikeGame {
     pub projectiles: Vec<Projectile>,
     pub attack_effects: Vec<AttackEffect>,
     pub damage_numbers: Vec<DamageNumber>,
+    pub pit_fall_event: u32,
     pub enemy_attack_interval_scale: u32,
     pub no_damage_mode: bool,
     pub visual_palette: u32, // 0=neutral, 1=blue, 2=red
@@ -408,6 +409,7 @@ impl RoguelikeGame {
             projectiles: vec![],
             attack_effects: vec![],
             damage_numbers: vec![],
+            pit_fall_event: 0,
             // Start in a relaxed, invulnerable practice mode; both remain adjustable in Settings.
             enemy_attack_interval_scale: 1000,
             no_damage_mode: true,
@@ -789,6 +791,7 @@ impl RoguelikeGame {
             self.add_message("🕳️ There is a pit here, but you cannot go any lower.".to_string());
             return;
         }
+        self.pit_fall_event = self.pit_fall_event.wrapping_add(1);
         let source = (self.player_x, self.player_y);
         self.advance_to_next_floor(Some(source));
         self.add_message("🕳️ Fell into a pit and dropped to the next floor.".to_string());

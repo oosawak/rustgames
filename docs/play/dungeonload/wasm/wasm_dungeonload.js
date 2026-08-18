@@ -255,6 +255,14 @@ export function no_damage_mode_roguelike() {
 /**
  * @returns {number}
  */
+export function pit_fall_event_roguelike() {
+    const ret = wasm.pit_fall_event_roguelike();
+    return ret >>> 0;
+}
+
+/**
+ * @returns {number}
+ */
 export function player_atk_roguelike() {
     const ret = wasm.player_atk_roguelike();
     return ret >>> 0;

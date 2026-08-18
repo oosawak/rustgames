@@ -1075,7 +1075,7 @@ body.controls-swapped #movement-joystick {
   <span class="sh-arrow sh-right">▶</span>
 </div>
 <script type="module">
-import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=30&pit=10';
+import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=31&pit=10';
 import { FontLoader, InputManager } from '../../engine.js';
 import { createDungeonLoadUi } from './ui.js?overlay=16';
 window.wasm = wasm;
@@ -1131,16 +1131,14 @@ const KEYMAP = {
 const audio = { ensure: () => {}, play: () => {}, startAmbient: () => {}, setAmbVolume: () => {}, setSeVolume: () => {} };
 const input = new InputManager({ swipeMin: 35 });
 let initialized = false;
-let lastPitFallMessageCount = 0;
+let lastPitFallEvent = 0;
 
 function updatePitFallTransition() {
-  const messages = wasm.messages_roguelike();
-  const latest = messages[messages.length - 1] || '';
-  if (!latest.includes('Fell into a pit')) {
-    return;
-  }
-  if (messages.length === lastPitFallMessageCount) return;
-  lastPitFallMessageCount = messages.length;
+  const event = typeof wasm.pit_fall_event_roguelike === 'function'
+    ? wasm.pit_fall_event_roguelike()
+    : 0;
+  if (event <= lastPitFallEvent) return;
+  lastPitFallEvent = event;
   const overlay = document.getElementById('pit-fall-overlay');
   if (!overlay) return;
   overlay.classList.remove('active');
@@ -1203,7 +1201,7 @@ async function start() {
         if (uiUpper) uiUpper.style.display = 'flex';
       }
 
-      lastPitFallMessageCount = 0;
+      lastPitFallEvent = 0;
       wasm.start_game_roguelike();
     });
 
@@ -1220,7 +1218,7 @@ async function start() {
       document.getElementById('weapon-prev-button').style.display = 'block';
       document.getElementById('weapon-next-button').style.display = 'block';
       document.getElementById('ui-toggle-btn').classList.add('show');
-      lastPitFallMessageCount = 0;
+      lastPitFallEvent = 0;
       wasm.init_roguelike();
       ui.applyGamePalette();
       wasm.start_game_roguelike();

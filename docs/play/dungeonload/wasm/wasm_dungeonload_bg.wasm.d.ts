@@ -29,6 +29,7 @@ export const messages_roguelike: () => [number, number];
 export const move_roguelike: (a: number) => void;
 export const mp_roguelike: () => number;
 export const no_damage_mode_roguelike: () => number;
+export const pit_fall_event_roguelike: () => number;
 export const player_atk_roguelike: () => number;
 export const player_def_roguelike: () => number;
 export const player_direction_roguelike: () => number;
