@@ -1603,6 +1603,16 @@ function updateDungeon3d() {
   const maxX = Math.min(mapWidth - 1, playerX + viewRadius);
   const minY = Math.max(0, playerY - viewRadius);
   const maxY = Math.min(mapHeight - 1, playerY + viewRadius);
+  // The camera is on the +Y side, so reveal the floor tile immediately
+  // below a down staircase without changing any surrounding walls.
+  const downStairLowerFloors = new Set();
+  for (let y = minY; y <= maxY; y++) {
+    for (let x = minX; x <= maxX; x++) {
+      if (mapData[y * mapWidth + x] === 3 && y + 1 < mapHeight) {
+        downStairLowerFloors.add(`${x},${y + 1}`);
+      }
+    }
+  }
   for (let y = minY; y <= maxY; y++) {
     for (let x = minX; x <= maxX; x++) {
       const idx = y * mapWidth + x;
@@ -1663,11 +1673,13 @@ function updateDungeon3d() {
       }
       const geom = new THREE.BoxGeometry(1, h, 1);
       const foregroundWall = tile === 1 && y > playerY;
+      const isDownStairLowerFloor = tile === 2 && downStairLowerFloors.has(`${x},${y}`);
+      const transparentFloor = isDownStairLowerFloor;
       const mat = new THREE.MeshLambertMaterial({
         color,
-        transparent: foregroundWall,
-        opacity: foregroundWall ? 0.24 : 1,
-        depthWrite: !foregroundWall,
+        transparent: foregroundWall || transparentFloor,
+        opacity: foregroundWall ? 0.24 : transparentFloor ? 0.12 : 1,
+        depthWrite: !(foregroundWall || transparentFloor),
       });
       const cube = new THREE.Mesh(geom, mat);
       cube.position.set(x, h / 2, y);
