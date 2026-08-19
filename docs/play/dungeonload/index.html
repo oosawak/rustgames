@@ -1523,7 +1523,16 @@ function renderTinyDungeon() {
   const cell = Math.max(16, Math.floor(Math.min(width / visibleWidth, height / visibleHeight)));
   const originX = Math.floor((width - visibleWidth * cell) / 2);
   const originY = Math.floor((height - visibleHeight * cell) / 2);
-  const tileIds = { floor: 0, floorCorner: 17, wall: 18, stairsUp: 8, stairsDown: 9 };
+  const tileIds = {
+    floor: 0,
+    wall: 14,
+    wallRightEdge: 13,
+    wallLeftEdge: 15,
+    wallBottomLeft: 16,
+    wallTopLeft: 17,
+    stairsUp: 8,
+    stairsDown: 9,
+  };
   const isWall = (x, y) => x >= 0 && x < mapWidth && y >= 0 && y < mapHeight
     && mapData[y * mapWidth + x] === 1;
   for (let y = minY; y <= maxY; y++) {
@@ -1532,7 +1541,16 @@ function renderTinyDungeon() {
       const drawX = originX + (x - minX) * cell;
       const drawY = originY + (y - minY) * cell;
       if (tile === 1) {
-        drawTinyTile(ctx, tileIds.wall, drawX, drawY, cell);
+        const openLeft = !isWall(x - 1, y);
+        const openRight = !isWall(x + 1, y);
+        const openAbove = !isWall(x, y - 1);
+        const openBelow = !isWall(x, y + 1);
+        let wallTile = tileIds.wall;
+        if (openLeft && openAbove) wallTile = tileIds.wallTopLeft;
+        else if (openLeft && openBelow) wallTile = tileIds.wallBottomLeft;
+        else if (openLeft) wallTile = tileIds.wallRightEdge;
+        else if (openRight) wallTile = tileIds.wallLeftEdge;
+        drawTinyTile(ctx, wallTile, drawX, drawY, cell);
       } else if (tile === 3) {
         drawTinyTile(ctx, tileIds.stairsDown, drawX, drawY, cell);
       } else if (tile === 4) {
@@ -1544,9 +1562,7 @@ function renderTinyDungeon() {
         ctx.lineWidth = Math.max(2, cell / 12);
         ctx.strokeRect(drawX + cell * 0.12, drawY + cell * 0.12, cell * 0.76, cell * 0.76);
       } else {
-        const hasWallNeighbor = isWall(x - 1, y) || isWall(x + 1, y)
-          || isWall(x, y - 1) || isWall(x, y + 1);
-        drawTinyTile(ctx, hasWallNeighbor ? tileIds.floorCorner : tileIds.floor, drawX, drawY, cell);
+        drawTinyTile(ctx, tileIds.floor, drawX, drawY, cell);
       }
       ctx.strokeStyle = 'rgba(20, 25, 40, 0.35)';
       ctx.strokeRect(drawX, drawY, cell, cell);
