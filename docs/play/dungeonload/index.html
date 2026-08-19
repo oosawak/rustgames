@@ -1523,7 +1523,7 @@ function renderTinyDungeon() {
   const cell = Math.max(16, Math.floor(Math.min(width / visibleWidth, height / visibleHeight)));
   const originX = Math.floor((width - visibleWidth * cell) / 2);
   const originY = Math.floor((height - visibleHeight * cell) / 2);
-  const tileIds = { floor: 24, wall: 17, stairsUp: 8, stairsDown: 9 };
+  const tileIds = { floor: 0, wall: 17, stairsUp: 8, stairsDown: 9 };
   for (let y = minY; y <= maxY; y++) {
     for (let x = minX; x <= maxX; x++) {
       const tile = mapData[y * mapWidth + x];
