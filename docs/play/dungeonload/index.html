@@ -401,6 +401,7 @@ html, body {
 .party-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 7px; border: 1px solid rgba(255,255,255,0.35); background: rgba(0,0,0,0.32); }
 .party-grid-label { grid-column: 1 / -1; text-align: center; color: #c8d5e8; font-size: 0.7em; letter-spacing: 0.1em; }
 .party-cell { position: relative; min-height: 58px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,0.18); background: rgba(35,45,62,0.45); }
+.party-cell.empty { background: rgba(10,14,24,0.28); border-color: rgba(255,255,255,0.1); }
 .party-cell img { width: 44px; height: 44px; object-fit: contain; filter: drop-shadow(0 0 4px rgba(255,255,255,0.55)); }
 .party-cell.selected { border-color: #ffd47a; box-shadow: 0 0 12px rgba(255,212,122,0.8); }
 .party-cell.enemy { border-color: rgba(255,95,95,0.35); }
@@ -1363,13 +1364,18 @@ function renderPartyBattle() {
   const battlefield = document.getElementById('party-battlefield');
   const commands = document.getElementById('party-command-bar');
   if (!battlefield || !commands) return;
-  const heroCells = partyBattleState.heroes.map((hero, index) => `
-    <button class="party-cell ${index === partyBattleState.selected ? 'selected' : ''}" data-party-hero="${index}" type="button">
-      <img src="${hero.icon}" alt="${hero.name}"><span class="party-hp">HP ${hero.hp}</span>
-    </button>`).join('');
+  const heroCells = Array.from({ length: 9 }, (_, index) => {
+    const hero = partyBattleState.heroes[index];
+    return hero
+      ? `
+        <button class="party-cell ${index === partyBattleState.selected ? 'selected' : ''}" data-party-hero="${index}" type="button">
+          <img src="${hero.icon}" alt="${hero.name}"><span class="party-hp">HP ${hero.hp}</span>
+        </button>`
+      : '<div class="party-cell empty" aria-hidden="true"></div>';
+  }).join('');
   const enemyCells = partyBattleState.enemies.map((enemy, index) => `
     <div class="party-cell enemy"><img src="../roguelike/icons/lorc/goblin-head.png" alt="${enemy.name}"><span class="party-hp">HP ${enemy.hp}</span></div>`).join('');
-  battlefield.innerHTML = `<div class="party-grid"><div class="party-grid-label">PARTY 5 / 5</div>${heroCells}</div><div class="party-divider">VS</div><div class="party-grid"><div class="party-grid-label">ENEMIES ${partyBattleState.enemies.length} / 9</div>${enemyCells}</div>`;
+  battlefield.innerHTML = `<div class="party-grid"><div class="party-grid-label">PARTY 5 / 9</div>${heroCells}</div><div class="party-divider">VS</div><div class="party-grid"><div class="party-grid-label">ENEMIES ${partyBattleState.enemies.length} / 9</div>${enemyCells}</div>`;
   commands.innerHTML = '<button class="party-command" data-party-command="attack" type="button">ATTACK</button><button class="party-command" data-party-command="skill" type="button">SKILL</button><button class="party-command" data-party-command="guard" type="button">GUARD</button><button class="party-command" data-party-command="item" type="button">ITEM</button>';
 }
 
