@@ -1371,6 +1371,7 @@ const partyEnemyIcons = [
   '../roguelike/icons/delapouite/ogre.png',
   '../roguelike/icons/lorc/dragon-head.png',
 ];
+const partyEnemyIconIds = ['enemy-0', 'enemy-1', 'enemy-3', 'enemy-7', 'enemy-9', 'enemy-12', 'enemy-16', 'enemy-13', 'enemy-29'];
 
 function renderPartyBattle() {
   const battlefield = document.getElementById('party-battlefield');
@@ -1385,8 +1386,12 @@ function renderPartyBattle() {
         </button>`
       : `<button class="party-cell empty" data-party-cell="${index}" type="button" aria-label="Empty party position"></button>`;
   }).join('');
-  const enemyCells = partyBattleState.enemies.map((enemy, index) => `
-    <div class="party-cell enemy"><img src="${partyEnemyIcons[index]}" alt="${enemy.name}"><span class="party-hp">HP ${enemy.hp}</span></div>`).join('');
+  const enemyCells = partyBattleState.enemies.map((enemy, index) => {
+    const loadedIcon = document.getElementById(partyEnemyIconIds[index]);
+    const iconSrc = loadedIcon?.src || partyEnemyIcons[index];
+    return `
+    <div class="party-cell enemy"><img src="${iconSrc}" alt="${enemy.name}"><span class="party-hp">HP ${enemy.hp}</span></div>`;
+  }).join('');
   battlefield.innerHTML = `<div class="party-grid"><div class="party-grid-label">PARTY 5 / 9</div>${heroCells}</div><div class="party-divider">VS</div><div class="party-grid"><div class="party-grid-label">ENEMIES ${partyBattleState.enemies.length} / 9</div>${enemyCells}</div>`;
   commands.innerHTML = '<button class="party-command" data-party-command="attack" type="button">ATTACK</button><button class="party-command" data-party-command="skill" type="button">SKILL</button><button class="party-command" data-party-command="guard" type="button">GUARD</button><button class="party-command" data-party-command="item" type="button">ITEM</button>';
 }
