@@ -1467,26 +1467,27 @@ let playerCube, enemies3d = [];
 let enemyHudSprites = [], worldIconSprites = [], damageSprites = [], attackEffectSprites = [], projectileSprites = [];
 let is3dMode = true;
 let isTinyMode = false;
-let tinyDungeonImage = null;
+const tinyTileImages = [];
 const tinyEnemyTiles = [60, 61, 62, 63, 64, 72, 73, 74, 75, 76, 77, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 108, 109, 110, 111, 112, 113, 114, 115, 116];
 const tinyCharacterTiles = { player: 61, enemy: tinyEnemyTiles };
-function loadTinyDungeonImage() {
-  if (tinyDungeonImage) return tinyDungeonImage;
-  tinyDungeonImage = new Image();
-  tinyDungeonImage.src = './assets/kenney-tiny-dungeon/tilemap.png';
-  return tinyDungeonImage;
+function loadTinyDungeonTiles() {
+  if (tinyTileImages.length) return;
+  for (let tileId = 0; tileId < 132; tileId++) {
+    const image = new Image();
+    image.src = `./assets/kenney-tiny-dungeon/tiles/tile_${String(tileId).padStart(4, '0')}.png`;
+    tinyTileImages[tileId] = image;
+  }
 }
 function drawTinyTile(ctx, tileId, x, y, size) {
-  const image = loadTinyDungeonImage();
+  loadTinyDungeonTiles();
+  const image = tinyTileImages[tileId];
   if (!image.complete || !image.naturalWidth) {
     ctx.fillStyle = '#55506a';
     ctx.fillRect(x, y, size, size);
     return;
   }
-  const sourceX = (tileId % 12) * 17;
-  const sourceY = Math.floor(tileId / 12) * 17;
   ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(image, sourceX, sourceY, 16, 16, x, y, size, size);
+  ctx.drawImage(image, 0, 0, 16, 16, x, y, size, size);
 }
 function renderTinyDungeon() {
   const canvas = document.getElementById('game-canvas-tiny');
