@@ -403,6 +403,7 @@ html, body {
 .party-cell { position: relative; min-height: 58px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,0.18); background: rgba(35,45,62,0.45); }
 .party-cell.empty { background: rgba(10,14,24,0.28); border-color: rgba(255,255,255,0.1); cursor: pointer; }
 .party-cell.empty:hover { background: rgba(80,70,55,0.45); border-color: rgba(255,212,122,0.7); }
+.party-cell.defeated { opacity: 0.28; filter: grayscale(1); }
 .party-cell img { width: 44px; height: 44px; object-fit: contain; filter: drop-shadow(0 0 4px rgba(255,255,255,0.55)); }
 .party-cell.selected { border-color: #ffd47a; box-shadow: 0 0 12px rgba(255,212,122,0.8); }
 .party-cell.enemy { border-color: rgba(255,95,95,0.35); }
@@ -1351,12 +1352,13 @@ let lastPitFallEvent = 0;
 let partyBattleActive = false;
 const partyBattleState = {
   selected: 0,
+  phase: 'active',
   heroes: [
-    { name: 'HERO', hp: 100, icon: '../roguelike/icons/cathelineau/swordman.png' },
-    { name: 'ARCHER', hp: 80, icon: '../roguelike/icons/delapouite/archer.png' },
-    { name: 'ROGUE', hp: 75, icon: '../roguelike/icons/lorc/rogue.png' },
-    { name: 'MAGE', hp: 65, icon: '../roguelike/icons/delapouite/wizard-face.png' },
-    { name: 'GUARD', hp: 110, icon: '../roguelike/icons/sbed/helmet.png' },
+    { name: 'HERO', maxHp: 100, hp: 100, icon: '../roguelike/icons/cathelineau/swordman.png' },
+    { name: 'ARCHER', maxHp: 80, hp: 80, icon: '../roguelike/icons/delapouite/archer.png' },
+    { name: 'ROGUE', maxHp: 75, hp: 75, icon: '../roguelike/icons/lorc/rogue.png' },
+    { name: 'MAGE', maxHp: 65, hp: 65, icon: '../roguelike/icons/delapouite/wizard-face.png' },
+    { name: 'GUARD', maxHp: 110, hp: 110, icon: '../roguelike/icons/sbed/helmet.png' },
   ],
   enemies: Array.from({ length: 9 }, (_, index) => ({ name: `ENEMY ${index + 1}`, hp: 40 })),
 };
@@ -1381,7 +1383,7 @@ function renderPartyBattle() {
     const hero = partyBattleState.heroes[index];
     return hero
       ? `
-        <button class="party-cell ${index === partyBattleState.selected ? 'selected' : ''}" data-party-cell="${index}" type="button">
+        <button class="party-cell ${index === partyBattleState.selected ? 'selected' : ''} ${hero.hp <= 0 ? 'defeated' : ''}" data-party-cell="${index}" type="button" ${hero.hp <= 0 ? 'disabled' : ''}>
           <img src="${hero.icon}" alt="${hero.name}"><span class="party-hp">HP ${hero.hp}</span>
         </button>`
       : `<button class="party-cell empty" data-party-cell="${index}" type="button" aria-label="Empty party position"></button>`;
@@ -1390,15 +1392,77 @@ function renderPartyBattle() {
     const loadedIcon = document.getElementById(partyEnemyIconIds[index]);
     const iconSrc = loadedIcon?.src || partyEnemyIcons[index];
     return `
-    <div class="party-cell enemy"><img src="${iconSrc}" alt="${enemy.name}"><span class="party-hp">HP ${enemy.hp}</span></div>`;
+    <div class="party-cell enemy ${enemy.hp <= 0 ? 'defeated' : ''}"><img src="${iconSrc}" alt="${enemy.hp > 0 ? enemy.name : 'DEFEATED'}"><span class="party-hp">HP ${enemy.hp}</span></div>`;
   }).join('');
-  battlefield.innerHTML = `<div class="party-grid"><div class="party-grid-label">PARTY 5 / 9</div>${heroCells}</div><div class="party-divider">VS</div><div class="party-grid"><div class="party-grid-label">ENEMIES ${partyBattleState.enemies.length} / 9</div>${enemyCells}</div>`;
-  commands.innerHTML = '<button class="party-command" data-party-command="attack" type="button">ATTACK</button><button class="party-command" data-party-command="skill" type="button">SKILL</button><button class="party-command" data-party-command="guard" type="button">GUARD</button><button class="party-command" data-party-command="item" type="button">ITEM</button>';
+  const livingHeroes = partyBattleState.heroes.filter(hero => hero && hero.hp > 0).length;
+  const livingEnemies = partyBattleState.enemies.filter(enemy => enemy.hp > 0).length;
+  battlefield.innerHTML = `<div class="party-grid"><div class="party-grid-label">PARTY ${livingHeroes} / 5</div>${heroCells}</div><div class="party-divider">VS</div><div class="party-grid"><div class="party-grid-label">ENEMIES ${livingEnemies} / 9</div>${enemyCells}</div>`;
+  const disabled = partyBattleState.phase !== 'active' ? ' disabled' : '';
+  commands.innerHTML = `<button class="party-command" data-party-command="attack" type="button"${disabled}>ATTACK</button><button class="party-command" data-party-command="skill" type="button"${disabled}>SKILL</button><button class="party-command" data-party-command="guard" type="button"${disabled}>GUARD</button><button class="party-command" data-party-command="item" type="button"${disabled}>ITEM</button>`;
+}
+
+function nextLivingHero() {
+  const count = partyBattleState.heroes.length;
+  for (let offset = 1; offset <= count; offset++) {
+    const index = (partyBattleState.selected + offset) % count;
+    if (partyBattleState.heroes[index]?.hp > 0) return index;
+  }
+  return partyBattleState.selected;
+}
+
+function resolvePartyCommand(command) {
+  const hero = partyBattleState.heroes[partyBattleState.selected];
+  if (!hero || hero.hp <= 0 || partyBattleState.phase !== 'active') return;
+  const target = partyBattleState.enemies.find(enemy => enemy.hp > 0);
+  let actionText = `${hero.name} used ${command.toUpperCase()}.`;
+  if (command === 'attack' && target) {
+    target.hp = Math.max(0, target.hp - 15);
+    actionText = `${hero.name} attacked ${target.name} for 15 damage.`;
+  } else if (command === 'skill' && target) {
+    target.hp = Math.max(0, target.hp - 25);
+    actionText = `${hero.name} cast a skill on ${target.name} for 25 damage.`;
+  } else if (command === 'guard') {
+    hero.guarded = true;
+    actionText = `${hero.name} is guarding this turn.`;
+  } else if (command === 'item') {
+    const before = hero.hp;
+    hero.hp = Math.min(hero.maxHp, hero.hp + 20);
+    actionText = `${hero.name} recovered ${hero.hp - before} HP.`;
+  }
+  const livingEnemies = partyBattleState.enemies.filter(enemy => enemy.hp > 0);
+  if (!livingEnemies.length) {
+    partyBattleState.phase = 'victory';
+    document.getElementById('party-battle-log').textContent = `${actionText} VICTORY!`;
+    renderPartyBattle();
+    return;
+  }
+  const targetHero = partyBattleState.heroes.find(member => member && member.hp > 0);
+  if (targetHero) {
+    const damage = targetHero.guarded ? 4 : 8;
+    targetHero.hp = Math.max(0, targetHero.hp - damage);
+    targetHero.guarded = false;
+    actionText += ` ${targetHero.name} received ${damage} damage.`;
+  }
+  if (!partyBattleState.heroes.some(member => member && member.hp > 0)) {
+    partyBattleState.phase = 'defeat';
+    actionText += ' PARTY DEFEATED.';
+  } else {
+    partyBattleState.selected = nextLivingHero();
+  }
+  document.getElementById('party-battle-log').textContent = actionText;
+  renderPartyBattle();
 }
 
 function enterPartyDungeon() {
   partyBattleActive = true;
   partyBattleState.selected = 0;
+  partyBattleState.phase = 'active';
+  partyBattleState.heroes.forEach(hero => {
+    if (hero) {
+      hero.hp = hero.maxHp;
+      hero.guarded = false;
+    }
+  });
   partyBattleState.enemies = Array.from({ length: 9 }, (_, index) => ({ name: `ENEMY ${index + 1}`, hp: 40 }));
   document.getElementById('town-screen')?.classList.remove('active');
   document.getElementById('party-battle-screen')?.classList.add('active');
@@ -1570,16 +1634,7 @@ async function start() {
       }
       const commandButton = event.target.closest('[data-party-command]');
       if (commandButton) {
-        const hero = partyBattleState.heroes[partyBattleState.selected];
-        const command = commandButton.dataset.partyCommand;
-        const target = partyBattleState.enemies.find(enemy => enemy.hp > 0);
-        if (command === 'attack' && target) target.hp = Math.max(0, target.hp - 15);
-        if (command === 'skill' && target) target.hp = Math.max(0, target.hp - 25);
-        if (command === 'guard') hero.hp = Math.min(110, hero.hp + 5);
-        if (command === 'item') hero.hp = Math.min(110, hero.hp + 20);
-        const targetText = target ? ` ${target.name}` : '';
-        document.getElementById('party-battle-log').textContent = `${hero.name} used ${command.toUpperCase()}${targetText}.`;
-        renderPartyBattle();
+        resolvePartyCommand(commandButton.dataset.partyCommand);
       }
     });
     document.getElementById('party-battle-leave').addEventListener('click', leavePartyDungeon);
