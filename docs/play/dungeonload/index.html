@@ -1360,6 +1360,17 @@ const partyBattleState = {
   ],
   enemies: Array.from({ length: 9 }, (_, index) => ({ name: `ENEMY ${index + 1}`, hp: 40 })),
 };
+const partyEnemyIcons = [
+  '../roguelike/icons/caro-asercion/goblin.png',
+  '../roguelike/icons/delapouite/goblin-head.png',
+  '../roguelike/icons/delapouite/bat.png',
+  '../roguelike/icons/skoll/skeleton.png',
+  '../roguelike/icons/carl-olsen/spider-face.png',
+  '../roguelike/icons/skoll/troll.png',
+  '../roguelike/icons/lorc/ghost.png',
+  '../roguelike/icons/delapouite/ogre.png',
+  '../roguelike/icons/lorc/dragon-head.png',
+];
 
 function renderPartyBattle() {
   const battlefield = document.getElementById('party-battlefield');
@@ -1375,7 +1386,7 @@ function renderPartyBattle() {
       : `<button class="party-cell empty" data-party-cell="${index}" type="button" aria-label="Empty party position"></button>`;
   }).join('');
   const enemyCells = partyBattleState.enemies.map((enemy, index) => `
-    <div class="party-cell enemy"><img src="../roguelike/icons/lorc/goblin-head.png" alt="${enemy.name}"><span class="party-hp">HP ${enemy.hp}</span></div>`).join('');
+    <div class="party-cell enemy"><img src="${partyEnemyIcons[index]}" alt="${enemy.name}"><span class="party-hp">HP ${enemy.hp}</span></div>`).join('');
   battlefield.innerHTML = `<div class="party-grid"><div class="party-grid-label">PARTY 5 / 9</div>${heroCells}</div><div class="party-divider">VS</div><div class="party-grid"><div class="party-grid-label">ENEMIES ${partyBattleState.enemies.length} / 9</div>${enemyCells}</div>`;
   commands.innerHTML = '<button class="party-command" data-party-command="attack" type="button">ATTACK</button><button class="party-command" data-party-command="skill" type="button">SKILL</button><button class="party-command" data-party-command="guard" type="button">GUARD</button><button class="party-command" data-party-command="item" type="button">ITEM</button>';
 }
