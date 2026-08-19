@@ -382,6 +382,35 @@ html, body {
 .dungeon-option:hover { border-color: #ffd47a; background: rgba(88, 64, 54, 0.78); }
 .dungeon-option small { color: #c1b49f; font-size: 0.72em; }
 .town-close { margin-top: 12px; padding: 7px 18px; color: #ffd47a; background: transparent; border: 1px solid rgba(255,190,100,0.55); border-radius: 4px; font-family: inherit; cursor: pointer; }
+.party-battle-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  color: #eee;
+  background: radial-gradient(circle at 50% 42%, #3b3545 0%, #171522 58%, #07070d 100%);
+}
+.party-battle-screen.active { display: flex; }
+.party-battle-title { color: #ffd47a; font-size: 1.2em; letter-spacing: 0.12em; }
+.party-battlefield { display: grid; grid-template-columns: minmax(210px, 1fr) 70px minmax(210px, 1fr); gap: 12px; align-items: center; width: min(720px, 96vw); }
+.party-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 7px; border: 1px solid rgba(255,255,255,0.35); background: rgba(0,0,0,0.32); }
+.party-grid-label { grid-column: 1 / -1; text-align: center; color: #c8d5e8; font-size: 0.7em; letter-spacing: 0.1em; }
+.party-cell { position: relative; min-height: 58px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,0.18); background: rgba(35,45,62,0.45); }
+.party-cell img { width: 44px; height: 44px; object-fit: contain; filter: drop-shadow(0 0 4px rgba(255,255,255,0.55)); }
+.party-cell.selected { border-color: #ffd47a; box-shadow: 0 0 12px rgba(255,212,122,0.8); }
+.party-cell.enemy { border-color: rgba(255,95,95,0.35); }
+.party-cell.enemy img { filter: sepia(0.6) saturate(2.2) hue-rotate(300deg) drop-shadow(0 0 4px #f55); }
+.party-cell .party-hp { position: absolute; right: 2px; bottom: 1px; color: #9fefad; font: 9px monospace; }
+.party-divider { color: #ffd47a; text-align: center; font-size: 1.4em; }
+.party-command-bar { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; width: min(720px, 96vw); }
+.party-command { min-width: 105px; padding: 9px 12px; color: #ffe9b7; background: rgba(30,33,54,0.9); border: 1px solid rgba(255,190,100,0.55); border-radius: 4px; font-family: inherit; cursor: pointer; }
+.party-command:hover { background: rgba(105,70,52,0.9); border-color: #ffd47a; }
+.party-battle-log { width: min(720px, 96vw); min-height: 34px; color: #bde5ff; font: 0.72em monospace; text-align: center; }
 @media (max-width: 460px) {
   #town-locations { gap: 7px; }
   .town-location { min-height: 88px; }
@@ -1127,6 +1156,13 @@ body.controls-swapped #movement-joystick {
   <button id="btn-retry">↺ RELOAD</button>
   <div id="clear-monster-stream" aria-hidden="true"></div>
 </div>
+<div id="party-battle-screen" class="party-battle-screen" aria-label="Party battle">
+  <div class="party-battle-title">PARTY DUNGEON BATTLE</div>
+  <div id="party-battlefield" class="party-battlefield"></div>
+  <div id="party-command-bar" class="party-command-bar"></div>
+  <div id="party-battle-log" class="party-battle-log">Choose a party member.</div>
+  <button id="party-battle-leave" class="town-close" type="button">RETURN TO TOWN</button>
+</div>
 <div id="pit-fall-overlay" aria-hidden="true">
   <img id="pit-fall-player" src="../roguelike/icons/cathelineau/swordman.png" alt="">
 </div>
@@ -1310,6 +1346,48 @@ const audio = { ensure: () => {}, play: () => {}, startAmbient: () => {}, setAmb
 const input = new InputManager({ swipeMin: 35 });
 let initialized = false;
 let lastPitFallEvent = 0;
+let partyBattleActive = false;
+const partyBattleState = {
+  selected: 0,
+  heroes: [
+    { name: 'HERO', hp: 100, icon: '../roguelike/icons/cathelineau/swordman.png' },
+    { name: 'ARCHER', hp: 80, icon: '../roguelike/icons/delapouite/archer.png' },
+    { name: 'ROGUE', hp: 75, icon: '../roguelike/icons/lorc/rogue.png' },
+    { name: 'MAGE', hp: 65, icon: '../roguelike/icons/lorc/imp.png' },
+    { name: 'GUARD', hp: 110, icon: '../roguelike/icons/sbed/helmet.png' },
+  ],
+  enemies: Array.from({ length: 9 }, (_, index) => ({ name: `ENEMY ${index + 1}`, hp: 40 })),
+};
+
+function renderPartyBattle() {
+  const battlefield = document.getElementById('party-battlefield');
+  const commands = document.getElementById('party-command-bar');
+  if (!battlefield || !commands) return;
+  const heroCells = partyBattleState.heroes.map((hero, index) => `
+    <button class="party-cell ${index === partyBattleState.selected ? 'selected' : ''}" data-party-hero="${index}" type="button">
+      <img src="${hero.icon}" alt="${hero.name}"><span class="party-hp">HP ${hero.hp}</span>
+    </button>`).join('');
+  const enemyCells = partyBattleState.enemies.map((enemy, index) => `
+    <div class="party-cell enemy"><img src="../roguelike/icons/lorc/goblin-head.png" alt="${enemy.name}"><span class="party-hp">HP ${enemy.hp}</span></div>`).join('');
+  battlefield.innerHTML = `<div class="party-grid"><div class="party-grid-label">PARTY 5 / 5</div>${heroCells}</div><div class="party-divider">VS</div><div class="party-grid"><div class="party-grid-label">ENEMIES ${partyBattleState.enemies.length} / 9</div>${enemyCells}</div>`;
+  commands.innerHTML = '<button class="party-command" data-party-command="attack" type="button">ATTACK</button><button class="party-command" data-party-command="skill" type="button">SKILL</button><button class="party-command" data-party-command="guard" type="button">GUARD</button><button class="party-command" data-party-command="item" type="button">ITEM</button>';
+}
+
+function enterPartyDungeon() {
+  partyBattleActive = true;
+  partyBattleState.selected = 0;
+  partyBattleState.enemies = Array.from({ length: 9 }, (_, index) => ({ name: `ENEMY ${index + 1}`, hp: 40 }));
+  document.getElementById('town-screen')?.classList.remove('active');
+  document.getElementById('party-battle-screen')?.classList.add('active');
+  document.getElementById('party-battle-log').textContent = 'Choose a party member.';
+  renderPartyBattle();
+}
+
+function leavePartyDungeon() {
+  partyBattleActive = false;
+  document.getElementById('party-battle-screen')?.classList.remove('active');
+  document.getElementById('town-screen')?.classList.add('active');
+}
 
 function updatePitFallTransition() {
   const event = typeof wasm.pit_fall_event_roguelike === 'function'
@@ -1340,6 +1418,9 @@ function showTownPanel(location) {
       <div class="town-panel-title">DUNGEON SELECT</div>
       <div class="town-panel-copy">Choose a dungeon cartridge to load.</div>
       <div class="dungeon-options">
+        <button class="dungeon-option" data-dungeon="party" type="button">
+          <span>PARTY DUNGEON<br><small>COMMAND BATTLE</small></span><small>5 vs 9 GRID</small>
+        </button>
         <button class="dungeon-option" data-dungeon="grass-cave" type="button">
           <span>GRASS CAVE<br><small>F1 - F10</small></span><small>GENERATION COST: 20</small>
         </button>
@@ -1433,6 +1514,10 @@ async function start() {
       if (dungeonButton) {
         if (dungeonButton.disabled) return;
         dungeonButton.disabled = true;
+        if (dungeonButton.dataset.dungeon === 'party') {
+          enterPartyDungeon();
+          return;
+        }
         const panel = document.getElementById('town-panel');
         panel.classList.add('launching');
         panel.innerHTML = '<div class="town-loading">CARTRIDGE LOADING...</div>';
@@ -1446,6 +1531,28 @@ async function start() {
         document.getElementById('town-panel').classList.remove('active');
       }
     });
+    document.getElementById('party-battle-screen').addEventListener('click', event => {
+      const heroButton = event.target.closest('[data-party-hero]');
+      if (heroButton) {
+        partyBattleState.selected = Number(heroButton.dataset.partyHero);
+        renderPartyBattle();
+        return;
+      }
+      const commandButton = event.target.closest('[data-party-command]');
+      if (commandButton) {
+        const hero = partyBattleState.heroes[partyBattleState.selected];
+        const command = commandButton.dataset.partyCommand;
+        const target = partyBattleState.enemies.find(enemy => enemy.hp > 0);
+        if (command === 'attack' && target) target.hp = Math.max(0, target.hp - 15);
+        if (command === 'skill' && target) target.hp = Math.max(0, target.hp - 25);
+        if (command === 'guard') hero.hp = Math.min(110, hero.hp + 5);
+        if (command === 'item') hero.hp = Math.min(110, hero.hp + 20);
+        const targetText = target ? ` ${target.name}` : '';
+        document.getElementById('party-battle-log').textContent = `${hero.name} used ${command.toUpperCase()}${targetText}.`;
+        renderPartyBattle();
+      }
+    });
+    document.getElementById('party-battle-leave').addEventListener('click', leavePartyDungeon);
 
     document.getElementById('btn-retry').addEventListener('click', () => {
       document.getElementById('game-over').style.display = 'none';
@@ -1578,7 +1685,7 @@ async function start() {
     function update() {
       if (initialized) {
         const tabPanelOpen = document.getElementById('ui-upper')?.classList.contains('panel-open');
-        if (!tabPanelOpen) {
+        if (!tabPanelOpen && !partyBattleActive) {
           wasm.tick_roguelike(performance.now());
         }
         updateMobileWeaponSlots();
@@ -1594,6 +1701,7 @@ async function start() {
 
 function render() {
   if (!initialized) return;
+  if (partyBattleActive) return;
   updatePitFallTransition();
   const noDamageButton = document.getElementById('no-damage-quick-toggle');
   if (noDamageButton) {
