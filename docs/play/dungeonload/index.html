@@ -333,8 +333,36 @@ html, body {
 }
 #town-panel.active { display: block; animation: town-panel-in 0.22s ease-out; }
 @keyframes town-panel-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+#town-panel.launching {
+  border-color: #ffe08a;
+  box-shadow: 0 0 22px rgba(255, 190, 100, 0.55);
+  animation: town-cartridge-load 0.68s ease-in-out;
+}
+@keyframes town-cartridge-load {
+  0%, 100% { transform: scale(1); }
+  45% { transform: scale(1.035); background: rgba(92, 62, 42, 0.95); }
+}
 .town-panel-title { color: #ffd47a; font-size: 1.1em; margin-bottom: 8px; }
 .town-panel-copy { color: #bdb4a5; font-size: 0.78em; line-height: 1.5; }
+.town-coming-soon {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 4px 8px;
+  color: #ffc96b;
+  border: 1px solid rgba(255, 190, 100, 0.6);
+  border-radius: 3px;
+  font-size: 0.72em;
+  letter-spacing: 0.08em;
+  animation: town-coming-pulse 1.2s ease-in-out infinite alternate;
+}
+@keyframes town-coming-pulse { from { opacity: 0.55; } to { opacity: 1; } }
+.town-loading {
+  color: #fff0b0;
+  text-align: center;
+  letter-spacing: 0.1em;
+  animation: town-loading-pulse 0.35s ease-in-out infinite alternate;
+}
+@keyframes town-loading-pulse { from { text-shadow: 0 0 4px #ffc04d; } to { text-shadow: 0 0 18px #fff0a0; } }
 .dungeon-options { display: grid; gap: 8px; margin-top: 12px; }
 .dungeon-option {
   width: 100%;
@@ -1326,6 +1354,7 @@ function showTownPanel(location) {
     panel.innerHTML = `
       <div class="town-panel-title">${content[0]}</div>
       <div class="town-panel-copy">${content[1]}</div>
+      <div class="town-coming-soon">COMING SOON</div>
       <button class="town-close" type="button">CLOSE</button>`;
   }
   panel.classList.remove('active');
@@ -1402,7 +1431,15 @@ async function start() {
     document.getElementById('town-panel').addEventListener('click', event => {
       const dungeonButton = event.target.closest('[data-dungeon]');
       if (dungeonButton) {
-        enterDungeon();
+        if (dungeonButton.disabled) return;
+        dungeonButton.disabled = true;
+        const panel = document.getElementById('town-panel');
+        panel.classList.add('launching');
+        panel.innerHTML = '<div class="town-loading">CARTRIDGE LOADING...</div>';
+        window.setTimeout(() => {
+          panel.classList.remove('launching');
+          enterDungeon();
+        }, 680);
         return;
       }
       if (event.target.closest('.town-close')) {
