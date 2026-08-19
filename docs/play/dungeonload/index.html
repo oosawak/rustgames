@@ -191,6 +191,14 @@ html, body {
   height: 100%;
   display: block;
 }
+#game-canvas-tiny {
+  width: 100%;
+  height: 100%;
+  display: none;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background: #1b1d2b;
+}
 #swipe-hint { display: none; }
 #swipe-hint .sh-arrow {
   position: absolute;
@@ -1013,7 +1021,9 @@ body.controls-swapped #movement-joystick {
 <div id="canvas-wrap">
   <canvas id="game-canvas" style="display: none; width: 100%; height: 100%; max-width: 100%;"></canvas>
   <canvas id="game-canvas-3d" style="display: block; width: 100%; height: 100%; max-width: 100%;"></canvas>
+  <canvas id="game-canvas-tiny" style="display: none; width: 100%; height: 100%; max-width: 100%;"></canvas>
   <button id="view-toggle" style="position: absolute; top: 10px; right: 10px; z-index: 30; padding: 8px 16px; background: rgba(0,200,255,0.2); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 4px; font-family: monospace; font-size: 0.8em;">2D</button>
+  <button id="tiny-toggle" style="position: absolute; top: 10px; right: 142px; z-index: 30; padding: 8px 10px; background: rgba(255,170,80,0.2); border: 1px solid #ffaa50; color: #ffc080; cursor: pointer; border-radius: 4px; font-family: monospace; font-size: 0.7em;">TINY MODE</button>
   <button id="no-damage-quick-toggle" style="position: absolute; top: 10px; right: 78px; z-index: 30; padding: 8px 10px; background: rgba(0,200,255,0.2); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 4px; font-family: monospace; font-size: 0.7em;">NO DAMAGE: ON</button>
   <button id="ui-toggle-btn" style="position: absolute; top: 50px; right: 10px; z-index: 30; padding: 6px 12px; background: rgba(0,200,255,0.2); border: 1px solid #0ff; color: #0ff; cursor: pointer; border-radius: 4px; font-family: monospace; font-size: 0.8em; display: none;">▼ Hide UI</button>
   <div id="game-3d-hud" style="display: none; position: absolute; top: 10px; left: 10px; z-index: 30; min-width: 150px; padding: 7px 9px; border: 1px solid rgba(0,200,255,0.7); border-radius: 4px; background: rgba(0,10,20,0.82); color: #0ff; font: 12px monospace; line-height: 1.5; text-shadow: 0 0 5px #0ff;"></div>
@@ -1385,7 +1395,9 @@ function render() {
       ui.updateItemsDisplay();
     }
   }
-  if (is3dMode) {
+  if (isTinyMode) {
+    renderTinyDungeon();
+  } else if (is3dMode) {
     render3d();
   } else {
     renderCanvas();
@@ -1454,6 +1466,104 @@ let cubes = [];
 let playerCube, enemies3d = [];
 let enemyHudSprites = [], worldIconSprites = [], damageSprites = [], attackEffectSprites = [], projectileSprites = [];
 let is3dMode = true;
+let isTinyMode = false;
+let tinyDungeonImage = null;
+const tinyEnemyTiles = [60, 61, 62, 63, 64, 72, 73, 74, 75, 76, 77, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 108, 109, 110, 111, 112, 113, 114, 115, 116];
+const tinyCharacterTiles = { player: 61, enemy: tinyEnemyTiles };
+function loadTinyDungeonImage() {
+  if (tinyDungeonImage) return tinyDungeonImage;
+  tinyDungeonImage = new Image();
+  tinyDungeonImage.src = './assets/kenney-tiny-dungeon/tilemap.png';
+  return tinyDungeonImage;
+}
+function drawTinyTile(ctx, tileId, x, y, size) {
+  const image = loadTinyDungeonImage();
+  if (!image.complete || !image.naturalWidth) {
+    ctx.fillStyle = '#55506a';
+    ctx.fillRect(x, y, size, size);
+    return;
+  }
+  const sourceX = (tileId % 12) * 17;
+  const sourceY = Math.floor(tileId / 12) * 17;
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(image, sourceX, sourceY, 16, 16, x, y, size, size);
+}
+function renderTinyDungeon() {
+  const canvas = document.getElementById('game-canvas-tiny');
+  const wrap = document.getElementById('canvas-wrap');
+  if (!canvas || !wrap) return;
+  const width = Math.max(1, wrap.clientWidth);
+  const height = Math.max(1, wrap.clientHeight);
+  const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.round(width * pixelRatio);
+  canvas.height = Math.round(height * pixelRatio);
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = '#1b1d2b';
+  ctx.fillRect(0, 0, width, height);
+
+  const mapWidth = wasm.map_width_roguelike();
+  const mapHeight = wasm.map_height_roguelike();
+  const playerX = wasm.player_x_roguelike();
+  const playerY = wasm.player_y_roguelike();
+  const mapData = wasm.map_data_roguelike();
+  const viewRadius = 12;
+  // Keep the viewport tile count fixed at map edges so movement never
+  // changes the apparent resolution or tile size.
+  const visibleWidth = Math.min(mapWidth, viewRadius * 2 + 1);
+  const visibleHeight = Math.min(mapHeight, viewRadius * 2 + 1);
+  const minX = Math.min(Math.max(0, playerX - viewRadius), mapWidth - visibleWidth);
+  const maxX = minX + visibleWidth - 1;
+  const minY = Math.min(Math.max(0, playerY - viewRadius), mapHeight - visibleHeight);
+  const maxY = minY + visibleHeight - 1;
+  const cell = Math.max(16, Math.floor(Math.min(width / visibleWidth, height / visibleHeight)));
+  const originX = Math.floor((width - visibleWidth * cell) / 2);
+  const originY = Math.floor((height - visibleHeight * cell) / 2);
+  const tileIds = { floor: 24, wall: 17, stairsUp: 8, stairsDown: 9 };
+  for (let y = minY; y <= maxY; y++) {
+    for (let x = minX; x <= maxX; x++) {
+      const tile = mapData[y * mapWidth + x];
+      const drawX = originX + (x - minX) * cell;
+      const drawY = originY + (y - minY) * cell;
+      if (tile === 1) {
+        drawTinyTile(ctx, tileIds.wall, drawX, drawY, cell);
+      } else if (tile === 3) {
+        drawTinyTile(ctx, tileIds.stairsDown, drawX, drawY, cell);
+      } else if (tile === 4) {
+        drawTinyTile(ctx, tileIds.stairsUp, drawX, drawY, cell);
+      } else if (tile === 5 || tile === 6) {
+        ctx.fillStyle = tile === 6 ? '#0a5260' : '#080812';
+        ctx.fillRect(drawX, drawY, cell, cell);
+        ctx.strokeStyle = tile === 6 ? '#53f4ff' : '#9d36c5';
+        ctx.lineWidth = Math.max(2, cell / 12);
+        ctx.strokeRect(drawX + cell * 0.12, drawY + cell * 0.12, cell * 0.76, cell * 0.76);
+      } else {
+        drawTinyTile(ctx, tileIds.floor, drawX, drawY, cell);
+      }
+      ctx.strokeStyle = 'rgba(20, 25, 40, 0.35)';
+      ctx.strokeRect(drawX, drawY, cell, cell);
+    }
+  }
+
+  const drawActor = (x, y, tileId, tint) => {
+    if (x < minX || x > maxX || y < minY || y > maxY) return;
+    const drawX = originX + (x - minX) * cell;
+    const drawY = originY + (y - minY) * cell;
+    drawTinyTile(ctx, tileId, drawX, drawY, cell);
+    ctx.fillStyle = tint;
+    ctx.fillRect(drawX + cell * 0.12, drawY + cell * 0.08, cell * 0.76, Math.max(2, cell * 0.05));
+  };
+  drawActor(playerX, playerY, tinyCharacterTiles.player, '#55e6ff');
+  const enemyCount = wasm.enemy_count_roguelike();
+  for (let i = 0; i < enemyCount; i++) {
+    const data = wasm.enemy_data_roguelike(i);
+    if (data.length < 5) continue;
+    drawActor(data[0], data[1], tinyCharacterTiles.enemy[data[4]] || 72, data[5] === 1 ? '#ff5555' : '#ffb060');
+  }
+}
 document.body.classList.add('mode-3d');
 let playerModel = null;
 let playerVrm = null;
@@ -1979,6 +2089,7 @@ function render3d() {
   renderer.render(scene, camera);
 }
 function toggleViewMode() {
+  if (isTinyMode) return;
   is3dMode = !is3dMode;
   const canvas2d = document.getElementById('game-canvas');
   const canvas3d = document.getElementById('game-canvas-3d');
@@ -1997,7 +2108,36 @@ function toggleViewMode() {
     btn.textContent = '3D';
   }
 }
+function toggleTinyMode() {
+  const canvas2d = document.getElementById('game-canvas');
+  const canvas3d = document.getElementById('game-canvas-3d');
+  const canvasTiny = document.getElementById('game-canvas-tiny');
+  const viewButton = document.getElementById('view-toggle');
+  const tinyButton = document.getElementById('tiny-toggle');
+  isTinyMode = !isTinyMode;
+  if (isTinyMode) {
+    canvas2d.style.display = 'none';
+    canvas3d.style.display = 'none';
+    canvasTiny.style.display = 'block';
+    viewButton.style.display = 'none';
+    tinyButton.textContent = 'STANDARD';
+    document.body.classList.add('mode-tiny');
+  } else {
+    canvasTiny.style.display = 'none';
+    viewButton.style.display = 'block';
+    tinyButton.textContent = 'TINY MODE';
+    document.body.classList.remove('mode-tiny');
+    if (is3dMode) {
+      canvas3d.style.display = 'block';
+      render3d();
+    } else {
+      canvas2d.style.display = 'block';
+      renderCanvas();
+    }
+  }
+}
 document.getElementById('view-toggle').addEventListener('click', toggleViewMode);
+document.getElementById('tiny-toggle').addEventListener('click', toggleTinyMode);
 document.getElementById('no-damage-quick-toggle').addEventListener('click', () => {
   if (!initialized) return;
   const enabled = !wasm.no_damage_mode_roguelike();
