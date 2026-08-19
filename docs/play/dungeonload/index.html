@@ -253,6 +253,113 @@ html, body {
   transition: background 0.2s;
 }
 #title-screen button:active { background: rgba(0, 255, 255, 0.2); }
+#town-screen {
+  position: fixed;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 95;
+  padding: 24px 16px;
+  color: #ffe6ad;
+  background:
+    linear-gradient(rgba(8, 12, 28, 0.3), rgba(8, 6, 18, 0.82)),
+    radial-gradient(circle at 50% 24%, rgba(255, 180, 90, 0.28), transparent 25%),
+    linear-gradient(180deg, #253c66 0%, #121a36 46%, #090713 100%);
+  overflow-y: auto;
+}
+#town-screen.active { display: flex; }
+#town-screen h2 {
+  margin: 0;
+  color: #ffd47a;
+  font-size: clamp(1.5em, 5vw, 2.4em);
+  text-shadow: 0 0 14px rgba(255, 170, 70, 0.75);
+}
+#town-screen > p { margin: 6px 0 18px; color: #d5c8ad; font-size: 0.85em; }
+#town-square {
+  width: min(620px, 94vw);
+  min-height: 260px;
+  padding: 26px 16px 18px;
+  border: 1px solid rgba(255, 190, 100, 0.5);
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, rgba(255, 205, 120, 0.08), transparent 35%),
+    rgba(8, 8, 20, 0.54);
+  box-shadow: inset 0 0 28px rgba(255, 170, 80, 0.08), 0 12px 40px rgba(0,0,0,0.45);
+}
+#town-locations {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.town-location {
+  min-height: 104px;
+  padding: 10px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #ffe9b7;
+  background: rgba(18, 20, 42, 0.8);
+  border: 1px solid rgba(255, 190, 100, 0.42);
+  border-radius: 8px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+}
+.town-location:hover, .town-location:focus-visible {
+  transform: translateY(-4px);
+  background: rgba(100, 65, 45, 0.65);
+  border-color: #ffd47a;
+  outline: none;
+}
+.town-location.selected { animation: town-location-select 0.36s ease; }
+.town-location img { width: 48px; height: 48px; object-fit: contain; filter: sepia(0.25) saturate(1.4) drop-shadow(0 0 5px rgba(255,190,100,0.55)); }
+.town-location span { font-size: 0.72em; letter-spacing: 0.04em; }
+@keyframes town-location-select {
+  50% { transform: translateY(-8px) scale(1.08); filter: brightness(1.35); }
+}
+#town-panel {
+  width: min(620px, 94vw);
+  margin-top: 14px;
+  padding: 14px 16px;
+  display: none;
+  border: 1px solid rgba(255, 190, 100, 0.62);
+  border-radius: 8px;
+  background: rgba(8, 8, 20, 0.9);
+  color: #e8dcc6;
+}
+#town-panel.active { display: block; animation: town-panel-in 0.22s ease-out; }
+@keyframes town-panel-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.town-panel-title { color: #ffd47a; font-size: 1.1em; margin-bottom: 8px; }
+.town-panel-copy { color: #bdb4a5; font-size: 0.78em; line-height: 1.5; }
+.dungeon-options { display: grid; gap: 8px; margin-top: 12px; }
+.dungeon-option {
+  width: 100%;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #ffe9b7;
+  text-align: left;
+  background: rgba(35, 36, 66, 0.86);
+  border: 1px solid rgba(255, 190, 100, 0.4);
+  border-radius: 5px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.dungeon-option:hover { border-color: #ffd47a; background: rgba(88, 64, 54, 0.78); }
+.dungeon-option small { color: #c1b49f; font-size: 0.72em; }
+.town-close { margin-top: 12px; padding: 7px 18px; color: #ffd47a; background: transparent; border: 1px solid rgba(255,190,100,0.55); border-radius: 4px; font-family: inherit; cursor: pointer; }
+@media (max-width: 460px) {
+  #town-locations { gap: 7px; }
+  .town-location { min-height: 88px; }
+  .town-location img { width: 38px; height: 38px; }
+  .town-location span { font-size: 0.62em; }
+}
 #title-monster-stream {
   width: min(520px, 88vw);
   height: 76px;
@@ -953,6 +1060,39 @@ body.controls-swapped #movement-joystick {
   <button id="btn-start">▶ LOAD</button>
   <div id="title-monster-stream" aria-hidden="true"><div id="title-monster-track"></div></div>
 </div>
+<div id="town-screen" aria-label="Town hub">
+  <h2>ASHENHOLD</h2>
+  <p>Choose a place to prepare for your next expedition.</p>
+  <div id="town-square">
+    <div id="town-locations">
+      <button class="town-location" data-location="blacksmith" type="button">
+        <img src="../roguelike/icons/lorc/anvil.png" alt="">
+        <span>BLACKSMITH</span>
+      </button>
+      <button class="town-location" data-location="guild" type="button">
+        <img src="../roguelike/icons/sbed/helmet.png" alt="">
+        <span>GUILD</span>
+      </button>
+      <button class="town-location" data-location="church" type="button">
+        <img src="../roguelike/icons/delapouite/church.png" alt="">
+        <span>CHURCH</span>
+      </button>
+      <button class="town-location" data-location="items" type="button">
+        <img src="../roguelike/icons/sbed/vial.png" alt="">
+        <span>ITEMS</span>
+      </button>
+      <button class="town-location" data-location="colosseum" type="button">
+        <img src="../roguelike/icons/sbed/arena.png" alt="">
+        <span>COLOSSEUM</span>
+      </button>
+      <button class="town-location" data-location="dungeon" type="button">
+        <img src="../roguelike/icons/delapouite/gate.png" alt="">
+        <span>DUNGEON</span>
+      </button>
+    </div>
+  </div>
+  <div id="town-panel" aria-live="polite"></div>
+</div>
 <div id="game-over">
   <h2>💀 GAME OVER 💀</h2>
   <p id="game-over-msg">Cartridge analysis failed.</p>
@@ -1157,6 +1297,61 @@ function updatePitFallTransition() {
   window.setTimeout(() => overlay.classList.remove('active'), 650);
 }
 
+function showTownPanel(location) {
+  const panel = document.getElementById('town-panel');
+  if (!panel) return;
+  const content = {
+    blacksmith: ['BLACKSMITH', 'Repair weapons and prepare new cartridges.'],
+    guild: ['GUILD', 'Review expeditions, enemy records, and dungeon requests.'],
+    church: ['CHURCH', 'Restore your spirit before the next expedition.'],
+    items: ['ITEMS', 'Check potions, materials, and recovered loot.'],
+    colosseum: ['COLOSSEUM', 'Challenge combat trials. This facility is under construction.'],
+  }[location];
+  if (location === 'dungeon') {
+    panel.innerHTML = `
+      <div class="town-panel-title">DUNGEON SELECT</div>
+      <div class="town-panel-copy">Choose a dungeon cartridge to load.</div>
+      <div class="dungeon-options">
+        <button class="dungeon-option" data-dungeon="grass-cave" type="button">
+          <span>GRASS CAVE<br><small>F1 - F10</small></span><small>GENERATION COST: 20</small>
+        </button>
+        <button class="dungeon-option" data-dungeon="abandoned-mine" type="button">
+          <span>ABANDONED MINE<br><small>F11 - F20</small></span><small>GENERATION COST: 35</small>
+        </button>
+        <button class="dungeon-option" data-dungeon="ancient-ruins" type="button">
+          <span>ANCIENT RUINS<br><small>F21 - F30</small></span><small>GENERATION COST: 60</small>
+        </button>
+      </div>`;
+  } else if (content) {
+    panel.innerHTML = `
+      <div class="town-panel-title">${content[0]}</div>
+      <div class="town-panel-copy">${content[1]}</div>
+      <button class="town-close" type="button">CLOSE</button>`;
+  }
+  panel.classList.remove('active');
+  void panel.offsetWidth;
+  panel.classList.add('active');
+}
+
+function enterDungeon() {
+  document.getElementById('town-screen')?.classList.remove('active');
+  document.getElementById('nav-bar').style.display = 'flex';
+  document.getElementById('mobile-action-pad').style.display = 'flex';
+  document.getElementById('mobile-action-buttons').style.display = 'flex';
+  document.getElementById('movement-joystick').style.display = 'flex';
+  document.getElementById('game-info-panel').style.display = 'block';
+  document.getElementById('game-top-info').style.display = 'flex';
+  document.getElementById('attack-button').style.display = 'block';
+  document.getElementById('jump-button').style.display = 'block';
+  document.getElementById('weapon-prev-button').style.display = 'block';
+  document.getElementById('weapon-next-button').style.display = 'block';
+  document.getElementById('ui-toggle-btn').classList.add('show');
+  const isLandscape = window.innerHeight < window.innerWidth;
+  if (isLandscape) document.getElementById('ui-upper').style.display = 'flex';
+  lastPitFallEvent = 0;
+  wasm.start_game_roguelike();
+}
+
 async function start() {
   try {
     await init();
@@ -1193,45 +1388,46 @@ async function start() {
 
     document.getElementById('btn-start').addEventListener('click', () => {
       document.getElementById('title-screen').style.display = 'none';
-      document.getElementById('nav-bar').style.display = 'flex';
-      document.getElementById('mobile-action-pad').style.display = 'flex';
-      document.getElementById('mobile-action-buttons').style.display = 'flex';
-      document.getElementById('movement-joystick').style.display = 'flex';
-      document.getElementById('game-info-panel').style.display = 'block';
-      document.getElementById('game-top-info').style.display = 'flex';
-      document.getElementById('attack-button').style.display = 'block';
-      document.getElementById('jump-button').style.display = 'block';
-      document.getElementById('weapon-prev-button').style.display = 'block';
-      document.getElementById('weapon-next-button').style.display = 'block';
-      document.getElementById('ui-toggle-btn').classList.add('show');
+      document.getElementById('town-screen').classList.add('active');
+    });
 
-      const isLandscape = window.innerHeight < window.innerWidth;
-      if (isLandscape) {
-        const uiUpper = document.getElementById('ui-upper');
-        if (uiUpper) uiUpper.style.display = 'flex';
+    document.querySelectorAll('.town-location').forEach(button => {
+      button.addEventListener('click', () => {
+        button.classList.remove('selected');
+        void button.offsetWidth;
+        button.classList.add('selected');
+        showTownPanel(button.dataset.location);
+      });
+    });
+    document.getElementById('town-panel').addEventListener('click', event => {
+      const dungeonButton = event.target.closest('[data-dungeon]');
+      if (dungeonButton) {
+        enterDungeon();
+        return;
       }
-
-      lastPitFallEvent = 0;
-      wasm.start_game_roguelike();
+      if (event.target.closest('.town-close')) {
+        document.getElementById('town-panel').classList.remove('active');
+      }
     });
 
     document.getElementById('btn-retry').addEventListener('click', () => {
       document.getElementById('game-over').style.display = 'none';
       document.getElementById('game-over').classList.remove('victory');
-      document.getElementById('mobile-action-pad').style.display = 'flex';
-      document.getElementById('mobile-action-buttons').style.display = 'flex';
-      document.getElementById('movement-joystick').style.display = 'flex';
-      document.getElementById('game-info-panel').style.display = 'block';
-      document.getElementById('game-top-info').style.display = 'flex';
-      document.getElementById('attack-button').style.display = 'block';
-      document.getElementById('jump-button').style.display = 'block';
-      document.getElementById('weapon-prev-button').style.display = 'block';
-      document.getElementById('weapon-next-button').style.display = 'block';
-      document.getElementById('ui-toggle-btn').classList.add('show');
+      document.getElementById('mobile-action-pad').style.display = 'none';
+      document.getElementById('mobile-action-buttons').style.display = 'none';
+      document.getElementById('movement-joystick').style.display = 'none';
+      document.getElementById('game-info-panel').style.display = 'none';
+      document.getElementById('game-top-info').style.display = 'none';
+      document.getElementById('attack-button').style.display = 'none';
+      document.getElementById('jump-button').style.display = 'none';
+      document.getElementById('weapon-prev-button').style.display = 'none';
+      document.getElementById('weapon-next-button').style.display = 'none';
+      document.getElementById('ui-toggle-btn').classList.remove('show');
       lastPitFallEvent = 0;
       wasm.init_roguelike();
       ui.applyGamePalette();
-      wasm.start_game_roguelike();
+      document.getElementById('town-panel').classList.remove('active');
+      document.getElementById('town-screen').classList.add('active');
     });
 
     const joystick = document.getElementById('movement-joystick');
