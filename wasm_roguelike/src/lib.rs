@@ -27,6 +27,24 @@ pub fn start_game_roguelike() {
 }
 
 #[wasm_bindgen]
+pub fn set_run_seed_roguelike(seed: u32) {
+    ROGUELIKE_STATE.with(|s| {
+        if let Some(g) = s.borrow_mut().as_mut() {
+            g.set_run_seed(seed);
+        }
+    });
+}
+
+#[wasm_bindgen]
+pub fn set_start_depth_roguelike(depth: u32) {
+    ROGUELIKE_STATE.with(|s| {
+        if let Some(g) = s.borrow_mut().as_mut() {
+            g.set_start_depth(depth);
+        }
+    });
+}
+
+#[wasm_bindgen]
 pub fn move_roguelike(action: i32) {
     ROGUELIKE_STATE.with(|s| {
         if let Some(g) = s.borrow_mut().as_mut() {

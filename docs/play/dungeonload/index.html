@@ -381,6 +381,30 @@ html, body {
 }
 .dungeon-option:hover { border-color: #ffd47a; background: rgba(88, 64, 54, 0.78); }
 .dungeon-option small { color: #c1b49f; font-size: 0.72em; }
+.dungeon-seed-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+.dungeon-seed-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #c1b49f;
+  font-size: 0.72em;
+}
+.dungeon-seed-controls input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 8px;
+  color: #ffe9b7;
+  background: rgba(12, 14, 30, 0.9);
+  border: 1px solid rgba(255, 190, 100, 0.45);
+  border-radius: 4px;
+  font: inherit;
+}
+.dungeon-seed-controls input:focus { outline: 1px solid #ffd47a; border-color: #ffd47a; }
 .town-close { margin-top: 12px; padding: 7px 18px; color: #ffd47a; background: transparent; border: 1px solid rgba(255,190,100,0.55); border-radius: 4px; font-family: inherit; cursor: pointer; }
 .party-battle-screen {
   position: fixed;
@@ -1292,7 +1316,7 @@ body.controls-swapped #movement-joystick {
   <span class="sh-arrow sh-right">▶</span>
 </div>
 <script type="module">
-import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=31&pit=10';
+import init, * as wasm from './wasm/wasm_dungeonload.js?canvas-scale=1&ui=32&pit=10';
 import { FontLoader, InputManager } from '../../engine.js';
 import { createDungeonLoadUi } from './ui.js?overlay=16';
 window.wasm = wasm;
@@ -1349,6 +1373,8 @@ const audio = { ensure: () => {}, play: () => {}, startAmbient: () => {}, setAmb
 const input = new InputManager({ swipeMin: 35 });
 let initialized = false;
 let lastPitFallEvent = 0;
+let selectedSoloSeed = 1;
+let selectedSoloFloor = 1;
 let partyBattleActive = false;
 const partyBattleState = {
   selected: 0,
@@ -1503,7 +1529,15 @@ function showTownPanel(location) {
   if (location === 'dungeon') {
     panel.innerHTML = `
       <div class="town-panel-title">DUNGEON SELECT</div>
-      <div class="town-panel-copy">Choose a dungeon cartridge to load.</div>
+      <div class="town-panel-copy">Choose a dungeon cartridge, seed, and starting floor.</div>
+      <div class="dungeon-seed-controls">
+        <label>SEED
+          <input id="dungeon-seed-input" type="number" min="1" max="4294967295" step="1" value="1" inputmode="numeric">
+        </label>
+        <label>START FLOOR
+          <input id="dungeon-floor-input" type="number" min="1" max="30" step="1" value="1" inputmode="numeric">
+        </label>
+      </div>
       <div class="dungeon-options">
         <button class="dungeon-option" data-dungeon="party" type="button">
           <span>PARTY DUNGEON<br><small>COMMAND BATTLE</small></span><small>5 vs 9 GRID</small>
@@ -1546,6 +1580,12 @@ function enterDungeon() {
   const isLandscape = window.innerHeight < window.innerWidth;
   if (isLandscape) document.getElementById('ui-upper').style.display = 'flex';
   lastPitFallEvent = 0;
+  if (typeof wasm.set_run_seed_roguelike === 'function') {
+    wasm.set_run_seed_roguelike(selectedSoloSeed);
+  }
+  if (typeof wasm.set_start_depth_roguelike === 'function') {
+    wasm.set_start_depth_roguelike(selectedSoloFloor);
+  }
   wasm.start_game_roguelike();
 }
 
@@ -1605,6 +1645,10 @@ async function start() {
           enterPartyDungeon();
           return;
         }
+        const seedInput = document.getElementById('dungeon-seed-input');
+        const floorInput = document.getElementById('dungeon-floor-input');
+        selectedSoloSeed = Math.trunc(Math.max(1, Math.min(0xFFFF_FFFF, Number(seedInput?.value) || 1)));
+        selectedSoloFloor = Math.trunc(Math.max(1, Math.min(30, Number(floorInput?.value) || 1)));
         const panel = document.getElementById('town-panel');
         panel.classList.add('launching');
         panel.innerHTML = '<div class="town-loading">CARTRIDGE LOADING...</div>';

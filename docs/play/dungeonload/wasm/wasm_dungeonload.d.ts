@@ -87,6 +87,10 @@ export function set_game_palette_roguelike(value: number): void;
 
 export function set_no_damage_mode_roguelike(enabled: boolean): void;
 
+export function set_run_seed_roguelike(seed: number): void;
+
+export function set_start_depth_roguelike(depth: number): void;
+
 export function start_game_roguelike(): void;
 
 export function tick_roguelike(ts: number): void;
@@ -150,6 +154,8 @@ export interface InitOutput {
     readonly set_enemy_attack_interval_scale_roguelike: (a: number) => void;
     readonly set_game_palette_roguelike: (a: number) => void;
     readonly set_no_damage_mode_roguelike: (a: number) => void;
+    readonly set_run_seed_roguelike: (a: number) => void;
+    readonly set_start_depth_roguelike: (a: number) => void;
     readonly start_game_roguelike: () => void;
     readonly tick_roguelike: (a: number) => void;
     readonly unequip_accessory_roguelike: () => void;

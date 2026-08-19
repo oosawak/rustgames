@@ -379,6 +379,22 @@ export function set_no_damage_mode_roguelike(enabled) {
     wasm.set_no_damage_mode_roguelike(enabled);
 }
 
+/**
+ * @param {number} seed
+ */
+export function set_run_seed_roguelike(seed) {
+    _assertNum(seed);
+    wasm.set_run_seed_roguelike(seed);
+}
+
+/**
+ * @param {number} depth
+ */
+export function set_start_depth_roguelike(depth) {
+    _assertNum(depth);
+    wasm.set_start_depth_roguelike(depth);
+}
+
 export function start_game_roguelike() {
     wasm.start_game_roguelike();
 }

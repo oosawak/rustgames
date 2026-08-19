@@ -171,6 +171,8 @@ impl Equipment {
 pub struct RoguelikeGame {
     pub scene: RogueScene,
     pub depth: u32,
+    run_seed: u32,
+    start_depth: u32,
     pub level: u32,
     pub hp: u32,
     pub max_hp: u32,
@@ -311,6 +313,19 @@ const ENEMY_MASTER: &[EnemyData] = &[
 ];
 
 impl RoguelikeGame {
+    pub fn set_run_seed(&mut self, seed: u32) {
+        self.run_seed = seed.max(1);
+    }
+
+    pub fn set_start_depth(&mut self, depth: u32) {
+        self.start_depth = depth.clamp(1, 30);
+    }
+
+    fn floor_seed(&self, depth: u32) -> u32 {
+        self.run_seed
+            .wrapping_add(depth.wrapping_mul(0x9E37_79B9))
+    }
+
     fn is_ranged_enemy_type(enemy_type: u32) -> bool {
         // Bats, spiders, zombie warriors, priests, and wyverns stay back and fire.
         matches!(enemy_type, 3 | 10 | 16 | 22 | 28)
@@ -387,6 +402,8 @@ impl RoguelikeGame {
         Self {
             scene: RogueScene::Title,
             depth: 1,
+            run_seed: 1,
+            start_depth: 1,
             level: 1,
             hp: 50,
             max_hp: 50,
@@ -437,7 +454,7 @@ impl RoguelikeGame {
     fn spawn_enemies(&mut self, is_boss_floor: bool) {
         self.enemies.clear();
         self.enemy_shake.clear();
-        let mut rng = LcgRng::new(self.depth.wrapping_mul(9999));
+        let mut rng = LcgRng::new(self.floor_seed(self.depth).wrapping_add(9999));
         let mut boss_spawned = false;
 
         // 各部屋に複数の敵を配置（階段のある部屋は除外）
@@ -709,9 +726,20 @@ impl RoguelikeGame {
 
 
     pub fn start_game(&mut self) {
+        self.depth = self.start_depth.clamp(1, 30);
+        self.floor_states = vec![None; 31];
+        let (map_width, map_height) = Self::calc_map_size(self.depth);
+        let (map, rooms) = Self::generate_dungeon(map_width, map_height, self.floor_seed(self.depth));
+        self.map = map;
+        self.map_width = map_width;
+        self.map_height = map_height;
+        self.rooms = rooms;
+        self.visited = vec![vec![false; map_width as usize]; map_height as usize];
+
         self.scene = RogueScene::Playing;
         self.messages.clear();
         self.messages.push("Game started!".to_string());
+        self.messages.push(format!("Seed {} / Floor F{}", self.run_seed, self.depth));
         self.projectiles.clear();
         self.attack_effects.clear();
         self.damage_numbers.clear();
@@ -1906,7 +1934,7 @@ impl RoguelikeGame {
             self.visited = saved.visited;
         } else {
             let (map_width, map_height) = Self::calc_map_size(depth);
-            let (map, rooms) = Self::generate_dungeon(map_width, map_height, depth);
+            let (map, rooms) = Self::generate_dungeon(map_width, map_height, self.floor_seed(depth));
             self.map = map;
             self.rooms = rooms;
             self.visited = vec![vec![false; map_width as usize]; map_height as usize];
@@ -1927,7 +1955,7 @@ impl RoguelikeGame {
             return;
         }
 
-        let mut rng = LcgRng::new(depth.wrapping_mul(7919).wrapping_add(self.player_x as u32));
+        let mut rng = LcgRng::new(self.floor_seed(depth).wrapping_add(7919).wrapping_add(self.player_x as u32));
         let room_index = (rng.next() as usize) % self.rooms.len();
         let room = self.rooms[room_index].clone();
 
