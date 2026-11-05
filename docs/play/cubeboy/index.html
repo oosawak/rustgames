@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>CubeBoy – Rust + wgpu WASM</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="loading">
+  <div>
+    <div class="spin"></div>
+    <p style="margin-top:14px">LOADING wgpu WebGL…</p>
+  </div>
+</div>
+
+<div id="hud">
+  <span>⬜ CubeBoy</span>
+  <span>ORBS <b id="orbs-val">0/3</b></span>
+  <span style="margin-left:auto">FPS <b id="fps-val">--</b></span>
+</div>
+
+<div id="canvas-wrap">
+  <canvas id="cubeboy-canvas" width="1024" height="1024"></canvas>
+</div>
+
+<div class="overlay" id="title-screen">
+  <h1>CubeBoy</h1>
+  <p class="sub">オーブを3つ集めるとボス出現</p>
+  <p class="sub">最初の部屋の出口へ逃げ切れ</p>
+  <button id="btn-start">▶ START</button>
+  <div class="key-hint">
+    移動：←→↑↓ / ジャンプ：A（Space） / ダッシュ：B（X）<br>
+    ダッシュを空中で使うとオーブを拾える
+  </div>
+</div>
+
+<div class="overlay hidden" id="over-screen">
+  <p class="result-title">GAME OVER</p>
+  <button id="btn-retry-over">もう一度 ↺</button>
+</div>
+
+<div class="overlay hidden" id="clear-screen">
+  <p class="result-title">GAME CLEAR!</p>
+  <p class="sub">CONGRATULATIONS!</p>
+  <button id="btn-retry-clear">もう一度 ↺</button>
+</div>
+
+<div id="touch">
+  <div class="grp">
+    <button data-bit="1">◀</button>
+    <button data-bit="2">▶</button>
+    <button data-bit="4">▲</button>
+    <button data-bit="8">▼</button>
+  </div>
+  <div class="grp">
+    <button data-bit="32">B</button>
+    <button data-bit="16">A</button>
+  </div>
+</div>
+
+<script type="module">
+import init, * as wasm from './wasm/wasm_app.js';
+
+// ── Audio (simple beeps, same spirit as the JS version) ─────────────────────
+let actx = null;
+function beep(freq, dur, type) {
+  try {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') actx.resume();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.05, actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + dur);
+    o.connect(g); g.connect(actx.destination);
+    o.start(); o.stop(actx.currentTime + dur);
+  } catch (e) {}
+}
+const BEEPS = { 1: [523, 0.05, 'square'], 2: [300, 0.05, 'sawtooth'], 3: [880, 0.06, 'square'], 4: [140, 0.15, 'sawtooth'] };
+
+// ── Input ────────────────────────────────────────────────────────────────────
+let mask = 0;
+const KEYMAP = {
+  ArrowLeft: 1, KeyA: 1, ArrowRight: 2, KeyD: 2,
+  ArrowUp: 4, KeyW: 4, ArrowDown: 8, KeyS: 8,
+  Space: 16, KeyZ: 16, Enter: 16,
+  KeyX: 32, ShiftLeft: 32, ShiftRight: 32,
+};
+function applyMask() { wasm.set_input_cubeboy(mask); }
+document.addEventListener('keydown', e => {
+  const bit = KEYMAP[e.code];
+  if (bit) { e.preventDefault(); mask |= bit; applyMask(); }
+});
+document.addEventListener('keyup', e => {
+  const bit = KEYMAP[e.code];
+  if (bit) { e.preventDefault(); mask &= ~bit; applyMask(); }
+});
+window.addEventListener('pointerdown', () => { wasm.press_cubeboy(); });
+document.querySelectorAll('#touch button').forEach(btn => {
+  const bit = parseInt(btn.dataset.bit, 10);
+  const on = e => { e.preventDefault(); mask |= bit; applyMask(); if (bit === 16) wasm.press_cubeboy(); };
+  const off = e => { e.preventDefault(); mask &= ~bit; applyMask(); };
+  btn.addEventListener('pointerdown', on);
+  btn.addEventListener('pointerup', off);
+  btn.addEventListener('pointerleave', off);
+  btn.addEventListener('pointercancel', off);
+});
+
+// ── Overlays ─────────────────────────────────────────────────────────────────
+const titleScreen = document.getElementById('title-screen');
+const overScreen  = document.getElementById('over-screen');
+const clearScreen = document.getElementById('clear-screen');
+const orbsVal = document.getElementById('orbs-val');
+const fpsVal  = document.getElementById('fps-val');
+const loadingEl = document.getElementById('loading');
+
+let pendingStart = false;
+function startGame() { pendingStart = true; }
+document.getElementById('btn-start').addEventListener('click', startGame);
+document.getElementById('btn-retry-over').addEventListener('click', startGame);
+document.getElementById('btn-retry-clear').addEventListener('click', startGame);
+
+// scene: 0=title 1=main 2=overseq 3=over 4=clear
+let lastScene = -1;
+function loop(ts) {
+  if (pendingStart) {
+    wasm.start_cubeboy();
+    if (wasm.scene_cubeboy() === 1) pendingStart = false;
+  }
+  wasm.tick_cubeboy(ts);
+  const ev = wasm.audio_event_cubeboy();
+  if (ev && BEEPS[ev]) beep(...BEEPS[ev]);
+
+  const scene = wasm.scene_cubeboy();
+  if (scene === 1 || scene === 2) orbsVal.textContent = wasm.orbs_cubeboy() + '/3';
+  if (scene !== lastScene) {
+    lastScene = scene;
+    titleScreen.classList.toggle('hidden', scene !== 0);
+    overScreen.classList.toggle('hidden', scene !== 3);
+    clearScreen.classList.toggle('hidden', scene !== 4);
+  }
+  requestAnimationFrame(loop);
+}
+
+// FPS display
+let fpsPrev = 0, fpsCount = 0;
+function fpsLoop(ts) {
+  if (fpsPrev > 0) {
+    fpsCount++;
+    if (ts - fpsPrev >= 500) {
+      fpsVal.textContent = Math.round(fpsCount * 1000 / (ts - fpsPrev));
+      fpsPrev = ts; fpsCount = 0;
+    }
+  } else fpsPrev = ts;
+  requestAnimationFrame(fpsLoop);
+}
+
+async function main() {
+  await init();
+  await wasm.init_cubeboy('cubeboy-canvas');
+  applyMask();
+  loadingEl.style.display = 'none';
+  requestAnimationFrame(loop);
+  requestAnimationFrame(fpsLoop);
+}
+main().catch(err => {
+  loadingEl.innerHTML = `<p style="color:#f44">ERROR: ${err}</p>`;
+});
+</script>
+</body>
+</html>

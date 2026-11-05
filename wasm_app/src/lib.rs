@@ -26,6 +26,10 @@ pub mod penpen;
 pub mod penpen2;
 pub mod animal_puzzle;
 pub mod vrm;
+pub mod render2d;
+pub mod rng;
+pub mod cubeboy;
+pub mod lineboy;
 
 use wasm_bindgen::prelude::*;
 use std::cell::RefCell;
@@ -487,4 +491,94 @@ pub fn debug_log_clear_msx() {
             m.bus.debug_log.clear();
         }
     });
+}
+
+// ─── CubeBoy（2D プラットフォーマー） ───────────────────────────────────────
+
+thread_local! {
+    static CUBEBOY: RefCell<Option<cubeboy::CubeBoyGame>> = RefCell::new(None);
+}
+
+#[wasm_bindgen]
+pub async fn init_cubeboy(canvas_id: &str) {
+    console_error_panic_hook::set_once();
+    match cubeboy::CubeBoyGame::new(canvas_id).await {
+        Ok(g) => CUBEBOY.with(|s| *s.borrow_mut() = Some(g)),
+        Err(e) => web_sys::console::error_1(&e.into()),
+    }
+}
+
+#[wasm_bindgen] pub fn tick_cubeboy(ts: f64) { CUBEBOY.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.tick(ts);}}); }
+#[wasm_bindgen] pub fn start_cubeboy() { CUBEBOY.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.start();}}); }
+#[wasm_bindgen] pub fn press_cubeboy() { CUBEBOY.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.press_a();}}); }
+/// 入力マスク: 1=左 2=右 4=上 8=下 16=A(ジャンプ) 32=B(ダッシュ)
+#[wasm_bindgen] pub fn set_input_cubeboy(mask: u32) {
+    CUBEBOY.with(|s| {
+        if let Some(g) = s.borrow_mut().as_mut() {
+            g.input.left = mask & 1 != 0;
+            g.input.right = mask & 2 != 0;
+            g.input.up = mask & 4 != 0;
+            g.input.down = mask & 8 != 0;
+            g.input.a = mask & 16 != 0;
+            g.input.b = mask & 32 != 0;
+        }
+    });
+}
+#[wasm_bindgen] pub fn scene_cubeboy() -> u8 { CUBEBOY.with(|s| s.borrow().as_ref().map(|g| g.scene_u8()).unwrap_or(0)) }
+#[wasm_bindgen] pub fn orbs_cubeboy() -> u32 { CUBEBOY.with(|s| s.borrow().as_ref().map(|g| g.collected_count()).unwrap_or(0)) }
+#[wasm_bindgen] pub fn audio_event_cubeboy() -> u8 {
+    CUBEBOY.with(|s| {
+        if let Some(g) = s.borrow_mut().as_mut() {
+            let ev = g.audio_event;
+            g.audio_event = 0;
+            ev
+        } else {
+            0
+        }
+    })
+}
+
+// ─── LINE BOY（2D 線画プラットフォーマー） ──────────────────────────────────
+
+thread_local! {
+    static LINEBOY: RefCell<Option<lineboy::LineBoyGame>> = RefCell::new(None);
+}
+
+#[wasm_bindgen]
+pub async fn init_lineboy(canvas_id: &str) {
+    console_error_panic_hook::set_once();
+    match lineboy::LineBoyGame::new(canvas_id).await {
+        Ok(g) => LINEBOY.with(|s| *s.borrow_mut() = Some(g)),
+        Err(e) => web_sys::console::error_1(&e.into()),
+    }
+}
+
+#[wasm_bindgen] pub fn tick_lineboy(ts: f64) { LINEBOY.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.tick(ts);}}); }
+#[wasm_bindgen] pub fn press_lineboy() { LINEBOY.with(|s|{if let Some(g)=s.borrow_mut().as_mut(){g.press_a();}}); }
+/// 入力マスク: 1=左 2=右 16=A(ジャンプ)
+#[wasm_bindgen] pub fn set_input_lineboy(mask: u32) {
+    LINEBOY.with(|s| {
+        if let Some(g) = s.borrow_mut().as_mut() {
+            g.input.left = mask & 1 != 0;
+            g.input.right = mask & 2 != 0;
+            g.input.a = mask & 16 != 0;
+        }
+    });
+}
+#[wasm_bindgen] pub fn scene_lineboy() -> u8 { LINEBOY.with(|s| s.borrow().as_ref().map(|g| g.scene_u8()).unwrap_or(0)) }
+#[wasm_bindgen] pub fn score_lineboy() -> u32 { LINEBOY.with(|s| s.borrow().as_ref().map(|g| g.score()).unwrap_or(0)) }
+#[wasm_bindgen] pub fn score_total_lineboy() -> u32 { LINEBOY.with(|s| s.borrow().as_ref().map(|g| g.score_total()).unwrap_or(0)) }
+#[wasm_bindgen] pub fn world_lineboy() -> u32 { LINEBOY.with(|s| s.borrow().as_ref().map(|g| g.world_idx()).unwrap_or(0)) }
+#[wasm_bindgen] pub fn boss_hp_lineboy() -> i32 { LINEBOY.with(|s| s.borrow().as_ref().map(|g| g.boss_hp()).unwrap_or(0)) }
+#[wasm_bindgen] pub fn boss_active_lineboy() -> bool { LINEBOY.with(|s| s.borrow().as_ref().map(|g| g.boss_active()).unwrap_or(false)) }
+#[wasm_bindgen] pub fn audio_event_lineboy() -> u8 {
+    LINEBOY.with(|s| {
+        if let Some(g) = s.borrow_mut().as_mut() {
+            let ev = g.audio_event;
+            g.audio_event = 0;
+            ev
+        } else {
+            0
+        }
+    })
 }

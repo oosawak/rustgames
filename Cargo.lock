@@ -1923,7 +1923,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "wasm_roguelike"
+name = "wasm_dungeonload"
 version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
@@ -1936,7 +1936,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "wasm_dungeonload"
+name = "wasm_roguelike"
 version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
